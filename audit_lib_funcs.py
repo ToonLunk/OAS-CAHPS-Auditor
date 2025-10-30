@@ -488,7 +488,7 @@ def build_report(
     report_lines.append(f"  • Non-Reported entries: {non_reported}")
     report_lines.append(f"  • Rows with CMS INDICATOR = 1: {cms1_count}")
     report_lines.append(
-        f"  • Estimated Selection %: {math.ceil(eligible_patients/sample_size)}%"
+        f"  • Estimated Selection %: ~{math.ceil((sample_size/eligible_patients) * 100)}%"
     )
     report_lines.append("")
 
