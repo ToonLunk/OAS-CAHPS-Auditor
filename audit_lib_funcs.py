@@ -486,7 +486,9 @@ def build_report(
     report_lines.append(f"  • Total of E/M: {total_em}")
     report_lines.append(f"  • Non-Reported entries: {non_reported}")
     report_lines.append(f"  • Rows with CMS INDICATOR = 1: {cms1_count}")
-    report_lines.append(f"  • Estimated Selection %: {math.ceil()}")
+    report_lines.append(
+        f"  • Estimated Selection %: {math.ceil(eligible_patients/sample_size)}%"
+    )
     report_lines.append("")
 
     # VALIDATION CHECKS
