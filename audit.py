@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from numpy import save
 import openpyxl
 import os
 import re
@@ -8,7 +7,7 @@ import uuid
 from audit_lib_funcs import *
 
 # versioning
-version = "0.32-alpha"
+version = "0.34-alpha"
 
 # UUID
 audit_id = uuid.uuid4().hex
@@ -69,6 +68,10 @@ def audit_excel(file_path):
         exit(2)
 
     pat_col = mapping["PATIENT NAME"]
+    addr1_col = mapping["ADDRESS1"]
+    city_col = mapping["CITY"]
+    state_col = mapping["STATE"]
+    zip_col = mapping["ZIP"]
     tel_col = mapping["TELEPHONE"]
     svc_col = mapping["SERVICE DATE"]
     gender_col = mapping["GENDER"]

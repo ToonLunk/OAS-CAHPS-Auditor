@@ -6,6 +6,7 @@ import datetime
 from openpyxl.worksheet.worksheet import Worksheet
 import math
 
+
 # --- CPT ineligibility rules
 INVALID_CPT_SET = {
     "11042",
@@ -374,6 +375,10 @@ def find_frame_inel_count(
 def check_req_headers(headers):
     required_names = [
         "PATIENT NAME",
+        "ADDRESS1",
+        "CITY",
+        "STATE",
+        "ZIP",
         "TELEPHONE",
         "SERVICE DATE",
         "GENDER",
