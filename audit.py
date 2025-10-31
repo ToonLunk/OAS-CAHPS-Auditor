@@ -8,7 +8,7 @@ import uuid
 from audit_lib_funcs import *
 
 # versioning
-version = "0.3.21-alpha"
+version = "0.32-alpha"
 
 # UUID
 audit_id = uuid.uuid4().hex

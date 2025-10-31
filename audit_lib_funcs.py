@@ -487,9 +487,8 @@ def build_report(
     report_lines.append(f"  • Total of E/M: {total_em}")
     report_lines.append(f"  • Non-Reported entries: {non_reported}")
     report_lines.append(f"  • Rows with CMS INDICATOR = 1: {cms1_count}")
-    report_lines.append(
-        f"  • Estimated Selection %: ~{math.ceil((sample_size/eligible_patients) * 100)}%"
-    )
+    estimated_percentage = math.ceil((sample_size / eligible_patients) * 100)
+    report_lines.append(f"  • Estimated Selection %: ~{estimated_percentage}%")
     report_lines.append("")
 
     # VALIDATION CHECKS
@@ -678,6 +677,11 @@ def build_report(
             report_lines.append(f"    - Row {r}: CPT={cpt} ; Reason={reason}")
     else:
         report_lines.append("  • no ineligible CPT codes found")
+
+        report_lines.append("\n>> ESTIMATED QTR SHEET LINE")
+        report_lines.append(
+            f"\n{base_before_hash} | {non_reported} | {emails} | {mailings} | (~){estimated_percentage}% | {patients_submitted} | {eligible_patients} | {sample_size}"
+        )
 
         report_lines.append("\n=================================================")
         report_lines.append("        END OF REPORT")
