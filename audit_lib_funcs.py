@@ -316,22 +316,15 @@ def find_frame_inel_count(
     i = start_idx
     while i < len(rows):
         cnt = nonempty_counts[i]
-        if cnt == 0:
-            # allow occasional blank rows inside the sparse block up to max_blank_within_block
-            if sparse_run == 0:
-                # skip leading blank rows after dense region
-                start_idx += 1
-                i += 1
-                continue
-            blanks_in_run += 1
-            if blanks_in_run > max_blank_within_block:
-                break
-        elif cnt <= 2:
+        if cnt <= 2:
             sparse_run += 1
+            i += 1  # ✅ Add this line
         else:
-            # dense row encountered -> end of sparse block
-            break
-        i += 1
+            if sparse_run >= min_block_rows:
+                break
+            sparse_run = 0
+            start_idx = i + 1
+            i += 1
 
     if sparse_run < min_block_rows:
         # fallback: scan whole sheet for any run of rows with <=2 non-empty values
@@ -535,7 +528,7 @@ def build_report(
         upload_rows = count_nonempty_rows(upload_sheet)
         oascaphs_rows = count_nonempty_rows(sheet)
         if upload_rows != oascaphs_rows:
-            issue_msg = f"X *WARNING* UPLOAD mismatch: {upload_rows} rows vs {oascaphs_rows} rows in OASCAPHS"
+            issue_msg = f"--X *WARNING* UPLOAD mismatch: {upload_rows} rows vs {oascaphs_rows} rows in OASCAPHS"
             report_lines.append(issue_msg)
             issues.append(issue_msg)
         else:
