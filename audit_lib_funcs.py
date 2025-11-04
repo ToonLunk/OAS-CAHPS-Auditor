@@ -676,14 +676,14 @@ def build_report(
     else:
         report_lines.append("  • no ineligible CPT codes found")
 
-        report_lines.append("\n>> ESTIMATED QTR SHEET LINE")
-        report_lines.append(
-            f"\n{base_before_hash} | {non_reported} | {emails} | {mailings} | (~){estimated_percentage}% | {patients_submitted} | {eligible_patients} | {sample_size}"
-        )
+    report_lines.append("\n>> ESTIMATED QTR SHEET LINE")
+    report_lines.append(
+        f"\n{base_before_hash} | {non_reported} | {emails} | {mailings} | (~){estimated_percentage}% | {patients_submitted} | {eligible_patients} | {sample_size}"
+    )
 
-        report_lines.append("\n=================================================")
-        report_lines.append("        END OF REPORT")
-        report_lines.append("=================================================")
+    report_lines.append("\n=================================================")
+    report_lines.append("        END OF REPORT")
+    report_lines.append("=================================================")
 
     return report_lines, issues
 
