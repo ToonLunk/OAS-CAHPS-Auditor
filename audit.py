@@ -7,7 +7,7 @@ import uuid
 from audit_lib_funcs import *
 
 # versioning
-version = "0.36-alpha"
+version = "0.37-alpha"
 
 # UUID
 audit_id = uuid.uuid4().hex
@@ -48,21 +48,13 @@ def audit_excel(file_path):
     missing_req_headers = []
     try:
         mapping = check_req_headers(headers)
-    except ValueError as e:
+    except Exception as e:
         # e.args[0] is the missing_req_headers list we raised
         missing_req_headers = e.args[0] if e.args else []
         save_report(
             file_path,
             "FAILED - missing required columns!",
             failure_reason=str(missing_req_headers),
-            version=version,
-        )
-        exit(2)
-    except Exception as e:
-        save_report(
-            file_path,
-            "FAILED - error checking headers!",
-            failure_reason=str(e),
             version=version,
         )
         exit(2)

@@ -691,14 +691,13 @@ def build_report(
 def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha"):
     # --- Write report to .txt file ---
     base_name = os.path.splitext(file_path)[0]
-    if not failure_reason:
-        report_file = base_name + ".txt"
-    else:
-        report_file = "UNABLE_TO_AUDIT " + base_name + ".txt"
+    report_file = base_name + ".txt"
 
     # build audits directory next to the original path (or in cwd if no dir)
     base_dir = os.path.dirname(report_file) or "."
     audits_dir = os.path.join(base_dir, "audits")
+    if failure_reason:
+        audits_dir = os.path.join(audits_dir, "unable_to_run_audit")
     os.makedirs(audits_dir, exist_ok=True)
 
     # timestamp and final filename
@@ -718,12 +717,32 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha")
     with open(final_report_file, "w", encoding="utf-8") as f:
         if not failure_reason:
             f.write("\n".join(report_lines))
+        # if there was an error/failure reason
         else:
             report_lines_list = []
+            tor = datetime.datetime.now()
+            time_of_report = tor.strftime("%m/%d/%Y %H:%M:%S")
+
+            # file modified time and client filename-before-#
+            modified_ts = "N/A"
+            try:
+                modified_ts = datetime.datetime.fromtimestamp(
+                    os.path.getmtime(file_path)
+                ).strftime("%Y-%m-%d %H:%M:%S")
+            except Exception:
+                pass
+            basefname = os.path.basename(file_path)
+            base_before_hash = basefname.split("#", 1)[0]
+
             report_lines_list.append(
                 "================================================="
             )
             report_lines_list.append(f"      TB's EXCEL AUDITOR v{version}\n")
+            report_lines_list.append(f"   Report Date: {time_of_report}")
+            report_lines_list.append(
+                f"   No Audit ID available (failed audits do not get an ID)"
+            )
+            report_lines_list.append(f"   Client: {base_before_hash}")
             report_lines_list.append(
                 "=================================================\n\n"
             )
