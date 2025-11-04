@@ -119,6 +119,9 @@ def audit_excel(file_path):
         find_frame_inel_count=find_frame_inel_count,  # optional
     )
 
+    # audit addresses (MOVE THIS TO AUDIT_EXCEL!)
+    # check_address(sheet, addr1_col, city_col, state_col, zip_col)
+
     return file_path, report_lines
 
 

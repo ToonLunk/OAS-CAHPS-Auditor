@@ -171,6 +171,30 @@ def pick_footer(sheet):
     )
 
 
+def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_col):
+    from i18naddress import normalize_address, InvalidAddressError
+
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        street_address_1 = row[street_address_1_col - 1]
+        city = row[city_col - 1]
+        state = row[state_col - 1]
+        postal_code = row[postal_code_col - 1]
+
+        address_data = {
+            "country_code": "US",
+            "street_address": street_address_1,
+            "city": city,
+            "country_area": state,
+            "postal_code": str(postal_code),
+        }
+
+    try:
+        normalized = normalize_address(address_data)
+        print(f"Address is valid and normalized: {normalized}")
+    except InvalidAddressError as e:
+        print(f"Address is invalid: {normalized}\n errors: {e.errors}")
+
+
 def calc_e_m_total(sheet, cms_col, em_col):
     emails = 0
     mailings = 0
