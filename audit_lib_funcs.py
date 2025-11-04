@@ -763,3 +763,6 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha")
         print(
             f"--- Audit could not run on this file! Information saved to {final_report_file}\n"
         )
+
+    # return the full file name and path in case it needs to be read again
+    return final_report_file

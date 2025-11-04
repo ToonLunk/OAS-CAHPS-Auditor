@@ -133,4 +133,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     file_path, report_lines = audit_excel(file_path)
-    save_report(file_path, report_lines, version=version)
+    final_file = save_report(file_path, report_lines, version=version)
