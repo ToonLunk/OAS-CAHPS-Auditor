@@ -220,7 +220,7 @@ def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_
             normalize_address(address_data)
         except InvalidAddressError as e:
             invalid_addresses.append(
-                f"Row {row_number}: Invalid(?) Address: {address_data}; reason: {e}"
+                f"Row: {row_number} - ADDRESS: '{address_data}' - REASON: '{e}'"
             )
 
         # see if state, city, or zip are in the address1 column
@@ -255,7 +255,7 @@ def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_
 
             if noted_address:
                 noted_addresses.append(
-                    f"X *NOTE* Check row {row_number}; Address1 is {street_str}. Possible issues: {', '.join(noted_address)}"
+                    f"Row: {row_number} - ADDRESS: '{street_str}' - REASON(s): '{', '.join(noted_address)}'"
                 )
         except Exception as e:
             print(f"Address couldn't be parsed - moving on. Address: {street_str}")
@@ -791,6 +791,7 @@ def build_report(
     else:
         report_lines.append("  • no invalid addresses found")
 
+    report_lines.append("\n>> PROBLEMATIC ADDRESSES FOUND")
     # possibly problematic addresses
     if noted_addresses:
         for address in noted_addresses:
