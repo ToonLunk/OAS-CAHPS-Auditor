@@ -174,7 +174,14 @@ def pick_footer(sheet):
 def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_col):
     from i18naddress import normalize_address, InvalidAddressError
 
+    invalid_addresses = []
+    row_number = 2  # Start from row 2 to skip header
+
     for row in sheet.iter_rows(min_row=2, values_only=True):
+        if not any(cell is not None and str(cell).strip() != "" for cell in row):
+            row_number += 1
+            continue  # Skip empty rows
+
         street_address_1 = row[street_address_1_col - 1]
         city = row[city_col - 1]
         state = row[state_col - 1]
@@ -188,11 +195,16 @@ def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_
             "postal_code": str(postal_code),
         }
 
-    try:
-        normalized = normalize_address(address_data)
-        print(f"Address is valid and normalized: {normalized}")
-    except InvalidAddressError as e:
-        print(f"Address is invalid: {normalized}\n errors: {e.errors}")
+        try:
+            normalize_address(address_data)
+        except InvalidAddressError as e:
+            invalid_addresses.append(
+                f"Row {row_number}: Invalid(?) Address: {address_data}; reason: {e}"
+            )
+
+        row_number += 1
+
+    return invalid_addresses
 
 
 def calc_e_m_total(sheet, cms_col, em_col):
@@ -455,6 +467,10 @@ def build_report(
     count_nonempty_rows,
     classify_cpt,
     cpt_is_ineligible,
+    addr1_col,
+    city_col,
+    state_col,
+    zip_col,
     cms_col=None,
     find_frame_inel_count=None,
 ):
@@ -699,6 +715,16 @@ def build_report(
             report_lines.append(f"    - Row {r}: CPT={cpt} ; Reason={reason}")
     else:
         report_lines.append("  • no ineligible CPT codes found")
+
+    # INVALID ADDRESSES section
+    report_lines.append("\n>> INVALID ADDRESSES FOUND")
+    # audit addresses using google's package
+    invalid_addresses = check_address(sheet, addr1_col, city_col, state_col, zip_col)
+    if invalid_addresses:
+        for address in invalid_addresses:
+            report_lines.append(
+                f"X *WARNING* Potential invalid Address found: {address}"
+            )
 
     report_lines.append("\n>> ESTIMATED QTR SHEET LINE")
     report_lines.append(

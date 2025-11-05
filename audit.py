@@ -7,7 +7,7 @@ import uuid
 from audit_lib_funcs import *
 
 # versioning
-version = "0.37-alpha"
+version = "0.38-alpha"
 
 # UUID
 audit_id = uuid.uuid4().hex
@@ -115,12 +115,13 @@ def audit_excel(file_path):
         count_nonempty_rows=count_nonempty_rows,
         classify_cpt=classify_cpt,
         cpt_is_ineligible=cpt_is_ineligible,
+        addr1_col=addr1_col,
+        city_col=city_col,
+        state_col=state_col,
+        zip_col=zip_col,
         cms_col=cms_col,
         find_frame_inel_count=find_frame_inel_count,  # optional
     )
-
-    # audit addresses (MOVE THIS TO AUDIT_EXCEL!)
-    # check_address(sheet, addr1_col, city_col, state_col, zip_col)
 
     return file_path, report_lines
 
