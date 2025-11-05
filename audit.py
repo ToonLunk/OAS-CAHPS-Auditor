@@ -7,7 +7,7 @@ import uuid
 from audit_lib_funcs import *
 
 # versioning
-version = "0.41-alpha"
+version = "0.41-beta1"
 
 
 def audit_excel(file_path):
