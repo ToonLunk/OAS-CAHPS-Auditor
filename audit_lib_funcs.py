@@ -190,6 +190,7 @@ def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_
     from i18naddress import normalize_address, InvalidAddressError
 
     invalid_addresses = []
+    noted_addresses = []
     row_number = 2  # Start from row 2 to skip header
 
     for row in sheet.iter_rows(min_row=2, values_only=True):
@@ -222,9 +223,48 @@ def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_
                 f"Row {row_number}: Invalid(?) Address: {address_data}; reason: {e}"
             )
 
+        # see if state, city, or zip are in the address1 column
+        noted_address = []
+
+        def token_in(text, token):
+            text = text.lower()
+            token = token.lower()
+            # match token at start/end or when preceded/followed by space or comma
+            pattern = rf"(?:(?<=^)|(?<=[\s,])){re.escape(token)}(?:(?=$)|(?=[\s,]))"
+            return re.search(pattern, text) is not None
+
+        try:
+            city = address_data["city"]
+            state = address_data["country_area"]
+
+            # city: require the city token AND that it is immediately followed by either
+            # a comma then the state code, or a space then the state code
+            city_pattern = rf"(?i)(?:(?<=^)|(?<=[\s,])){re.escape(city)}(?=(?:,\s*{re.escape(state)}|\s+{re.escape(state)})(?:\b))"
+            if re.search(city_pattern, street_str):
+                noted_address.append(city)
+
+            # state: only flag if the state follows the city (comma+state or space+state)
+            # this prevents matching standalone state tokens elsewhere (e.g., in street names)
+            state_after_city_pattern = rf"(?i)(?:(?<=^)|(?<=[\s,])){re.escape(city)}(?=(?:,\s*{re.escape(state)}|\s+{re.escape(state)})(?:\b)).*?(?:,\s*{re.escape(state)}|\s+{re.escape(state)})"
+            if re.search(state_after_city_pattern, street_str):
+                noted_address.append(state)
+
+            # postal code: keep original token check (no requirement to follow city)
+            if token_in(street_str, address_data["postal_code"]):
+                noted_address.append(address_data["postal_code"])
+
+            if noted_address:
+                noted_addresses.append(
+                    f"X *NOTE* Check row {row_number}; Address1 is {street_str}. Possible issues: {', '.join(noted_address)}"
+                )
+        except Exception as e:
+            print(f"Address couldn't be parsed - moving on. Address: {street_str}")
+
         row_number += 1
 
-    return invalid_addresses
+    for note in noted_addresses:
+        print(note)
+    return invalid_addresses, noted_addresses
 
 
 def calc_e_m_total(sheet, cms_col, em_col):
@@ -740,7 +780,9 @@ def build_report(
     # INVALID ADDRESSES section
     report_lines.append("\n>> INVALID ADDRESSES FOUND")
     # audit addresses using google's package
-    invalid_addresses = check_address(sheet, addr1_col, city_col, state_col, zip_col)
+    invalid_addresses, noted_addresses = check_address(
+        sheet, addr1_col, city_col, state_col, zip_col
+    )
     if invalid_addresses:
         for address in invalid_addresses:
             report_lines.append(
@@ -748,6 +790,13 @@ def build_report(
             )
     else:
         report_lines.append("  • no invalid addresses found")
+
+    # possibly problematic addresses
+    if noted_addresses:
+        for address in noted_addresses:
+            report_lines.append(f"? *NOTE* Potential invalid Address found: {address}")
+    else:
+        report_lines.append("  • no problematic addresses found")
 
     report_lines.append("\n>> ESTIMATED QTR SHEET LINE")
     report_lines.append(
