@@ -171,7 +171,23 @@ def pick_footer(sheet):
     )
 
 
+def normalize_postal_code(raw):
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if s == "":
+        return None
+    m = re.search(r"\b(\d{4,5})(?:[-\s]\d{4})?\b", s)
+    if not m:
+        return s
+    digits = m.group(1)
+    if len(digits) == 4:
+        digits = digits.zfill(5)
+    return digits
+
+
 def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_col):
+    import re
     from i18naddress import normalize_address, InvalidAddressError
 
     invalid_addresses = []
@@ -187,12 +203,17 @@ def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_
         state = row[state_col - 1]
         postal_code = row[postal_code_col - 1]
 
+        street_str = "" if street_address_1 is None else str(street_address_1).strip()
+        city_str = None if city is None else str(city).strip()
+        state_str = None if state is None else str(state).strip()
+        postal_str = normalize_postal_code(postal_code)
+
         address_data = {
             "country_code": "US",
-            "street_address": street_address_1,
-            "city": city,
-            "country_area": state,
-            "postal_code": str(postal_code),
+            "street_address": street_str or None,
+            "city": city_str or None,
+            "country_area": state_str or None,
+            "postal_code": postal_str or None,
         }
 
         try:
@@ -551,7 +572,8 @@ def build_report(
     if "POP" in wb.sheetnames and patients_submitted is not None:
         pop_sheet = wb["POP"]
         pop_rows = count_nonempty_rows(pop_sheet)
-        if patients_submitted != pop_rows:
+        TOL = 4
+        if abs(patients_submitted - pop_rows) > TOL:
             issue_msg = f"X *WARNING* Submitted mismatch: header says {patients_submitted}, POP tab has {pop_rows} rows. (if this is within ~4, this is expected due to various client header sizes)"
             report_lines.append(issue_msg)
             issues.append(issue_msg)
@@ -725,6 +747,8 @@ def build_report(
             report_lines.append(
                 f"X *WARNING* Potential invalid Address found: {address}"
             )
+    else:
+        report_lines.append("  • no invalid addresses found")
 
     report_lines.append("\n>> ESTIMATED QTR SHEET LINE")
     report_lines.append(

@@ -7,10 +7,7 @@ import uuid
 from audit_lib_funcs import *
 
 # versioning
-version = "0.38-alpha"
-
-# UUID
-audit_id = uuid.uuid4().hex
+version = "0.40-alpha"
 
 
 def audit_excel(file_path):
@@ -35,6 +32,15 @@ def audit_excel(file_path):
     # --- Extract values from header/footer text ---
     submitted_match = re.search(r"SUBMITTED\s*=\s*(\d+)", header)
     patients_submitted = int(submitted_match.group(1)) if submitted_match else None
+
+    # finds the final two-letter token at end of header string (uppercase letters only)
+    m = re.search(r"([A-Z]{2})(?!.*[A-Z])", header)
+    two_letter_code = m.group(1) if m else None
+
+    # convert letters to alphabet positions (A=1, B=2) and append to UUID
+    nums = "".join(str(ord(c) - 64) for c in (two_letter_code or ""))
+    uuid_code = uuid.uuid4().hex
+    audit_id = f"{uuid_code}{nums}"
 
     el_match = re.search(r"EL\s*=\s*(\d+)", footer)
     ss_match = re.search(r"SS\s*=\s*(\d+)", footer)
