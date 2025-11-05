@@ -187,7 +187,6 @@ def normalize_postal_code(raw):
 
 
 def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_col):
-    import re
     from i18naddress import normalize_address, InvalidAddressError
 
     invalid_addresses = []
