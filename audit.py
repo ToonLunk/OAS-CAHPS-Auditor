@@ -44,7 +44,6 @@ def audit_excel(file_path):
     nums = "".join(str(ord(c) - 64) for c in two_letter_code)
     uuid_code = uuid.uuid4().hex
     audit_id = f"{uuid_code}{nums}"
-    print(f"Nums: {nums}, Audit ID: {audit_id}\n")
 
     el_match = re.search(r"EL\s*=\s*(\d+)", footer)
     ss_match = re.search(r"SS\s*=\s*(\d+)", footer)
