@@ -129,6 +129,7 @@ def audit_excel(file_path):
         state_col=state_col,
         zip_col=zip_col,
         cms_col=cms_col,
+        em_col=em_col,
         find_frame_inel_count=find_frame_inel_count,  # optional
         mrn_col=mrn_col,  # optional
     )

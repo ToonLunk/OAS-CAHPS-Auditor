@@ -190,6 +190,7 @@ def check_address(
     postal_code_col,
     mrn_col=None,
     cms_col=None,
+    em_col=None,
 ):
     from i18naddress import normalize_address, InvalidAddressError
 
@@ -204,6 +205,7 @@ def check_address(
 
         mrn = row[mrn_col - 1] if mrn_col else ""
         cms = row[cms_col - 1] if cms_col else ""
+        em = row[em_col - 1] if em_col else ""
         street_str = str(row[street_address_1_col - 1] or "").strip()
         city_str = str(row[city_col - 1] or "").strip() or None
         state_str = str(row[state_col - 1] or "").strip() or None
@@ -222,7 +224,7 @@ def check_address(
 
         if missing:
             invalid_addresses.append(
-                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - ADDRESS: '{{'street_address': '{street_str}', 'city': '{city_str}', 'country_area': '{state_str}', 'postal_code': '{postal_str}'}}' - REASON: 'Missing: {', '.join(missing)}'"
+                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - ADDRESS: '{{'street_address': '{street_str}', 'city': '{city_str}', 'country_area': '{state_str}', 'postal_code': '{postal_str}'}}' - REASON: 'Missing: {', '.join(missing)}'"
             )
             continue
 
@@ -238,7 +240,7 @@ def check_address(
             normalize_address(address_data)
         except InvalidAddressError as e:
             invalid_addresses.append(
-                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - ADDRESS: '{address_data}' - REASON: '{e}'"
+                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - ADDRESS: '{address_data}' - REASON: '{e}'"
             )
 
         # Check if city, state, or zip are in the street address field
@@ -260,7 +262,7 @@ def check_address(
 
                 if issues:
                     noted_addresses.append(
-                        f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - ADDRESS: '{street_str}' - REASON(s): '{', '.join(issues)}'"
+                        f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - ADDRESS: '{street_str}' - REASON(s): '{', '.join(issues)}'"
                     )
             except Exception:
                 pass

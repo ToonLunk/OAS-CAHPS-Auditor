@@ -32,6 +32,7 @@ def build_report(
     state_col,
     zip_col,
     cms_col=None,
+    em_col=None,
     find_frame_inel_count=None,
     mrn_col=None,
 ):
@@ -386,43 +387,56 @@ def build_report(
     # INVALID ADDRESSES section
     # audit addresses using google's package
     invalid_addresses, noted_addresses = check_address(
-        sheet, addr1_col, city_col, state_col, zip_col, mrn_col, cms_col
+        sheet, addr1_col, city_col, state_col, zip_col, mrn_col, cms_col, em_col
     )
     if invalid_addresses:
         report_lines.append("<h2>INVALID ADDRESSES FOUND</h2>")
         report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
         report_lines.append(
-            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STREET</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CITY</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STATE</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ZIP</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th></tr>"
+            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>E/M</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STREET</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CITY</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STATE</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ZIP</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th></tr>"
         )
         for address in invalid_addresses:
-            # Parse format: "Row: 5 - MRN: '123' - CMS: '1' - ADDRESS: '{'country_code': 'US', ...}' - REASON: 'Invalid state'"
+            # Parse format: "Row: 5 - MRN: '123' - CMS: '1' - E/M: 'E' - ADDRESS: '{'country_code': 'US', ...}' - REASON: 'Invalid state'"
             parts = address.split(" - ")
             row_num = parts[0].replace("Row: ", "").strip()
             mrn_val = parts[1].replace("MRN: ", "").strip("'")
             cms_val = parts[2].replace("CMS: ", "").strip("'")
+            em_val = parts[3].replace("E/M: ", "").strip("'")
 
             # Replace 'None' with empty string for display
             if mrn_val == "None":
                 mrn_val = ""
             if cms_val == "None":
                 cms_val = ""
+            if em_val == "None":
+                em_val = ""
 
             # Extract dictionary from ADDRESS part
-            addr_dict_str = parts[3].replace("ADDRESS: ", "").strip("'")
+            addr_dict_str = parts[4].replace("ADDRESS: ", "").strip("'")
             try:
                 addr_dict = eval(addr_dict_str)
                 street = addr_dict.get("street_address") or ""
                 city = addr_dict.get("city") or ""
                 state = addr_dict.get("country_area") or ""
                 zip_code = addr_dict.get("postal_code") or ""
+
+                # Clean up "None" strings
+                if street == "None":
+                    street = ""
+                if city == "None":
+                    city = ""
+                if state == "None":
+                    state = ""
+                if zip_code == "None":
+                    zip_code = ""
             except:
                 street = city = state = zip_code = ""
 
             reason_text = (
-                parts[4].replace("REASON: ", "").strip("'") if len(parts) > 4 else ""
+                parts[5].replace("REASON: ", "").strip("'") if len(parts) > 5 else ""
             )
             report_lines.append(
-                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{mrn_val}</td><td style='padding: 3px 8px;'>{cms_val}</td><td style='padding: 3px 8px;'>{street}</td><td style='padding: 3px 8px;'>{city}</td><td style='padding: 3px 8px;'>{state}</td><td style='padding: 3px 8px;'>{zip_code}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
+                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{mrn_val}</td><td style='padding: 3px 8px;'>{cms_val}</td><td style='padding: 3px 8px;'>{em_val}</td><td style='padding: 3px 8px;'>{street}</td><td style='padding: 3px 8px;'>{city}</td><td style='padding: 3px 8px;'>{state}</td><td style='padding: 3px 8px;'>{zip_code}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
             )
         report_lines.append("</table>")
 
@@ -431,27 +445,33 @@ def build_report(
         report_lines.append("<h2>PROBLEMATIC ADDRESSES FOUND</h2>")
         report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
         report_lines.append(
-            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ADDRESS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ISSUE(S)</th></tr>"
+            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>E/M</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ADDRESS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ISSUE(S)</th></tr>"
         )
         for address in noted_addresses:
-            # Parse format: "Row: 5 - MRN: '123' - CMS: '1' - ADDRESS: '123 Main St' - REASON(s): 'city, state'"
+            # Parse format: "Row: 5 - MRN: '123' - CMS: '1' - E/M: 'E' - ADDRESS: '123 Main St' - REASON(s): 'city, state'"
             parts = address.split(" - ")
             row_num = parts[0].replace("Row: ", "").strip()
             mrn_val = parts[1].replace("MRN: ", "").strip("'")
             cms_val = parts[2].replace("CMS: ", "").strip("'")
+            em_val = parts[3].replace("E/M: ", "").strip("'")
 
             # Replace 'None' with empty string for display
             if mrn_val == "None":
                 mrn_val = ""
             if cms_val == "None":
                 cms_val = ""
+            if em_val == "None":
+                em_val = ""
 
-            addr_text = parts[3].replace("ADDRESS: ", "").strip("'")
+            addr_text = parts[4].replace("ADDRESS: ", "").strip("'")
+            if addr_text == "None":
+                addr_text = ""
+
             reason_text = (
-                parts[4].replace("REASON(s): ", "").strip("'") if len(parts) > 4 else ""
+                parts[5].replace("REASON(s): ", "").strip("'") if len(parts) > 5 else ""
             )
             report_lines.append(
-                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{mrn_val}</td><td style='padding: 3px 8px;'>{cms_val}</td><td style='padding: 3px 8px;'>{addr_text}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
+                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{mrn_val}</td><td style='padding: 3px 8px;'>{cms_val}</td><td style='padding: 3px 8px;'>{em_val}</td><td style='padding: 3px 8px;'>{addr_text}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
             )
         report_lines.append("</table>")
 
