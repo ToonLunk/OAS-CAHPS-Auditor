@@ -33,6 +33,7 @@ def build_report(
     zip_col,
     cms_col=None,
     find_frame_inel_count=None,
+    mrn_col=None,
 ):
     """
     Build the HTML audit report for saving as .html
@@ -43,6 +44,9 @@ def build_report(
 
     # Start HTML document with helper function
     report_lines = _build_html_header(file_path, version, audit_id)
+
+    # Track row-based issues separately for table display
+    row_issues = []  # List of dicts: {row, mrn, cms, issue_type, description}
 
     # missing required headers -> issues
     if missing_req_headers:
@@ -229,6 +233,19 @@ def build_report(
             cat_val = row[cat_col - 1]
             expected = classify_cpt(str(cpt_val) if cpt_val else "")
             if expected != cat_val:
+                # Get MRN and CMS for this row
+                mrn_val = row[mrn_col - 1] if mrn_col else None
+                cms_val = row[cms_col - 1] if cms_col else None
+
+                row_issues.append(
+                    {
+                        "row": r,
+                        "mrn": mrn_val,
+                        "cms": cms_val,
+                        "issue_type": "Surgical Category Mismatch",
+                        "description": f"CPT {cpt_val} has category {cat_val}, expected {expected}",
+                    }
+                )
                 issues.append(
                     f"OASCAPHS Row {r}: CPT {cpt_val} has category {cat_val}, expected {expected}"
                 )
@@ -282,6 +299,7 @@ def build_report(
                 continue
             cpt_val = row[cpt_col - 1]
             cms_val = row[cms_col - 1] if cms_col else None
+            mrn_val = row[mrn_col - 1] if mrn_col else None
             cms_int = None
             try:
                 if cms_val is not None and str(cms_val).strip() != "":
@@ -292,20 +310,56 @@ def build_report(
             ineligible, reason = cpt_is_ineligible(cpt_val)
             if ineligible and cms_int == 1:
                 msg = f"OASCAPHS Row {r}: CPT {cpt_val} ineligible ({reason})"
-                cpt_ineligible_rows.append((r, cpt_val, reason))
+                cpt_ineligible_rows.append((r, cpt_val, reason, mrn_val, cms_val))
+
+                row_issues.append(
+                    {
+                        "row": r,
+                        "mrn": mrn_val,
+                        "cms": cms_val,
+                        "issue_type": "CPT Ineligible",
+                        "description": f"CPT {cpt_val} ineligible ({reason})",
+                    }
+                )
                 issues.append(msg)
     else:
         issues.append("CPT column missing in OASCAPHS for ineligibility check")
 
     # ISSUES section
     report_lines.append("<h2>ISSUES FOUND</h2>")
-    report_lines.append("<ul>")
-    if issues:
-        for idx, issue in enumerate(issues, start=1):
+
+    # Display row-based issues in table format
+    if row_issues:
+        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
+        report_lines.append(
+            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ISSUE TYPE</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>DESCRIPTION</th></tr>"
+        )
+        for issue in row_issues:
+            mrn_display = issue.get("mrn") if issue.get("mrn") is not None else ""
+            cms_display = issue.get("cms") if issue.get("cms") is not None else ""
+            report_lines.append(
+                f"<tr><td style='padding: 3px 8px;'>{issue['row']}</td><td style='padding: 3px 8px;'>{mrn_display}</td><td style='padding: 3px 8px;'>{cms_display}</td><td style='padding: 3px 8px;'>{issue['issue_type']}</td><td style='padding: 3px 8px;'>{issue['description']}</td></tr>"
+            )
+        report_lines.append("</table>")
+
+    # Display general/non-row issues as list
+    non_row_issues = [
+        iss
+        for iss in issues
+        if not any(
+            iss.startswith(f"OASCAPHS Row") or iss.startswith(f"UPLOAD Row")
+            for iss in [iss]
+        )
+    ]
+    if non_row_issues:
+        report_lines.append("<h3>General Issues</h3>")
+        report_lines.append("<ul>")
+        for issue in non_row_issues:
             report_lines.append(f"<li>{issue}</li>")
-    else:
-        report_lines.append("<li>No issues found</li>")
-    report_lines.append("</ul>")
+        report_lines.append("</ul>")
+
+    if not row_issues and not non_row_issues:
+        report_lines.append("<p>No issues found</p>")
 
     # CPT ineligible summary
 
@@ -317,30 +371,44 @@ def build_report(
         report_lines.append(
             f"<p><strong>Total ineligible CPT rows found: {len(cpt_ineligible_rows)}</strong></p>"
         )
-        report_lines.append("<table>")
-        report_lines.append("<tr><th>Row</th><th>CPT</th><th>Reason</th></tr>")
-        for r, cpt, reason in cpt_ineligible_rows:
-            report_lines.append(f"<tr><td>{r}</td><td>{cpt}</td><td>{reason}</td></tr>")
+        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
+        report_lines.append(
+            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CPT</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th></tr>"
+        )
+        for r, cpt, reason, mrn, cms in cpt_ineligible_rows:
+            mrn_display = mrn if mrn is not None else ""
+            cms_display = cms if cms is not None else ""
+            report_lines.append(
+                f"<tr><td style='padding: 3px 8px;'>{r}</td><td style='padding: 3px 8px;'>{mrn_display}</td><td style='padding: 3px 8px;'>{cms_display}</td><td style='padding: 3px 8px;'>{cpt}</td><td style='padding: 3px 8px;'>{reason}</td></tr>"
+            )
         report_lines.append("</table>")
 
     # INVALID ADDRESSES section
     # audit addresses using google's package
     invalid_addresses, noted_addresses = check_address(
-        sheet, addr1_col, city_col, state_col, zip_col
+        sheet, addr1_col, city_col, state_col, zip_col, mrn_col, cms_col
     )
     if invalid_addresses:
         report_lines.append("<h2>INVALID ADDRESSES FOUND</h2>")
         report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
         report_lines.append(
-            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STREET</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CITY</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STATE</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ZIP</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th></tr>"
+            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STREET</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CITY</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STATE</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ZIP</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th></tr>"
         )
         for address in invalid_addresses:
-            # Parse format: "Row: 5 - ADDRESS: '{'country_code': 'US', ...}' - REASON: 'Invalid state'"
+            # Parse format: "Row: 5 - MRN: '123' - CMS: '1' - ADDRESS: '{'country_code': 'US', ...}' - REASON: 'Invalid state'"
             parts = address.split(" - ")
             row_num = parts[0].replace("Row: ", "").strip()
+            mrn_val = parts[1].replace("MRN: ", "").strip("'")
+            cms_val = parts[2].replace("CMS: ", "").strip("'")
+
+            # Replace 'None' with empty string for display
+            if mrn_val == "None":
+                mrn_val = ""
+            if cms_val == "None":
+                cms_val = ""
 
             # Extract dictionary from ADDRESS part
-            addr_dict_str = parts[1].replace("ADDRESS: ", "").strip("'")
+            addr_dict_str = parts[3].replace("ADDRESS: ", "").strip("'")
             try:
                 addr_dict = eval(addr_dict_str)
                 street = addr_dict.get("street_address") or ""
@@ -351,10 +419,10 @@ def build_report(
                 street = city = state = zip_code = ""
 
             reason_text = (
-                parts[2].replace("REASON: ", "").strip("'") if len(parts) > 2 else ""
+                parts[4].replace("REASON: ", "").strip("'") if len(parts) > 4 else ""
             )
             report_lines.append(
-                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{street}</td><td style='padding: 3px 8px;'>{city}</td><td style='padding: 3px 8px;'>{state}</td><td style='padding: 3px 8px;'>{zip_code}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
+                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{mrn_val}</td><td style='padding: 3px 8px;'>{cms_val}</td><td style='padding: 3px 8px;'>{street}</td><td style='padding: 3px 8px;'>{city}</td><td style='padding: 3px 8px;'>{state}</td><td style='padding: 3px 8px;'>{zip_code}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
             )
         report_lines.append("</table>")
 
@@ -363,18 +431,27 @@ def build_report(
         report_lines.append("<h2>PROBLEMATIC ADDRESSES FOUND</h2>")
         report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
         report_lines.append(
-            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ADDRESS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ISSUE(S)</th></tr>"
+            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ADDRESS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ISSUE(S)</th></tr>"
         )
         for address in noted_addresses:
-            # Parse format: "Row: 5 - ADDRESS: '123 Main St' - REASON(s): 'city, state'"
+            # Parse format: "Row: 5 - MRN: '123' - CMS: '1' - ADDRESS: '123 Main St' - REASON(s): 'city, state'"
             parts = address.split(" - ")
             row_num = parts[0].replace("Row: ", "").strip()
-            addr_text = parts[1].replace("ADDRESS: ", "").strip("'")
+            mrn_val = parts[1].replace("MRN: ", "").strip("'")
+            cms_val = parts[2].replace("CMS: ", "").strip("'")
+
+            # Replace 'None' with empty string for display
+            if mrn_val == "None":
+                mrn_val = ""
+            if cms_val == "None":
+                cms_val = ""
+
+            addr_text = parts[3].replace("ADDRESS: ", "").strip("'")
             reason_text = (
-                parts[2].replace("REASON(s): ", "").strip("'") if len(parts) > 2 else ""
+                parts[4].replace("REASON(s): ", "").strip("'") if len(parts) > 4 else ""
             )
             report_lines.append(
-                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{addr_text}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
+                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{mrn_val}</td><td style='padding: 3px 8px;'>{cms_val}</td><td style='padding: 3px 8px;'>{addr_text}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
             )
         report_lines.append("</table>")
 

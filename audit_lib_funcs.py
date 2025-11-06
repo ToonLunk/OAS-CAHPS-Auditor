@@ -182,84 +182,89 @@ def normalize_postal_code(raw):
     return digits
 
 
-def check_address(sheet, street_address_1_col, city_col, state_col, postal_code_col):
+def check_address(
+    sheet,
+    street_address_1_col,
+    city_col,
+    state_col,
+    postal_code_col,
+    mrn_col=None,
+    cms_col=None,
+):
     from i18naddress import normalize_address, InvalidAddressError
 
     invalid_addresses = []
     noted_addresses = []
-    row_number = 2  # Start from row 2 to skip header
 
-    for row in sheet.iter_rows(min_row=2, values_only=True):
+    for row_number, row in enumerate(
+        sheet.iter_rows(min_row=2, values_only=True), start=2
+    ):
         if not any(cell is not None and str(cell).strip() != "" for cell in row):
-            row_number += 1
-            continue  # Skip empty rows
+            continue
 
-        street_address_1 = row[street_address_1_col - 1]
-        city = row[city_col - 1]
-        state = row[state_col - 1]
-        postal_code = row[postal_code_col - 1]
+        mrn = row[mrn_col - 1] if mrn_col else ""
+        cms = row[cms_col - 1] if cms_col else ""
+        street_str = str(row[street_address_1_col - 1] or "").strip()
+        city_str = str(row[city_col - 1] or "").strip() or None
+        state_str = str(row[state_col - 1] or "").strip() or None
+        postal_str = normalize_postal_code(row[postal_code_col - 1])
 
-        street_str = "" if street_address_1 is None else str(street_address_1).strip()
-        city_str = None if city is None else str(city).strip()
-        state_str = None if state is None else str(state).strip()
-        postal_str = normalize_postal_code(postal_code)
+        # Check for missing fields first
+        missing = []
+        if not street_str:
+            missing.append("street")
+        if not city_str:
+            missing.append("city")
+        if not state_str:
+            missing.append("state")
+        if not postal_str:
+            missing.append("zip")
+
+        if missing:
+            invalid_addresses.append(
+                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - ADDRESS: '{{'street_address': '{street_str}', 'city': '{city_str}', 'country_area': '{state_str}', 'postal_code': '{postal_str}'}}' - REASON: 'Missing: {', '.join(missing)}'"
+            )
+            continue
 
         address_data = {
             "country_code": "US",
-            "street_address": street_str or None,
-            "city": city_str or None,
-            "country_area": state_str or None,
-            "postal_code": postal_str or None,
+            "street_address": street_str,
+            "city": city_str,
+            "country_area": state_str,
+            "postal_code": postal_str,
         }
 
         try:
             normalize_address(address_data)
         except InvalidAddressError as e:
             invalid_addresses.append(
-                f"Row: {row_number} - ADDRESS: '{address_data}' - REASON: '{e}'"
+                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - ADDRESS: '{address_data}' - REASON: '{e}'"
             )
 
-        # see if state, city, or zip are in the address1 column
-        noted_address = []
-
-        def token_in(text, token):
-            text = text.lower()
-            token = token.lower()
-            # match token at start/end or when preceded/followed by space or comma
-            pattern = rf"(?:(?<=^)|(?<=[\s,])){re.escape(token)}(?:(?=$)|(?=[\s,]))"
-            return re.search(pattern, text) is not None
-
-        try:
-            city = address_data["city"]
-            state = address_data["country_area"]
-
-            # city: require the city token AND that it is immediately followed by either
-            # a comma then the state code, or a space then the state code
-            city_pattern = rf"(?i)(?:(?<=^)|(?<=[\s,])){re.escape(city)}(?=(?:,\s*{re.escape(state)}|\s+{re.escape(state)})(?:\b))"
-            if re.search(city_pattern, street_str):
-                noted_address.append(city)
-
-            # state: only flag if the state follows the city (comma+state or space+state)
-            # this prevents matching standalone state tokens elsewhere (e.g., in street names)
-            state_after_city_pattern = rf"(?i)(?:(?<=^)|(?<=[\s,])){re.escape(city)}(?=(?:,\s*{re.escape(state)}|\s+{re.escape(state)})(?:\b)).*?(?:,\s*{re.escape(state)}|\s+{re.escape(state)})"
-            if re.search(state_after_city_pattern, street_str):
-                noted_address.append(state)
-
-            # postal code: keep original token check (no requirement to follow city)
-            if token_in(street_str, address_data["postal_code"]):
-                noted_address.append(address_data["postal_code"])
-
-            if noted_address:
-                noted_addresses.append(
-                    f"Row: {row_number} - ADDRESS: '{street_str}' - REASON(s): '{', '.join(noted_address)}'"
+        # Check if city, state, or zip are in the street address field
+        if city_str and state_str and postal_str:
+            try:
+                city_pattern = rf"(?i)(?:(?<=^)|(?<=[\s,])){re.escape(city_str)}(?=(?:,\s*{re.escape(state_str)}|\s+{re.escape(state_str)})(?:\b))"
+                state_pattern = rf"(?i)(?:(?<=^)|(?<=[\s,])){re.escape(city_str)}(?=(?:,\s*{re.escape(state_str)}|\s+{re.escape(state_str)})(?:\b)).*?(?:,\s*{re.escape(state_str)}|\s+{re.escape(state_str)})"
+                zip_pattern = (
+                    rf"(?:(?<=^)|(?<=[\s,])){re.escape(postal_str)}(?:(?=$)|(?=[\s,]))"
                 )
-        except Exception as e:
-            print(f"Address couldn't be parsed - moving on. Address: {street_str}")
 
-        row_number += 1
+                issues = []
+                if re.search(city_pattern, street_str):
+                    issues.append(city_str)
+                if re.search(state_pattern, street_str):
+                    issues.append(state_str)
+                if re.search(zip_pattern, street_str, re.IGNORECASE):
+                    issues.append(postal_str)
 
-    for note in noted_addresses:
-        print(note)
+                if issues:
+                    noted_addresses.append(
+                        f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - ADDRESS: '{street_str}' - REASON(s): '{', '.join(issues)}'"
+                    )
+            except Exception:
+                pass
+
     return invalid_addresses, noted_addresses
 
 
