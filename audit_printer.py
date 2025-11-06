@@ -127,7 +127,7 @@ def build_report(
     if sample_size is not None and cms1_count != sample_size:
         issue_msg = f"<strong>WARNING:</strong> Sample Size mismatch: expected {sample_size}, found {cms1_count} rows with CMS=1"
         report_lines.append(
-            f"<tr><td>Sample Size matches Reported</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+            f"<tr><td style='color: red;'>{issue_msg}</td><td>✗</td></tr>"
         )
         issues.append(issue_msg)
     else:
@@ -139,7 +139,7 @@ def build_report(
     if sample_size is not None and total_em != sample_size:
         issue_msg = f"<strong>WARNING:</strong> Reported total mismatch: <strong>{total_em}</strong> vs Sample Size <strong>{sample_size}</strong>"
         report_lines.append(
-            f"<tr><td>E/M total matches Sample Size</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+            f"<tr><td '>{issue_msg}</td><td style='color: red;>✗</td></tr>"
         )
         issues.append(issue_msg)
     else:
@@ -153,11 +153,11 @@ def build_report(
         pop_rows = count_nonempty_rows(pop_sheet)
         TOL = 4
         if abs(patients_submitted - pop_rows) > TOL:
-            issue_msg = f"<strong>WARNING:</strong> Submitted mismatch: header says {patients_submitted}, POP tab has {pop_rows} rows. (if this is within ~4, this is expected due to various client header sizes)"
+            issue_msg = f"Submitted mismatch: header says {patients_submitted}, POP tab has {pop_rows} rows. (if this is within ~4, this is expected due to various client header sizes)"
             report_lines.append(
-                f"<tr><td>Submitted matches POP tab</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+                f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
             )
-            issues.append(issue_msg)
+            issues.append(f"<strong>WARNING:</strong> {issue_msg}")
         else:
             report_lines.append(
                 "<tr><td>Submitted matches POP tab</td><td style='color: #28a745;'>✓</td></tr>"
@@ -167,7 +167,7 @@ def build_report(
             "<strong>WARNING:</strong> POP tab missing or Submitted value not found"
         )
         report_lines.append(
-            f"<tr><td>Submitted matches POP tab</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+            f"<tr><td '>{issue_msg}</td><td style='color: red;>✗</td></tr>"
         )
         issues.append(issue_msg)
 
@@ -179,7 +179,7 @@ def build_report(
         if upload_rows != oascaphs_rows:
             issue_msg = f"<strong>WARNING:</strong> UPLOAD mismatch: {upload_rows} rows vs {oascaphs_rows} rows in OASCAPHS"
             report_lines.append(
-                f"<tr><td>UPLOAD and OASCAPHS row counts match</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+                f"<tr><td '>{issue_msg}</td><td style='color: red;>✗</td></tr>"
             )
             issues.append(issue_msg)
         else:
@@ -189,7 +189,7 @@ def build_report(
     else:
         issue_msg = "UPLOAD tab missing"
         report_lines.append(
-            f"<tr><td>UPLOAD and OASCAPHS row counts match</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+            f"<tr><td>{issue_msg}</td><td style='color: red;>✗</td></tr>"
         )
         issues.append(issue_msg)
 
