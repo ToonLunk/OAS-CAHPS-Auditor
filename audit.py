@@ -34,14 +34,17 @@ def audit_excel(file_path):
     submitted_match = re.search(r"SUBMITTED\s*=\s*(\d+)", header)
     patients_submitted = int(submitted_match.group(1)) if submitted_match else None
 
-    # finds the final two-letter token at end of header string (uppercase letters only)
-    m = re.search(r"([A-Z]{2})(?!.*[A-Z])", header)
-    two_letter_code = m.group(1) if m else None
+    # finds the two-letter code (like "TB") - can be anywhere in header
+    header_clean = re.sub(r"&\[[^\]]+\]", "", header)
+    # Match exactly 2 uppercase letters not part of a longer word
+    m = re.search(r"(?<![A-Z])([A-Z]{2})(?![A-Z])", header_clean)
+    two_letter_code = m.group(1) if m else ""
 
     # convert letters to alphabet positions (A=1, B=2) and append to UUID
-    nums = "".join(str(ord(c) - 64) for c in (two_letter_code or ""))
+    nums = "".join(str(ord(c) - 64) for c in two_letter_code)
     uuid_code = uuid.uuid4().hex
     audit_id = f"{uuid_code}{nums}"
+    print(f"Nums: {nums}, Audit ID: {audit_id}\n")
 
     el_match = re.search(r"EL\s*=\s*(\d+)", footer)
     ss_match = re.search(r"SS\s*=\s*(\d+)", footer)
