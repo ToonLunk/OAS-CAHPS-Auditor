@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import uuid
+from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
 # versioning
