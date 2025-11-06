@@ -2,6 +2,8 @@ import os
 import sys
 import datetime
 import math
+
+from requests import head
 from audit_lib_funcs import check_address
 
 
@@ -33,31 +35,14 @@ def build_report(
     find_frame_inel_count=None,
 ):
     """
-    Build the textual audit report for saving as .txt
+    Build the HTML audit report for saving as .html
     """
 
-    report_lines = []
-    report_lines.append("=================================================")
-    report_lines.append(f"      TB's EXCEL AUDITOR v{version}\n")
-    tor = datetime.datetime.now()
-    time_of_report = tor.strftime("%m/%d/%Y %H:%M:%S")
-
-    # file modified time and client filename-before-#
-    modified_ts = "N/A"
-    try:
-        modified_ts = datetime.datetime.fromtimestamp(
-            os.path.getmtime(file_path)
-        ).strftime("%Y-%m-%d %H:%M:%S")
-    except Exception:
-        pass
     basefname = os.path.basename(file_path)
     base_before_hash = basefname.split("#", 1)[0]
 
-    report_lines.append(f"   Report Date: {time_of_report}")
-    report_lines.append(f"   Audit ID: {audit_id}")
-    report_lines.append(f"   Client: {base_before_hash}")
-    report_lines.append(f"   File last modified/saved: {modified_ts}")
-    report_lines.append("=================================================\n")
+    # Start HTML document with helper function
+    report_lines = _build_html_header(file_path, version, audit_id)
 
     # missing required headers -> issues
     if missing_req_headers:
@@ -65,77 +50,150 @@ def build_report(
             issues.append(f"Missing REQUIRED Header: {header}!")
 
     # Header/Footer extracted values
-    report_lines.append(">> HEADER / FOOTER VALUES")
+    report_lines.append("<h2>HEADER / FOOTER VALUES</h2>")
+    report_lines.append("<table class='data-table'>")
     if patients_submitted is not None:
         report_lines.append(
-            f"  • Patients Submitted (from header): {patients_submitted}"
+            f"<tr><td>Patients Submitted (from header)</td><td>{patients_submitted}</td></tr>"
         )
     if eligible_patients is not None:
-        report_lines.append(f"  • Eligible Patients (from footer): {eligible_patients}")
+        report_lines.append(
+            f"<tr><td>Eligible Patients (from footer)</td><td>{eligible_patients}</td></tr>"
+        )
     if sample_size is not None:
-        report_lines.append(f"  • Sample Size (from footer): {sample_size}")
-    report_lines.append("")
+        report_lines.append(
+            f"<tr><td>Sample Size (from footer)</td><td>{sample_size}</td></tr>"
+        )
+    report_lines.append("</table>")
 
     # OASCAPHS tab analysis
-    report_lines.append(">> OASCAPHS TAB ANALYSIS")
-    report_lines.append(f"  • Emails counted: {emails}")
-    report_lines.append(f"  • Mailings counted: {mailings}")
-    report_lines.append(f"  • Total of E/M: {total_em}")
-    report_lines.append(f"  • Non-Reported entries: {non_reported}")
-    report_lines.append(f"  • Rows with CMS INDICATOR = 1: {cms1_count}")
+    report_lines.append("<h2>OASCAPHS TAB ANALYSIS</h2>")
+    report_lines.append("<table class='data-table'>")
+    report_lines.append(f"<tr><td>Emails counted</td><td>{emails}</td></tr>")
+    report_lines.append(f"<tr><td>Mailings counted</td><td>{mailings}</td></tr>")
+    report_lines.append(f"<tr><td>Total of E/M</td><td>{total_em}</td></tr>")
+    report_lines.append(
+        f"<tr><td>Non-Reported entries</td><td>{non_reported}</td></tr>"
+    )
+    report_lines.append(
+        f"<tr><td>Rows with CMS INDICATOR = 1</td><td>{cms1_count}</td></tr>"
+    )
     estimated_percentage = math.ceil((sample_size / eligible_patients) * 100)
-    report_lines.append(f"  • Estimated Selection %: ~{estimated_percentage}%")
-    report_lines.append("")
+    report_lines.append(
+        f"<tr><td>Estimated Selection %</td><td>~{estimated_percentage}%</td></tr>"
+    )
+    report_lines.append("</table>")
+
+    # count rows in INEL and FRAME (needed for validation checks)
+    inel_count = None
+    if "INEL" in wb.sheetnames:
+        inel_sheet = wb["INEL"]
+        inel_count = count_nonempty_rows(inel_sheet)
+
+    frame_inel_count = None
+    if "FRAME" in wb.sheetnames and find_frame_inel_count is not None:
+        frame_sheet = wb["FRAME"]
+        try:
+            frame_inel_count = find_frame_inel_count(frame_sheet)
+        except Exception:
+            frame_inel_count = None
 
     # VALIDATION CHECKS
-    report_lines.append(">> VALIDATION CHECKS")
-    if sample_size is not None and cms1_count != sample_size:
-        issue_msg = f"X *WARNING* Sample Size mismatch: expected {sample_size}, found {cms1_count} rows with CMS=1"
-        report_lines.append(issue_msg)
-        issues.append(issue_msg)
-    else:
-        report_lines.append("  ✓ Sample Size matches CMS=1 row count")
+    report_lines.append("<h2>VALIDATION CHECKS</h2>")
 
-    if sample_size is not None and total_em != sample_size:
-        issue_msg = (
-            f"X *WARNING* E/M total mismatch: {total_em} vs Sample Size {sample_size}"
+    # Tab counts in table format
+    report_lines.append("<table class='data-table'>")
+    if inel_count is not None:
+        report_lines.append(f"<tr><td>INEL tab rows</td><td>{inel_count}</td></tr>")
+    else:
+        issues.append("INEL tab missing")
+
+    if frame_inel_count is not None:
+        report_lines.append(
+            f"<tr><td>FRAME tab 6-month repeats</td><td>{frame_inel_count}</td></tr>"
         )
-        report_lines.append(issue_msg)
+
+    if patients_submitted is not None:
+        total_inel_combined = (inel_count or 0) + (frame_inel_count or 0)
+        report_lines.append(
+            f"<tr><td>Combined Ineligible</td><td>{total_inel_combined}</td></tr>"
+        )
+    report_lines.append("</table>")
+
+    # Validation checks in table format
+    report_lines.append("<table class='data-table'>")
+
+    # Check 1: Sample Size matches Reported
+    if sample_size is not None and cms1_count != sample_size:
+        issue_msg = f"<strong>WARNING:</strong> Sample Size mismatch: expected {sample_size}, found {cms1_count} rows with CMS=1"
+        report_lines.append(
+            f"<tr><td>Sample Size matches Reported</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+        )
         issues.append(issue_msg)
     else:
-        report_lines.append("  ✓ E/M total matches Sample Size")
+        report_lines.append(
+            "<tr><td>Sample Size matches Reported</td><td style='color: #28a745;'>✓</td></tr>"
+        )
 
-    # POP tab check
+    # Check 2: E/M total matches Sample Size
+    if sample_size is not None and total_em != sample_size:
+        issue_msg = f"<strong>WARNING:</strong> Reported total mismatch: <strong>{total_em}</strong> vs Sample Size <strong>{sample_size}</strong>"
+        report_lines.append(
+            f"<tr><td>E/M total matches Sample Size</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+        )
+        issues.append(issue_msg)
+    else:
+        report_lines.append(
+            "<tr><td>E/M total matches Sample Size</td><td style='color: #28a745;'>✓</td></tr>"
+        )
+
+    # Check 3: Submitted matches POP tab
     if "POP" in wb.sheetnames and patients_submitted is not None:
         pop_sheet = wb["POP"]
         pop_rows = count_nonempty_rows(pop_sheet)
         TOL = 4
         if abs(patients_submitted - pop_rows) > TOL:
-            issue_msg = f"X *WARNING* Submitted mismatch: header says {patients_submitted}, POP tab has {pop_rows} rows. (if this is within ~4, this is expected due to various client header sizes)"
-            report_lines.append(issue_msg)
+            issue_msg = f"<strong>WARNING:</strong> Submitted mismatch: header says {patients_submitted}, POP tab has {pop_rows} rows. (if this is within ~4, this is expected due to various client header sizes)"
+            report_lines.append(
+                f"<tr><td>Submitted matches POP tab</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+            )
             issues.append(issue_msg)
         else:
-            report_lines.append("  ✓ Submitted count matches POP tab row count")
+            report_lines.append(
+                "<tr><td>Submitted matches POP tab</td><td style='color: #28a745;'>✓</td></tr>"
+            )
     else:
-        issue_msg = "X *WARNING* POP tab missing or Submitted value not found"
-        report_lines.append(issue_msg)
+        issue_msg = (
+            "<strong>WARNING:</strong> POP tab missing or Submitted value not found"
+        )
+        report_lines.append(
+            f"<tr><td>Submitted matches POP tab</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+        )
         issues.append(issue_msg)
 
-    # UPLOAD tab row count comparison
+    # Check 4: UPLOAD and OASCAPHS row counts match
     if "UPLOAD" in wb.sheetnames:
         upload_sheet = wb["UPLOAD"]
         upload_rows = count_nonempty_rows(upload_sheet)
         oascaphs_rows = count_nonempty_rows(sheet)
         if upload_rows != oascaphs_rows:
-            issue_msg = f"--X *WARNING* UPLOAD mismatch: {upload_rows} rows vs {oascaphs_rows} rows in OASCAPHS"
-            report_lines.append(issue_msg)
+            issue_msg = f"<strong>WARNING:</strong> UPLOAD mismatch: {upload_rows} rows vs {oascaphs_rows} rows in OASCAPHS"
+            report_lines.append(
+                f"<tr><td>UPLOAD and OASCAPHS row counts match</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+            )
             issues.append(issue_msg)
         else:
-            report_lines.append("  ✓ UPLOAD tab row count matches OASCAPHS")
+            report_lines.append(
+                "<tr><td>UPLOAD and OASCAPHS row counts match</td><td style='color: #28a745;'>✓</td></tr>"
+            )
     else:
-        issue_msg = "  ! UPLOAD tab missing"
-        report_lines.append(issue_msg)
+        issue_msg = "UPLOAD tab missing"
+        report_lines.append(
+            f"<tr><td>UPLOAD and OASCAPHS row counts match</td><td style='color: red;'>✗ {issue_msg}</td></tr>"
+        )
         issues.append(issue_msg)
+
+    report_lines.append("</table>")
 
     # 1. Surgical Category Validation (OASCAPHS)
     report_lines.append("")
@@ -155,20 +213,6 @@ def build_report(
     else:
         issue_msg = "Missing CPT or SURGICAL CATEGORY column in OASCAPHS"
         issues.append(issue_msg)
-
-    # count rows in INEL and FRAME
-    inel_count = None
-    if "INEL" in wb.sheetnames:
-        inel_sheet = wb["INEL"]
-        inel_count = count_nonempty_rows(inel_sheet)
-
-    frame_inel_count = None
-    if "FRAME" in wb.sheetnames and find_frame_inel_count is not None:
-        frame_sheet = wb["FRAME"]
-        try:
-            frame_inel_count = find_frame_inel_count(frame_sheet)
-        except Exception:
-            frame_inel_count = None
 
     # 2. UPLOAD vs OASCAPHS comparison (value-by-value)
     if "UPLOAD" in wb.sheetnames:
@@ -201,33 +245,12 @@ def build_report(
     else:
         issues.append("UPLOAD tab missing")
 
-    # Add INEL and FRAME info to report_lines
-    if inel_count is not None:
-        report_lines.append(f"  • INEL tab non-empty rows: {inel_count}")
-    else:
-        report_lines.append("  • INEL tab missing")
-        issues.append("INEL tab missing")
-
-    if frame_inel_count is not None:
-        report_lines.append(
-            f"  • FRAME tab 6-month-repeat INEL PT IDs: {frame_inel_count}"
-        )
-    else:
-        report_lines.append("  • FRAME tab missing or FRAME count not computed")
-
-    # Combined check vs submitted (if header has Patients Submitted)
-    if patients_submitted is not None:
+    # Check combined ineligible math (moved validation to earlier section)
+    if patients_submitted is not None and eligible_patients is not None:
         total_inel_combined = (inel_count or 0) + (frame_inel_count or 0)
-        report_lines.append(
-            f"  • Combined Ineligible (INEL tab + 6M-MONTH REPEATS): {total_inel_combined}"
-        )
-        if eligible_patients is not None:
-            if eligible_patients + total_inel_combined != patients_submitted:
-                issue_msg = f"X *WARNING* Submitted mismatch: eligible ({eligible_patients}) + combined INEL ({total_inel_combined}) != submitted (submitted: {patients_submitted})"
-                report_lines.append(issue_msg)
-                issues.append(issue_msg)
-            else:
-                report_lines.append("  ✓ Eligible + Combined INEL matches Submitted")
+        if eligible_patients + total_inel_combined != patients_submitted:
+            issue_msg = f"<strong>WARNING:</strong> Math error: Eligible ({eligible_patients}) + Combined INEL ({total_inel_combined}) = {eligible_patients + total_inel_combined}, but Submitted = {patients_submitted}"
+            issues.append(issue_msg)
 
     # 3. CPT Ineligibility Check (only report when CMS == 1)
     cpt_ineligible_rows = []
@@ -253,68 +276,162 @@ def build_report(
         issues.append("CPT column missing in OASCAPHS for ineligibility check")
 
     # ISSUES section
-    report_lines.append("\n>> ISSUES FOUND")
+    report_lines.append("<h2>ISSUES FOUND</h2>")
+    report_lines.append("<ul>")
     if issues:
         for idx, issue in enumerate(issues, start=1):
-            report_lines.append(f"  • {issue}")
+            report_lines.append(f"<li>{issue}</li>")
     else:
-        report_lines.append("  • no issues found")
+        report_lines.append("<li>No issues found</li>")
+    report_lines.append("</ul>")
 
     # CPT ineligible summary
-    report_lines.append("\n>> CPT INELIGIBLE SUMMARY")
+    report_lines.append("<h2>CPT INELIGIBLE SUMMARY</h2>")
     report_lines.append(
-        "Note: Some ineligible CPT codes are expected to be in the non-report (CMS=2) section!"
+        "<p><em>Note: Some ineligible CPT codes are expected to be in the non-report (CMS=2) section!</em></p>"
     )
     if cpt_ineligible_rows:
         report_lines.append(
-            f"  • Total ineligible CPT rows found: {len(cpt_ineligible_rows)}"
+            f"<p><strong>Total ineligible CPT rows found: {len(cpt_ineligible_rows)}</strong></p>"
         )
+        report_lines.append("<table>")
+        report_lines.append("<tr><th>Row</th><th>CPT</th><th>Reason</th></tr>")
         for r, cpt, reason in cpt_ineligible_rows:
-            report_lines.append(f"    - Row {r}: CPT={cpt} ; Reason={reason}")
+            report_lines.append(f"<tr><td>{r}</td><td>{cpt}</td><td>{reason}</td></tr>")
+        report_lines.append("</table>")
     else:
-        report_lines.append("  • no ineligible CPT codes found")
+        report_lines.append("<p>No ineligible CPT codes found</p>")
 
     # INVALID ADDRESSES section
-    report_lines.append("\n>> INVALID ADDRESSES FOUND")
+    report_lines.append("<h2>INVALID ADDRESSES FOUND</h2>")
     # audit addresses using google's package
     invalid_addresses, noted_addresses = check_address(
         sheet, addr1_col, city_col, state_col, zip_col
     )
     if invalid_addresses:
+        report_lines.append("<ul>")
         for address in invalid_addresses:
             report_lines.append(
-                f"X *WARNING* Potential invalid Address found: {address}"
+                f"<li><strong>WARNING:</strong> Potential invalid Address found: {address}</li>"
             )
+        report_lines.append("</ul>")
     else:
-        report_lines.append("  • no invalid addresses found")
+        report_lines.append("<p>No invalid addresses found</p>")
 
-    report_lines.append("\n>> PROBLEMATIC ADDRESSES FOUND")
+    report_lines.append("<h2>PROBLEMATIC ADDRESSES FOUND</h2>")
     # possibly problematic addresses
     if noted_addresses:
+        report_lines.append("<ul>")
         for address in noted_addresses:
-            report_lines.append(f"? *NOTE* Potential invalid Address found: {address}")
+            report_lines.append(
+                f"<li><strong>NOTE:</strong> Potential invalid Address found: {address}</li>"
+            )
+        report_lines.append("</ul>")
     else:
-        report_lines.append("  • no problematic addresses found")
+        report_lines.append("<p>No problematic addresses found</p>")
 
-    report_lines.append("\n>> ESTIMATED QTR SHEET LINE")
+    report_lines.append("<h2>ESTIMATED QTR SHEET LINE</h2>")
+    report_lines.append("<table class='excel-style'>")
+    report_lines.append("<tr>")
     report_lines.append(
-        f"\n{base_before_hash} | {non_reported} | {emails} | {mailings} | (~){estimated_percentage}% | {patients_submitted} | {eligible_patients} | {sample_size}"
+        "<th>Client</th>" "<th>Non-Reported</th>" "<th>Emails</th>" "<th>Mailings</th>"
     )
+    report_lines.append(
+        "<th>Selection %</th>"
+        "<th>Submitted</th>"
+        "<th>Eligible</th>"
+        "<th>Sample Size</th>"
+    )
+    report_lines.append("</tr>")
+    report_lines.append("<tr>")
+    report_lines.append(f"<td>{base_before_hash}</td>")
+    report_lines.append(f"<td>{non_reported}</td>")
+    report_lines.append(f"<td>{emails}</td>")
+    report_lines.append(f"<td>{mailings}</td>")
+    report_lines.append(f"<td>~{estimated_percentage}%</td>")
+    report_lines.append(f"<td>{patients_submitted}</td>")
+    report_lines.append(f"<td>{eligible_patients}</td>")
+    report_lines.append(f"<td>{sample_size}</td>")
+    report_lines.append("</tr>")
+    report_lines.append("</table>")
 
-    report_lines.append("\n=================================================")
-    report_lines.append("        END OF REPORT")
-    report_lines.append("=================================================")
+    report_lines.append("<hr>")
+    report_lines.append(
+        "<p style='text-align: center;'><strong>END OF REPORT</strong></p>"
+    )
+    report_lines.append("</div>")
+    report_lines.append("</body>")
+    report_lines.append("</html>")
 
     return report_lines, issues
 
 
+def _build_html_header(file_path, version, audit_id=None):
+    """
+    Build the HTML header section (reusable for both success and failure reports)
+    """
+    tor = datetime.datetime.now()
+    time_of_report = tor.strftime("%m/%d/%Y %H:%M:%S")
+
+    modified_ts = "N/A"
+    try:
+        modified_ts = datetime.datetime.fromtimestamp(
+            os.path.getmtime(file_path)
+        ).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        pass
+    basefname = os.path.basename(file_path)
+    base_before_hash = basefname.split("#", 1)[0]
+
+    header_lines = []
+    header_lines.append("<!DOCTYPE html>")
+    header_lines.append("<html>")
+    header_lines.append("<head>")
+    header_lines.append("    <meta charset='UTF-8'>")
+    title_prefix = "Failed Audit" if audit_id is None else "Audit Report"
+    header_lines.append(f"    <title>{title_prefix} - {base_before_hash}</title>")
+    header_lines.append("    <style>")
+
+    # Load CSS from external file
+    css_path = os.path.join(os.path.dirname(__file__), "audit_report.css")
+    try:
+        with open(css_path, "r", encoding="utf-8") as css_file:
+            for line in css_file:
+                header_lines.append(f"        {line.rstrip()}")
+    except FileNotFoundError:
+        # Fallback to basic styling if CSS file not found
+        header_lines.append("        body { font-family: sans-serif; }")
+
+    header_lines.append("    </style>")
+    header_lines.append("</head>")
+    header_lines.append("<body>")
+    header_lines.append("<div class='report-container'>")
+    header_lines.append(f"<h1>TB's EXCEL AUDITOR v{version}</h1>")
+    header_lines.append(f"<p><strong>Report Date:</strong> {time_of_report}</p>")
+
+    if audit_id is None:
+        header_lines.append(
+            "<p><strong>Audit ID:</strong> No Audit ID available (failed audits do not get an ID)</p>"
+        )
+    else:
+        header_lines.append(f"<p><strong>Audit ID:</strong> {audit_id}</p>")
+
+    header_lines.append(f"<p><strong>Client:</strong> {base_before_hash}</p>")
+    header_lines.append(
+        f"<p><strong>File last modified/saved:</strong> {modified_ts}</p>"
+    )
+    header_lines.append("<hr>")
+
+    return header_lines
+
+
 def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha"):
     """
-    Write report to .txt file in audits directory
+    Write report to .html file in audits directory
     """
-    # --- Write report to .txt file ---
+    # --- Write report to .html file ---
     base_name = os.path.splitext(file_path)[0]
-    report_file = base_name + ".txt"
+    report_file = base_name + ".html"
 
     # build audits directory next to the original path (or in cwd if no dir)
     base_dir = os.path.dirname(report_file) or "."
@@ -340,45 +457,22 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha")
     with open(final_report_file, "w", encoding="utf-8") as f:
         if not failure_reason:
             f.write("\n".join(report_lines))
-        # if there was an error/failure reason
         else:
-            report_lines_list = []
-            tor = datetime.datetime.now()
-            time_of_report = tor.strftime("%m/%d/%Y %H:%M:%S")
-
-            # file modified time and client filename-before-#
-            modified_ts = "N/A"
-            try:
-                modified_ts = datetime.datetime.fromtimestamp(
-                    os.path.getmtime(file_path)
-                ).strftime("%Y-%m-%d %H:%M:%S")
-            except Exception:
-                pass
-            basefname = os.path.basename(file_path)
-            base_before_hash = basefname.split("#", 1)[0]
-
-            report_lines_list.append(
-                "================================================="
+            # Build failure report using the helper function
+            failure_html = _build_html_header(file_path, version, audit_id=None)
+            failure_html.append("<h2>Audit Failed</h2>")
+            failure_html.append(f"<p>{report_lines}</p>")
+            failure_html.append(
+                f"<p><strong>Failure reason:</strong> {failure_reason}</p>"
             )
-            report_lines_list.append(f"      TB's EXCEL AUDITOR v{version}\n")
-            report_lines_list.append(f"   Report Date: {time_of_report}")
-            report_lines_list.append(
-                f"   No Audit ID available (failed audits do not get an ID)"
+            failure_html.append("<hr>")
+            failure_html.append(
+                "<p style='text-align: center;'><strong>END OF REPORT</strong></p>"
             )
-            report_lines_list.append(f"   Client: {base_before_hash}")
-            report_lines_list.append(
-                "=================================================\n\n"
-            )
-            report_lines_list.append(report_lines)
-            report_lines_list.append(f"Failure reason: {failure_reason}\n")
-            report_lines_list.append(
-                "\n================================================="
-            )
-            report_lines_list.append("        END OF REPORT")
-            report_lines_list.append(
-                "================================================="
-            )
-            f.write("\n".join(report_lines_list))
+            failure_html.append("</div>")
+            failure_html.append("</body>")
+            failure_html.append("</html>")
+            f.write("\n".join(failure_html))
 
     if not failure_reason:
         print(f"--- Audit complete. Report saved to {final_report_file}\n")
