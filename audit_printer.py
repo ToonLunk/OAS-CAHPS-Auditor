@@ -50,7 +50,7 @@ def build_report(
             issues.append(f"Missing REQUIRED Header: {header}!")
 
     # Header/Footer extracted values
-    report_lines.append("<h2>HEADER / FOOTER VALUES</h2>")
+    report_lines.append("<h2>OASCAPHS TAB ANALYSIS</h2>")
     report_lines.append("<table class='data-table'>")
     if patients_submitted is not None:
         report_lines.append(
@@ -67,7 +67,6 @@ def build_report(
     report_lines.append("</table>")
 
     # OASCAPHS tab analysis
-    report_lines.append("<h2>OASCAPHS TAB ANALYSIS</h2>")
     report_lines.append("<table class='data-table'>")
     report_lines.append(f"<tr><td>Emails counted</td><td>{emails}</td></tr>")
     report_lines.append(f"<tr><td>Mailings counted</td><td>{mailings}</td></tr>")
@@ -77,10 +76,6 @@ def build_report(
     )
     report_lines.append(
         f"<tr><td>Rows with CMS INDICATOR = 1</td><td>{cms1_count}</td></tr>"
-    )
-    estimated_percentage = math.ceil((sample_size / eligible_patients) * 100)
-    report_lines.append(
-        f"<tr><td>Estimated Selection %</td><td>~{estimated_percentage}%</td></tr>"
     )
     report_lines.append("</table>")
 
@@ -193,6 +188,33 @@ def build_report(
         )
         issues.append(issue_msg)
 
+    estimated_percentage = math.ceil((sample_size / eligible_patients) * 100)
+
+    report_lines.append("</table>")
+
+    report_lines.append("<h2>ESTIMATED QTR SHEET LINE</h2>")
+    report_lines.append("<table class='excel-style'>")
+    report_lines.append("<tr>")
+    report_lines.append(
+        "<th>Client</th>" "<th>Non-Reported</th>" "<th>Emails</th>" "<th>Mailings</th>"
+    )
+    report_lines.append(
+        "<th>Selection %</th>"
+        "<th>Submitted</th>"
+        "<th>Eligible</th>"
+        "<th>Sample Size</th>"
+    )
+    report_lines.append("</tr>")
+    report_lines.append("<tr>")
+    report_lines.append(f"<td>{base_before_hash}</td>")
+    report_lines.append(f"<td>{non_reported}</td>")
+    report_lines.append(f"<td>{emails}</td>")
+    report_lines.append(f"<td>{mailings}</td>")
+    report_lines.append(f"<td>~{estimated_percentage}%</td>")
+    report_lines.append(f"<td>{patients_submitted}</td>")
+    report_lines.append(f"<td>{eligible_patients}</td>")
+    report_lines.append(f"<td>{sample_size}</td>")
+    report_lines.append("</tr>")
     report_lines.append("</table>")
 
     # 1. Surgical Category Validation (OASCAPHS)
@@ -286,11 +308,12 @@ def build_report(
     report_lines.append("</ul>")
 
     # CPT ineligible summary
-    report_lines.append("<h2>CPT INELIGIBLE SUMMARY</h2>")
-    report_lines.append(
-        "<p><em>Note: Some ineligible CPT codes are expected to be in the non-report (CMS=2) section!</em></p>"
-    )
+
     if cpt_ineligible_rows:
+        report_lines.append("<h2>CPT INELIGIBLE SUMMARY</h2>")
+        report_lines.append(
+            "<p><em>Note: Some ineligible CPT codes are expected to be in the non-report (CMS=2) section!</em></p>"
+        )
         report_lines.append(
             f"<p><strong>Total ineligible CPT rows found: {len(cpt_ineligible_rows)}</strong></p>"
         )
@@ -299,61 +322,61 @@ def build_report(
         for r, cpt, reason in cpt_ineligible_rows:
             report_lines.append(f"<tr><td>{r}</td><td>{cpt}</td><td>{reason}</td></tr>")
         report_lines.append("</table>")
-    else:
-        report_lines.append("<p>No ineligible CPT codes found</p>")
 
     # INVALID ADDRESSES section
-    report_lines.append("<h2>INVALID ADDRESSES FOUND</h2>")
     # audit addresses using google's package
     invalid_addresses, noted_addresses = check_address(
         sheet, addr1_col, city_col, state_col, zip_col
     )
     if invalid_addresses:
-        report_lines.append("<ul>")
+        report_lines.append("<h2>INVALID ADDRESSES FOUND</h2>")
+        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
+        report_lines.append(
+            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STREET</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CITY</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STATE</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ZIP</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th></tr>"
+        )
         for address in invalid_addresses:
-            report_lines.append(
-                f"<li><strong>WARNING:</strong> Potential invalid Address found: {address}</li>"
-            )
-        report_lines.append("</ul>")
-    else:
-        report_lines.append("<p>No invalid addresses found</p>")
+            # Parse format: "Row: 5 - ADDRESS: '{'country_code': 'US', ...}' - REASON: 'Invalid state'"
+            parts = address.split(" - ")
+            row_num = parts[0].replace("Row: ", "").strip()
 
-    report_lines.append("<h2>PROBLEMATIC ADDRESSES FOUND</h2>")
+            # Extract dictionary from ADDRESS part
+            addr_dict_str = parts[1].replace("ADDRESS: ", "").strip("'")
+            try:
+                addr_dict = eval(addr_dict_str)
+                street = addr_dict.get("street_address") or ""
+                city = addr_dict.get("city") or ""
+                state = addr_dict.get("country_area") or ""
+                zip_code = addr_dict.get("postal_code") or ""
+            except:
+                street = city = state = zip_code = ""
+
+            reason_text = (
+                parts[2].replace("REASON: ", "").strip("'") if len(parts) > 2 else ""
+            )
+            report_lines.append(
+                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{street}</td><td style='padding: 3px 8px;'>{city}</td><td style='padding: 3px 8px;'>{state}</td><td style='padding: 3px 8px;'>{zip_code}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
+            )
+        report_lines.append("</table>")
+
     # possibly problematic addresses
     if noted_addresses:
-        report_lines.append("<ul>")
+        report_lines.append("<h2>PROBLEMATIC ADDRESSES FOUND</h2>")
+        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
+        report_lines.append(
+            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ADDRESS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ISSUE(S)</th></tr>"
+        )
         for address in noted_addresses:
-            report_lines.append(
-                f"<li><strong>NOTE:</strong> Potential invalid Address found: {address}</li>"
+            # Parse format: "Row: 5 - ADDRESS: '123 Main St' - REASON(s): 'city, state'"
+            parts = address.split(" - ")
+            row_num = parts[0].replace("Row: ", "").strip()
+            addr_text = parts[1].replace("ADDRESS: ", "").strip("'")
+            reason_text = (
+                parts[2].replace("REASON(s): ", "").strip("'") if len(parts) > 2 else ""
             )
-        report_lines.append("</ul>")
-    else:
-        report_lines.append("<p>No problematic addresses found</p>")
-
-    report_lines.append("<h2>ESTIMATED QTR SHEET LINE</h2>")
-    report_lines.append("<table class='excel-style'>")
-    report_lines.append("<tr>")
-    report_lines.append(
-        "<th>Client</th>" "<th>Non-Reported</th>" "<th>Emails</th>" "<th>Mailings</th>"
-    )
-    report_lines.append(
-        "<th>Selection %</th>"
-        "<th>Submitted</th>"
-        "<th>Eligible</th>"
-        "<th>Sample Size</th>"
-    )
-    report_lines.append("</tr>")
-    report_lines.append("<tr>")
-    report_lines.append(f"<td>{base_before_hash}</td>")
-    report_lines.append(f"<td>{non_reported}</td>")
-    report_lines.append(f"<td>{emails}</td>")
-    report_lines.append(f"<td>{mailings}</td>")
-    report_lines.append(f"<td>~{estimated_percentage}%</td>")
-    report_lines.append(f"<td>{patients_submitted}</td>")
-    report_lines.append(f"<td>{eligible_patients}</td>")
-    report_lines.append(f"<td>{sample_size}</td>")
-    report_lines.append("</tr>")
-    report_lines.append("</table>")
+            report_lines.append(
+                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{addr_text}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
+            )
+        report_lines.append("</table>")
 
     report_lines.append("<hr>")
     report_lines.append(
@@ -406,20 +429,28 @@ def _build_html_header(file_path, version, audit_id=None):
     header_lines.append("</head>")
     header_lines.append("<body>")
     header_lines.append("<div class='report-container'>")
-    header_lines.append(f"<h1>TB's EXCEL AUDITOR v{version}</h1>")
-    header_lines.append(f"<p><strong>Report Date:</strong> {time_of_report}</p>")
 
-    if audit_id is None:
-        header_lines.append(
-            "<p><strong>Audit ID:</strong> No Audit ID available (failed audits do not get an ID)</p>"
-        )
-    else:
-        header_lines.append(f"<p><strong>Audit ID:</strong> {audit_id}</p>")
-
-    header_lines.append(f"<p><strong>Client:</strong> {base_before_hash}</p>")
+    # Updated header presentation
+    header_lines.append("<div style='padding-bottom: 15px; margin-bottom: 20px;'>")
+    header_lines.append(f"<h1 style='margin: 0 0 5px 0;'>Excel Audit Report</h1>")
     header_lines.append(
-        f"<p><strong>File last modified/saved:</strong> {modified_ts}</p>"
+        f"<p style='margin: 0; color: #7f8c8d; font-size: 0.9em;'>Generated by TB Auditor v{version}</p>"
     )
+    header_lines.append("</div>")
+
+    # Info grid layout
+    header_lines.append(
+        "<div style='display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;'>"
+    )
+    header_lines.append(f"<div><strong>Client:</strong> {base_before_hash}</div>")
+    if audit_id is None:
+        header_lines.append("<div><strong>Audit ID:</strong> N/A (audit failed)</div>")
+    else:
+        header_lines.append(f"<div><strong>Audit ID:</strong> {audit_id}</div>")
+    header_lines.append(f"<div><strong>Report Date:</strong> {time_of_report}</div>")
+    header_lines.append(f"<div><strong>File Modified:</strong> {modified_ts}</div>")
+    header_lines.append("</div>")
+
     header_lines.append("<hr>")
 
     return header_lines

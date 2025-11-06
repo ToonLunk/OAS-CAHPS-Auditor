@@ -8,7 +8,7 @@ from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
 # versioning
-version = "0.42-beta2"
+version = "0.43-beta2"
 
 
 def audit_excel(file_path):
