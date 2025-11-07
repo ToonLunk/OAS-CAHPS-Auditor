@@ -2,10 +2,17 @@
 REM Change to project root directory
 cd /d "%~dp0.."
 
+REM Read version from .env file
+for /f "tokens=2 delims==" %%a in ('findstr "VERSION" .env') do set VERSION=%%a
+
 echo ====================================
 echo Building OAS-CAHPS Auditor Executable
+echo Version: %VERSION%
 echo ====================================
 echo.
+
+REM Update version in audit.py
+powershell -Command "(Get-Content audit.py) -replace '__version__ = \".*\"', '__version__ = \"%VERSION%\"' | Set-Content audit.py"
 
 REM Check if PyInstaller is installed
 python -c "import PyInstaller" 2>NUL

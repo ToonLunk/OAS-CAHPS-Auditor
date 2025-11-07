@@ -9,19 +9,9 @@ from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
 
-# Read version from .env file
-def get_version():
-    try:
-        with open(".env", "r") as f:
-            for line in f:
-                if line.startswith("VERSION="):
-                    return line.strip().split("=", 1)[1]
-    except:
-        pass
-    return "unknown"
-
-
-version = get_version()
+# Version - updated by build script
+__version__ = "0.50-rc1"
+version = __version__
 
 
 def audit_excel(file_path):
