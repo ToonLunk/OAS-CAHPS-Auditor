@@ -1,99 +1,74 @@
-# Packaging OAS-CAHPS Auditor as an Executable
+# Building and Packaging
 
-## Quick Start (Command-Line Tool Style)
+Instructions for building the executable and creating distribution packages.
 
-To create a command-line tool that works like `audit --all` or `audit <filename.xlsx>`:
+## Prerequisites
 
-1. **Build the executable:**
+- Python 3.8 or higher
+- All dependencies from `requirements.txt`
 
-   - Double-click `build_exe.bat`
-   - Wait for the program to build
+## Build Executable
 
-2. **Install for yourself:**
-
-   - Copy `audit.exe` from the `dist` folder to where you want it
-   - Copy `deploy.bat` to be next to `audit.exe`
-   - Run `deploy.bat` as administrator (right click it, then click "run as admin")
-   - Done! You can now use `audit --all` from anywhere
-
-## What Gets Created
-
-After building, you'll have:
-
-- `dist/audit.exe` - The standalone executable
-- `build/` folder - Temporary build files (can be deleted)
-- `audit.spec` - Build configuration (keep this)
-
-## Installation Options
-
-### Option 1: Simple Install (Recommended)
-
-1. Copy `audit.exe` and `deploy.bat` to your computer
-2. Right-click `deploy.bat` → "Run as administrator"
-3. Installs to `C:\OAS-CAHPS-Auditor` and adds to system PATH
-
-### Option 2: Custom Location Install
-
-1. Place `audit.exe` wherever you want (e.g., `C:\Tools`)
-2. Copy `install.bat` to that same folder
-3. Run `install.bat` (adds that folder to your PATH)
-
-### Option 3: Manual Install
-
-1. Place `audit.exe` in a folder (e.g., `C:\Tools\audit.exe`)
-2. Add that folder to PATH manually:
-   - Search Windows for "Environment Variables"
-   - Edit the "Path" variable
-   - Add your folder path
-   - Click OK
-3. Restart your terminal
-
-## Important Notes
-
-### Building the .exe
-
-- You only need to rebuild when you make changes to the Python code
-- The first build takes longer; subsequent builds are faster
-- Make sure `audit_report.css` is in the same folder as your Python files
-
-### Using the Command
-
-After installation, you can use it like this:
-
-```
-audit --all
-audit filename.xlsx
-audit C:\path\to\file.xlsx
+```cmd
+build_exe.bat
 ```
 
-- Works from any directory
-- No Python installation required
-- No need to navigate to the tool's location
+**Output:**
 
-### File Size
+- `dist/audit.exe` - Standalone executable (~20-30 MB)
+- `build/` - Temporary build files (safe to delete)
+- `audit.spec` - PyInstaller configuration (keep this)
 
-- The .exe will be around 20-30 MB (it includes Python and all dependencies)
-- This is normal for PyInstaller executables
+**Build time:** 2-5 minutes (first build), ~30 seconds (subsequent builds)
 
-## Troubleshooting
+## Create Distribution Package
 
-**"PyInstaller not found" error:**
+```cmd
+package.bat
+```
 
-- The script will automatically install it
-- Or manually run: `pip install -r requirements.txt`
+**Output:** `OAS-CAHPS-Auditor.zip`
 
-**Missing CSS file error:**
+**Contains:**
 
-- Make sure `audit_report.css` is in the same folder as `audit.py`
+- `audit.exe` - The executable
+- `deploy.bat` - System-wide installation script
+- `INSTALL.txt` - Installation instructions
 
-**Antivirus warnings:**
+This ZIP file is ready to share. Recipients run `deploy.bat` as administrator to install.
 
-- Some antivirus software flags PyInstaller executables
-- This is a false positive - you can add an exception
+## Installation Methods
 
-## Updating the Executable
+**Automated (Recommended):**
 
-When you make changes to this Python code:
+- Run `deploy.bat` as administrator
+- Installs to `C:\OAS-CAHPS-Auditor`
+- Adds installation directory to system PATH
+- Requires terminal restart to take effect
 
-1. Run `build_exe.bat` again
-2. Share the new .exe from the `dist` folder
+**Manual:**
+
+1. Place `audit.exe` in any directory
+2. Add that directory to Windows PATH environment variable
+3. Restart terminal
+
+**Alternative (User PATH only):**
+
+- Run `install.bat` in same folder as `audit.exe`
+- No administrator rights required
+- Adds to user PATH instead of system PATH
+
+## Development Workflow
+
+1. Make changes to Python source files
+2. Test: `python audit.py <file>`
+3. Build: `build_exe.bat`
+4. Package: `package.bat` (when ready to distribute)
+
+## Technical Notes
+
+- PyInstaller bundles Python interpreter and all dependencies
+- `audit_report.css` is automatically included in the executable
+- Antivirus software may flag PyInstaller executables (false positive)
+- Users must restart terminal after installation for PATH changes
+- The executable is Windows-only (built on Windows, for Windows)
