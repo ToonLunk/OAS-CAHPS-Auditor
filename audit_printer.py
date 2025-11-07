@@ -6,7 +6,7 @@ import re
 from collections import defaultdict
 
 from requests import head
-from audit_lib_funcs import check_address
+from audit_lib_funcs import check_address, check_pop_upload_email_consistency
 
 
 def build_report(
@@ -469,6 +469,46 @@ def build_report(
                     )
     else:
         issues.append("UPLOAD tab missing")
+
+    # 2b. Cross-tab consistency: POP vs UPLOAD email matching
+    if "UPLOAD" in wb.sheetnames:
+        upload_sheet = wb["UPLOAD"]
+        up_headers = {
+            cell.value: idx
+            for idx, cell in enumerate(
+                next(upload_sheet.iter_rows(min_row=1, max_row=1)), start=1
+            )
+        }
+
+        # Get MRN and Email columns from UPLOAD
+        upload_mrn_col = up_headers.get("MRN")
+        upload_email_col = up_headers.get("EMAIL ADDRESS")
+
+        if upload_mrn_col and upload_email_col:
+            email_mismatches = check_pop_upload_email_consistency(
+                wb, upload_sheet, upload_mrn_col, upload_email_col
+            )
+
+            # Add mismatches to row_issues for table display
+            for upload_row, mrn, upload_email, pop_email in email_mismatches:
+                # Check if this is an error message (when upload_row is "N/A")
+                if upload_row == "N/A":
+                    issues.append(
+                        f"<strong>WARNING:</strong> POP/UPLOAD Email Check: {pop_email}"
+                    )
+                else:
+                    row_issues.append(
+                        {
+                            "row": f"UPLOAD {upload_row}",
+                            "mrn": mrn,
+                            "cms": None,
+                            "issue_type": "Email Mismatch (POP vs UPLOAD)",
+                            "description": f"UPLOAD: '{upload_email}' vs POP: '{pop_email}'",
+                        }
+                    )
+                    issues.append(
+                        f"UPLOAD Row {upload_row}: Email mismatch for MRN {mrn} - UPLOAD: '{upload_email}' vs POP: '{pop_email}'"
+                    )
 
     # Check combined ineligible math (moved validation to earlier section)
     if patients_submitted is not None and eligible_patients is not None:

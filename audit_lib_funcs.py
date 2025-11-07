@@ -508,3 +508,184 @@ def check_req_headers(headers):
         raise ValueError(f"Missing required headers: {missing_req_headers}")
 
     return mapping
+
+
+# --- Cross-tab consistency checking ---
+
+# MRN and Email alias mappings (from VBA script)
+MRN_ALIASES = [
+    "chart id",
+    "patid",
+    "medical account number",
+    "patient account number",
+    "patient acct no",
+    "medical record number",
+    "mrn",
+    "patient id",
+    "patient mrn",
+    "medicalrecordnumber",
+    "medrec",
+    "md rc",
+    "acct#",
+    "patient account #",
+    "account number",
+    "patient chart number",
+    "acctnum",
+    "mrnum",
+    "arpnum",
+    "patientid",
+    "mrno",
+    "per nbr",
+    "pt.id",
+    "chart number",
+    "pt account #",
+    "mr#",
+    "patient_number",
+    "pat_med_rec",
+    "person mrn",
+]
+
+EMAIL_ALIASES = [
+    "e-mail address",
+    "emailaddress",
+    "email",
+    "email address",
+    "patient email",
+    "e-mail",
+    "patientemailaddress",
+    "patient e-mail",
+    "pm_email",
+    "patient email address",
+    "patemail",
+    "email addr",
+    "pt. email id",
+    "pt email",
+    "patmail",
+    "pt_email_address",
+    "per_email:per addr street 1",
+]
+
+
+def find_column_by_aliases(sheet, aliases):
+    """
+    Find a column in the sheet by checking against a list of aliases.
+    Returns the 1-based column index if found, None otherwise.
+    Handles sheets with rows spaced apart.
+    """
+    # Check first few rows for headers (in case of spacing)
+    for header_row_idx in range(1, 6):  # Check first 5 rows
+        try:
+            row = list(
+                sheet.iter_rows(
+                    min_row=header_row_idx, max_row=header_row_idx, values_only=True
+                )
+            )[0]
+            for col_idx, cell_value in enumerate(row, start=1):
+                if cell_value:
+                    cell_str = str(cell_value).strip().lower()
+                    # Check against all aliases
+                    for alias in aliases:
+                        if cell_str == alias.lower():
+                            return col_idx, header_row_idx
+        except (IndexError, AttributeError):
+            continue
+    return None, None
+
+
+def normalize_email(email_val):
+    """Normalize email for comparison (lowercase, stripped)."""
+    if email_val is None:
+        return None
+    email_str = str(email_val).strip().lower()
+    if email_str == "" or email_str == "none":
+        return None
+    return email_str
+
+
+def check_pop_upload_email_consistency(
+    wb, upload_sheet, mrn_col_upload, email_col_upload
+):
+    """
+    Check that emails in UPLOAD tab match those in POP tab for the same MRN.
+    Returns list of mismatches: [(upload_row, mrn, upload_email, pop_email), ...]
+    """
+    mismatches = []
+
+    # Check if POP tab exists
+    if "POP" not in wb.sheetnames:
+        return mismatches  # Can't check without POP tab
+
+    pop_sheet = wb["POP"]
+
+    # Find MRN and Email columns in POP using aliases
+    mrn_col_pop, mrn_header_row = find_column_by_aliases(pop_sheet, MRN_ALIASES)
+    email_col_pop, email_header_row = find_column_by_aliases(pop_sheet, EMAIL_ALIASES)
+
+    if mrn_col_pop is None:
+        return [("N/A", "N/A", "N/A", "Could not locate MRN column in POP tab")]
+
+    if email_col_pop is None:
+        return [("N/A", "N/A", "N/A", "Could not locate Email column in POP tab")]
+
+    # Build a dictionary of MRN -> Email from POP tab
+    # Use the header row with the most columns as the reference
+    pop_data_start_row = max(mrn_header_row or 1, email_header_row or 1) + 1
+
+    pop_mrn_to_email = {}
+    for row in pop_sheet.iter_rows(min_row=pop_data_start_row, values_only=True):
+        # Skip completely empty rows
+        if not any(cell is not None and str(cell).strip() != "" for cell in row):
+            continue
+
+        # Get MRN and Email from this row
+        try:
+            mrn_val = row[mrn_col_pop - 1] if mrn_col_pop <= len(row) else None
+            email_val = row[email_col_pop - 1] if email_col_pop <= len(row) else None
+
+            if mrn_val:
+                mrn_str = str(mrn_val).strip()
+                if mrn_str:
+                    # Store normalized email
+                    pop_mrn_to_email[mrn_str] = normalize_email(email_val)
+        except (IndexError, AttributeError):
+            continue
+
+    # Now compare UPLOAD tab against POP data
+    for upload_row_idx, row in enumerate(
+        upload_sheet.iter_rows(min_row=2, values_only=True), start=2
+    ):
+        # Skip empty rows
+        if not any(cell is not None and str(cell).strip() != "" for cell in row):
+            continue
+
+        try:
+            upload_mrn = row[mrn_col_upload - 1] if mrn_col_upload <= len(row) else None
+            upload_email = (
+                row[email_col_upload - 1] if email_col_upload <= len(row) else None
+            )
+
+            if not upload_mrn:
+                continue
+
+            mrn_str = str(upload_mrn).strip()
+            upload_email_norm = normalize_email(upload_email)
+
+            # Check if this MRN exists in POP
+            if mrn_str in pop_mrn_to_email:
+                pop_email_norm = pop_mrn_to_email[mrn_str]
+
+                # Compare emails (only flag if both exist and differ)
+                if upload_email_norm and pop_email_norm:
+                    if upload_email_norm != pop_email_norm:
+                        mismatches.append(
+                            (
+                                upload_row_idx,
+                                mrn_str,
+                                upload_email or "",
+                                pop_mrn_to_email[mrn_str] or "",
+                            )
+                        )
+        except (IndexError, AttributeError):
+            continue
+
+    return mismatches
