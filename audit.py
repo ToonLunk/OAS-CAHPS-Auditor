@@ -174,6 +174,21 @@ if __name__ == "__main__":
         )
         sys.exit(0)
 
+    if arg == "--help" or arg == "-h":
+        print("Usage: audit <excel_file> or audit --all")
+        print("Options:")
+        print("  --all       Process all Excel files in the current directory")
+        print("  --help,-h   Show this help message")
+        print("  --version,-v Show version information")
+        print("\n")
+        print(
+            "Need help? Visit https://github.com/ToonLunk/OAS-CAHPS-Auditor, or contact support."
+        )
+        sys.exit(0)
+    if arg == "--version" or arg == "-v":
+        print(f"OAS auditor version {version}")
+        sys.exit(0)
+
     # Handle single file
     file_path = arg
     if not os.path.exists(file_path):

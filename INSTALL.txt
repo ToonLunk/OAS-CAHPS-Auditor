@@ -1,0 +1,58 @@
+================================================================================
+                    OAS CAHPS AUDITOR - INSTALLATION
+================================================================================
+
+QUICK INSTALL:
+  1. Right-click deploy.bat
+  2. Select "Run as administrator"
+  3. Open a NEW Command Prompt or PowerShell window
+  4. Type: audit --help
+
+That's it! The auditor is now installed system-wide.
+
+================================================================================
+
+USAGE:
+
+  audit filename.xlsx       Audit a single Excel file
+  audit --all              Audit all Excel files in current directory
+  audit --help             Show help message
+  audit --version          Show version information
+
+The auditor will generate an HTML report in the same folder as the Excel file.
+
+================================================================================
+
+MANUAL INSTALL (if deploy.bat doesn't work):
+
+  1. Move audit.exe to a permanent location (e.g., C:\Tools\)
+  2. Add that folder to your Windows PATH:
+     - Search Windows for "Environment Variables"
+     - Click "Edit the system environment variables"
+     - Click "Environment Variables" button
+     - Under "User variables", find "Path" and click "Edit"
+     - Click "New" and add your folder path
+     - Click OK on all dialogs
+  3. Restart your terminal
+
+================================================================================
+
+TROUBLESHOOTING:
+
+  "Windows protected your PC" / SmartScreen warning:
+    - Click "More info"
+    - Click "Run anyway"
+    - This is normal for unsigned executables
+
+  Antivirus blocks audit.exe:
+    - Add an exception for audit.exe in your antivirus software
+    - PyInstaller executables sometimes trigger false positives
+
+  "audit" command not found after installation:
+    - Close and reopen your terminal (PATH changes require restart)
+    - Verify the installation folder is in your PATH
+
+  Need help?
+    - Contact the developer or your IT department
+
+================================================================================
