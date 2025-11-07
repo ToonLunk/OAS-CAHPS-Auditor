@@ -8,6 +8,7 @@ __pycache__/
 # PyInstaller build artifacts
 build/
 dist/
+distribution/
 *.spec
 
 # Virtual environments
@@ -30,6 +31,5 @@ Thumbs.db
 *.xlsx
 *.xls
 
-# But DO include example files if you create any
-!example*.xlsx
-!sample*.xlsx
+# executables
+*.exe
