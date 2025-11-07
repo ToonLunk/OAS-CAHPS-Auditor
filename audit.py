@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import uuid
+from tqdm import tqdm
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
@@ -66,7 +67,7 @@ def audit_excel(file_path):
             failure_reason=str(missing_req_headers),
             version=version,
         )
-        exit(2)
+        raise Exception(f"Missing required columns: {missing_req_headers}")
 
     pat_col = mapping["PATIENT NAME"]
     addr1_col = mapping["ADDRESS1"]
@@ -102,7 +103,7 @@ def audit_excel(file_path):
             failure_reason="no E/M counts",
             version=version,
         )
-        exit(3)
+        raise Exception("No E/M counts found")
 
     report_lines, issues = build_report(
         wb=wb,
@@ -139,13 +140,49 @@ def audit_excel(file_path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: audit <excel_file>")
+        print("Usage: audit <excel_file> or audit --all")
         sys.exit(1)
 
-    file_path = sys.argv[1]
+    arg = sys.argv[1]
+
+    # Handle --all flag to process all files in current directory
+    if arg == "--all":
+        # Get list of Excel files
+        excel_files = [
+            f for f in os.listdir(".") if f.endswith((".xlsx", ".xls", ".xlsm"))
+        ]
+
+        if not excel_files:
+            print("No Excel files found in current directory.")
+            sys.exit(0)
+
+        files_processed = 0
+        print(f"Found {len(excel_files)} Excel file(s) to process.\n")
+
+        # Process with progress bar
+        for filename in tqdm(excel_files, desc="Processing files", unit="file"):
+            try:
+                file_path, report_lines = audit_excel(filename)
+                final_file = save_report(file_path, report_lines, version=version)
+                tqdm.write(f"✓ {filename} -> {final_file}")
+                files_processed += 1
+            except Exception as e:
+                tqdm.write(f"✗ {filename}: {e}")
+
+        print(
+            f"\nCompleted: {files_processed}/{len(excel_files)} file(s) processed successfully."
+        )
+        sys.exit(0)
+
+    # Handle single file
+    file_path = arg
     if not os.path.exists(file_path):
         print(f"Error: File '{file_path}' not found.")
         sys.exit(1)
 
-    file_path, report_lines = audit_excel(file_path)
-    final_file = save_report(file_path, report_lines, version=version)
+    try:
+        file_path, report_lines = audit_excel(file_path)
+        final_file = save_report(file_path, report_lines, version=version)
+    except Exception as e:
+        # For single file mode, exit with error
+        sys.exit(1)

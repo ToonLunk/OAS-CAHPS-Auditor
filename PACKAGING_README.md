@@ -2,23 +2,19 @@
 
 ## Quick Start (Command-Line Tool Style)
 
-To create a command-line tool that works like `audit --all` or `audit filename.xlsx`:
+To create a command-line tool that works like `audit --all` or `audit <filename.xlsx>`:
 
 1. **Build the executable:**
 
    - Double-click `build_exe.bat`
-   - Wait for the build to complete (may take a few minutes the first time)
+   - Wait for the program to build
 
 2. **Install for yourself:**
 
    - Copy `audit.exe` from the `dist` folder to where you want it
-   - Double-click `install.bat` (in the folder with `audit.exe`)
-   - OR use `deploy.bat` for system-wide installation (requires admin)
-
-3. **Share with coworkers:**
-   - Give them `audit.exe` and `deploy.bat`
-   - They run `deploy.bat` as administrator
-   - Done! They can now use `audit --all` from anywhere
+   - Copy `deploy.bat` to be next to `audit.exe`
+   - Run `deploy.bat` as administrator (right click it, then click "run as admin")
+   - Done! You can now use `audit --all` from anywhere
 
 ## What Gets Created
 
@@ -30,9 +26,9 @@ After building, you'll have:
 
 ## Installation Options
 
-### Option 1: Simple Install (Recommended for Coworkers)
+### Option 1: Simple Install (Recommended)
 
-1. Copy `audit.exe` and `deploy.bat` to their computer
+1. Copy `audit.exe` and `deploy.bat` to your computer
 2. Right-click `deploy.bat` → "Run as administrator"
 3. Installs to `C:\OAS-CAHPS-Auditor` and adds to system PATH
 
@@ -54,15 +50,15 @@ After building, you'll have:
 
 ## Important Notes
 
-### For You (Building the .exe)
+### Building the .exe
 
 - You only need to rebuild when you make changes to the Python code
 - The first build takes longer; subsequent builds are faster
 - Make sure `audit_report.css` is in the same folder as your Python files
 
-### For Your Coworkers (Using the Command)
+### Using the Command
 
-After installation, they can use it just like you do:
+After installation, you can use it like this:
 
 ```
 audit --all
@@ -78,28 +74,6 @@ audit C:\path\to\file.xlsx
 
 - The .exe will be around 20-30 MB (it includes Python and all dependencies)
 - This is normal for PyInstaller executables
-
-## What to Share with Coworkers
-
-**Easy way (recommended):**
-
-- `audit.exe` (from the `dist` folder)
-- `deploy.bat`
-- Tell them: "Run deploy.bat as administrator"
-
-**They'll then be able to run:**
-
-```
-audit --all
-audit myfile.xlsx
-```
-
-## How It Works
-
-1. The executable is named `audit.exe` (not a long name)
-2. The installer adds its location to the Windows PATH
-3. Windows can now find `audit` from any directory
-4. Just like how you can run `python` or `git` from anywhere
 
 ## Troubleshooting
 
@@ -117,15 +91,9 @@ audit myfile.xlsx
 - Some antivirus software flags PyInstaller executables
 - This is a false positive - you can add an exception
 
-**The .exe doesn't work on coworker's computer:**
-
-- Make sure they're using Windows
-- The .exe is only compatible with Windows OS
-- They may need to allow it through Windows Defender
-
 ## Updating the Executable
 
-When you make changes to your Python code:
+When you make changes to this Python code:
 
 1. Run `build_exe.bat` again
 2. Share the new .exe from the `dist` folder

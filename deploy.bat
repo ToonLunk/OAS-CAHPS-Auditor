@@ -18,9 +18,14 @@ if %errorLevel% neq 0 (
     exit /b 1
 )
 
+REM Get the directory where this script is located
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%"
+
 REM Check if audit.exe exists
-if not exist "audit.exe" (
+if not exist "%SCRIPT_DIR%audit.exe" (
     echo ERROR: audit.exe not found in this directory!
+    echo Looking in: %SCRIPT_DIR%
     echo Make sure audit.exe is in the same folder as this script.
     echo.
     pause
@@ -32,7 +37,7 @@ set "INSTALL_DIR=C:\OAS-CAHPS-Auditor"
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 
 echo Copying audit.exe to %INSTALL_DIR%...
-copy /Y "audit.exe" "%INSTALL_DIR%\audit.exe" >nul
+copy /Y "%SCRIPT_DIR%audit.exe" "%INSTALL_DIR%\audit.exe" >nul
 
 echo Adding %INSTALL_DIR% to system PATH...
 

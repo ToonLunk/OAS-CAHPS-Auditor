@@ -12,11 +12,17 @@ if errorlevel 1 (
     echo.
 )
 
+echo Cleaning old builds...
+if exist build rmdir /s /q build
+if exist dist rmdir /s /q dist
+if exist audit.spec del /q audit.spec
+echo.
+
 echo Building executable...
 echo This may take a few minutes...
 echo.
 
-python -m PyInstaller --onefile --name "audit" --add-data "audit_report.css;." --console audit.py
+python -m PyInstaller --onefile --name "audit" --add-data "audit_report.css;." --collect-data i18naddress --console audit.py
 
 if errorlevel 1 (
     echo.
@@ -35,11 +41,11 @@ echo Your executable is located at:
 echo   dist\audit.exe
 echo.
 echo Next steps:
-echo   1. Copy audit.exe to a permanent location (or keep in dist folder)
-echo   2. Run install.bat to add it to your PATH
-echo   3. Share audit.exe + install.bat with coworkers
+echo   1. Copy `audit.exe` and `deploy.bat` to the same folder
+echo   2. Run deploy.bat to add it to your PATH
+echo   3. Run the auditor from anywhere!
 echo.
-echo After installation, you and your coworkers can run:
+echo After installation, run:
 echo   audit --all
 echo   audit filename.xlsx
 echo from anywhere!
