@@ -3,9 +3,13 @@ REM ============================================
 REM Build and Package OAS CAHPS Auditor
 REM ============================================
 
+REM Read version from .env file
+for /f "tokens=2 delims==" %%a in ('findstr "VERSION" .env') do set VERSION=%%a
+
 echo.
 echo ========================================
 echo Building OAS CAHPS Auditor Package
+echo Version: %VERSION%
 echo ========================================
 echo.
 
@@ -33,16 +37,22 @@ REM Step 3: Create ZIP file
 echo.
 echo [3/3] Creating ZIP archive...
 
-REM Use PowerShell to create the ZIP
-powershell -Command "Compress-Archive -Path 'distribution\*' -DestinationPath 'OAS-CAHPS-Auditor.zip' -Force"
+REM Create ZIP filename with version
+set ZIPNAME=OAS-CAHPS-Auditor-v%VERSION%.zip
 
-if exist "OAS-CAHPS-Auditor.zip" (
+REM Delete old ZIP if it exists
+if exist "%ZIPNAME%" del "%ZIPNAME%"
+
+REM Use PowerShell to create the ZIP
+powershell -Command "Compress-Archive -Path 'distribution\*' -DestinationPath '%ZIPNAME%' -Force"
+
+if exist "%ZIPNAME%" (
     echo.
     echo ========================================
     echo SUCCESS!
     echo ========================================
     echo.
-    echo Package created: OAS-CAHPS-Auditor.zip
+    echo Package created: %ZIPNAME%
     echo.
     echo This ZIP contains:
     echo   - audit.exe

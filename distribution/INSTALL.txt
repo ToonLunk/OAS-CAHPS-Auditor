@@ -1,0 +1,54 @@
+================================================================================
+                         OAS CAHPS AUDITOR
+================================================================================
+
+INSTALLATION:
+
+  1. Find deploy.bat in this folder
+  2. Right-click it and choose "Run as administrator"
+  3. Wait for it to finish (takes a few seconds)
+  4. Close this window and open a new Command Prompt or PowerShell
+  5. Test it by typing: audit --help
+
+================================================================================
+
+HOW TO USE:
+
+Go to the folder with your Excel files, then:
+
+  audit filename.xlsx      Check a single file
+  audit --all              Check all Excel files in the folder
+
+The tool creates a report showing any issues it found. Reports are saved in
+a folder called "audits". Files that couldn't be checked go in 
+"audits/unable_to_audit".
+
+================================================================================
+
+IF DEPLOY.BAT DOESN'T WORK:
+
+You can install manually:
+
+  1. Put audit.exe somewhere permanent (like C:\Tools)
+  2. Search Windows for "Environment Variables"
+  3. Click "Edit the system environment variables"
+  4. Click "Environment Variables"
+  5. Find "Path" and click "Edit"
+  6. Click "New" and type your folder path
+  7. Click OK on everything
+  8. Close and reopen your terminal
+
+================================================================================
+
+COMMON ISSUES:
+
+  "Windows protected your PC" message:
+    This is normal. Click "More info" then "Run anyway"
+
+  Antivirus blocks audit.exe:
+    The file is safe. Add it as an exception in your antivirus
+
+  "audit" command not found:
+    You need to restart your terminal after installing
+
+================================================================================
