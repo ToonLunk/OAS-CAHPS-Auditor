@@ -7,10 +7,25 @@ Instructions for building the executable and creating distribution packages.
 - Python 3.8 or higher
 - All dependencies from `requirements.txt`
 
+## Version Management
+
+Version is stored in `.env` file at project root:
+
+```
+VERSION=0.50-rc1
+```
+
+This version is used by:
+
+- The executable (shown in `audit --version`)
+- The package script (creates `OAS-CAHPS-Auditor-v{VERSION}.zip`)
+
+To update: Edit `.env` and change the `VERSION=` line.
+
 ## Build Executable
 
 ```cmd
-build_exe.bat
+scripts\build_exe.bat
 ```
 
 **Output:**
@@ -24,10 +39,12 @@ build_exe.bat
 ## Create Distribution Package
 
 ```cmd
-package.bat
+scripts\package.bat
 ```
 
-**Output:** `OAS-CAHPS-Auditor.zip`
+This automatically runs `build_exe.bat` first, then packages everything.
+
+**Output:** `OAS-CAHPS-Auditor-v{VERSION}.zip`
 
 **Contains:**
 
@@ -61,9 +78,31 @@ This ZIP file is ready to share. Recipients run `deploy.bat` as administrator to
 ## Development Workflow
 
 1. Make changes to Python source files
-2. Test: `python audit.py <file>`
-3. Build: `build_exe.bat`
-4. Package: `package.bat` (when ready to distribute)
+2. Update version in `.env` if needed
+3. Test: `python audit.py <file>`
+4. Build: `scripts\build_exe.bat`
+5. Package: `scripts\package.bat` (when ready to distribute)
+
+## Project Structure
+
+```
+project/
+├── audit.py                    # Main source
+├── audit_lib_funcs.py          # Validation functions
+├── audit_printer.py            # Report generation
+├── audit_report.css            # Report styling
+├── .env                        # Version configuration
+├── requirements.txt            # Python dependencies
+├── readme.md                   # Main documentation
+├── scripts/                    # Build & deployment scripts
+│   ├── package.bat
+│   ├── build_exe.bat
+│   ├── deploy.bat
+│   └── install.bat
+└── docs/                       # Documentation
+    ├── PACKAGING_README.md
+    └── INSTALL.txt
+```
 
 ## Technical Notes
 

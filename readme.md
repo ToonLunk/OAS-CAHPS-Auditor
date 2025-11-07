@@ -27,27 +27,32 @@ See `INSTALL.txt` in the package for detailed instructions and troubleshooting.
 
 **Requirements:** Python 3.8+
 
-**Build executable:**
+**Build executable (for development):**
 
 ```cmd
 pip install -r requirements.txt
-build_exe.bat
+scripts\build_exe.bat
 ```
 
 Output: `dist/audit.exe`
 
-**Create distribution package:**
+**Create distribution package (for users):**
 
 ```cmd
-package.bat
+scripts\package.bat
 ```
 
-Output: `OAS-CAHPS-Auditor.zip` (ready to share)
+Output: `OAS-CAHPS-Auditor-v{VERSION}.zip` (ready to share)
 
 **Development:**
 
 - Edit source files: `audit.py`, `audit_lib_funcs.py`, `audit_printer.py`, `audit_report.css`
+- Update version: Edit `.env` file
 - Test changes: `python audit.py <file>`
+- Rebuild: `scripts\build_exe.bat`
+
+See `docs/PACKAGING_README.md` for build details.
+
 - Rebuild: `build_exe.bat`
 
 See `PACKAGING_README.md` for build details.

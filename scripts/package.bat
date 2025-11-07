@@ -3,6 +3,9 @@ REM ============================================
 REM Build and Package OAS CAHPS Auditor
 REM ============================================
 
+REM Change to project root directory
+cd /d "%~dp0.."
+
 REM Read version from .env file
 for /f "tokens=2 delims==" %%a in ('findstr "VERSION" .env') do set VERSION=%%a
 
@@ -15,7 +18,7 @@ echo.
 
 REM Step 1: Build the executable
 echo [1/3] Building executable...
-call build_exe.bat
+call scripts\build_exe.bat
 if errorlevel 1 (
     echo ERROR: Build failed!
     pause
@@ -30,8 +33,8 @@ mkdir distribution
 
 REM Copy files to distribution folder
 copy "dist\audit.exe" "distribution\" >nul
-copy "deploy.bat" "distribution\" >nul
-copy "INSTALL.txt" "distribution\" >nul
+copy "scripts\deploy.bat" "distribution\" >nul
+copy "docs\INSTALL.txt" "distribution\" >nul
 
 REM Step 3: Create ZIP file
 echo.

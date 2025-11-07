@@ -1,4 +1,7 @@
 @echo off
+REM Change to project root directory
+cd /d "%~dp0.."
+
 echo ====================================
 echo Building OAS-CAHPS Auditor Executable
 echo ====================================

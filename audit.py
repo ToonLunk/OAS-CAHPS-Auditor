@@ -153,6 +153,14 @@ def audit_excel(file_path):
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: audit <excel_file> or audit --all")
+        print("Options:")
+        print("  --all       Process all Excel files in the current directory")
+        print("  --help,-h   Show this help message")
+        print("  --version,-v Show version information")
+        print("\n")
+        print(
+            "Need help? Visit https://github.com/ToonLunk/OAS-CAHPS-Auditor, or contact support."
+        )
         sys.exit(1)
 
     arg = sys.argv[1]
