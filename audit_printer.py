@@ -4,6 +4,7 @@ import datetime
 import math
 import re
 from collections import defaultdict
+import phonenumbers
 
 from requests import head
 from audit_lib_funcs import check_address, check_pop_upload_email_consistency
@@ -224,188 +225,12 @@ def build_report(
     report_lines.append("</tr>")
     report_lines.append("</table>")
 
-    # ==============================================================
     # DATA QUALITY VALIDATION SECTION
-    # ==============================================================
-    # Check for various data quality issues and add to row_issues
+    from audit_lib_funcs import column_validations
 
-    svc_col = headers.get("SERVICE DATE")
-    age_col = headers.get("AGE")
-    email_col = headers.get("EMAIL ADDRESS")
-    lang_col = headers.get("SURVEY LANGUAGE")
-    tel_col = headers.get("TELEPHONE")
-
-    # Track service dates to check they're all in the same month
-    service_dates = []
-    # Track MRNs to check for duplicates
-    mrn_tracker = defaultdict(list)
-
-    for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-        if not any(row):
-            continue
-
-        mrn_val = row[mrn_col - 1] if mrn_col else None
-        cms_val = row[cms_col - 1] if cms_col else None
-        em_val = row[em_col - 1] if em_col else None
-
-        # Track MRN for duplicate check
-        if mrn_val:
-            mrn_tracker[mrn_val].append(r)
-
-        # 1. SERVICE DATE - collect all dates for month validation
-        if svc_col:
-            svc_date = row[svc_col - 1]
-            if isinstance(svc_date, datetime.datetime):
-                service_dates.append((r, mrn_val, svc_date))
-
-        # 2. AGE - must be 18 or older (only matters when CMS=1)
-        if age_col:
-            age_val = row[age_col - 1]
-            try:
-                age_int = int(float(str(age_val))) if age_val is not None else None
-                cms_int = (
-                    int(float(str(cms_val)))
-                    if cms_val is not None and str(cms_val).strip()
-                    else None
-                )
-
-                if age_int is not None and age_int < 18 and cms_int == 1:
-                    row_issues.append(
-                        {
-                            "row": r,
-                            "mrn": mrn_val,
-                            "cms": cms_val,
-                            "issue_type": "Age Too Young",
-                            "description": f"Age {age_int} is below 18 (CMS=1)",
-                        }
-                    )
-                    issues.append(
-                        f"OASCAPHS Row {r}: Age {age_int} is below 18 (CMS=1)"
-                    )
-            except (ValueError, TypeError):
-                pass
-
-        # 3. EMAIL ADDRESS - validate format when present
-        if email_col:
-            email_val = row[email_col - 1]
-            if email_val and str(email_val).strip():
-                email_str = str(email_val).strip()
-                # Basic email regex validation
-                if not re.match(
-                    r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email_str
-                ):
-                    row_issues.append(
-                        {
-                            "row": r,
-                            "mrn": mrn_val,
-                            "cms": cms_val,
-                            "issue_type": "Invalid Email Format",
-                            "description": f"Email '{email_str}' has invalid format",
-                        }
-                    )
-                    issues.append(
-                        f"OASCAPHS Row {r}: Invalid email format '{email_str}'"
-                    )
-
-        # 4. SURVEY LANGUAGE - must be en, es, ko, zh, or m (lowercase)
-        if lang_col:
-            lang_val = row[lang_col - 1]
-            valid_langs = ["en", "es", "ko", "zh", "m"]
-            lang_str = str(lang_val).strip() if lang_val else ""
-            if not lang_str or lang_str not in valid_langs:
-                row_issues.append(
-                    {
-                        "row": r,
-                        "mrn": mrn_val,
-                        "cms": cms_val,
-                        "issue_type": "Invalid Language Code",
-                        "description": f"Language '{lang_str}' not in {valid_langs}",
-                    }
-                )
-                issues.append(f"OASCAPHS Row {r}: Invalid language code '{lang_str}'")
-
-        # 5. E/M and CMS INDICATOR logic
-        # - If CMS=1, E/M must be 'E' or 'M'
-        # - If CMS=2, E/M should NOT be 'E' or 'M'
-        if cms_col and em_col:
-            try:
-                cms_int = (
-                    int(float(str(cms_val)))
-                    if cms_val is not None and str(cms_val).strip()
-                    else None
-                )
-                em_str = str(em_val).strip().upper() if em_val else ""
-
-                if cms_int == 1:
-                    if em_str not in ["E", "M"]:
-                        row_issues.append(
-                            {
-                                "row": r,
-                                "mrn": mrn_val,
-                                "cms": cms_val,
-                                "issue_type": "Missing E/M for CMS=1",
-                                "description": f"CMS=1 but E/M is '{em_val}' (expected 'E' or 'M')",
-                            }
-                        )
-                        issues.append(f"OASCAPHS Row {r}: CMS=1 but E/M is '{em_val}'")
-                elif cms_int == 2:
-                    if em_str in ["E", "M"]:
-                        row_issues.append(
-                            {
-                                "row": r,
-                                "mrn": mrn_val,
-                                "cms": cms_val,
-                                "issue_type": "Unexpected E/M for CMS=2",
-                                "description": f"CMS=2 but E/M is '{em_val}' (should be blank)",
-                            }
-                        )
-                        issues.append(
-                            f"OASCAPHS Row {r}: CMS=2 but E/M has value '{em_val}'"
-                        )
-            except (ValueError, TypeError):
-                pass
-
-    # Check all SERVICE DATEs are in the same month
-    if service_dates:
-        # Get month/year from first date
-        first_date = service_dates[0][2]
-        expected_month = first_date.month
-        expected_year = first_date.year
-
-        for r, mrn_val, svc_date in service_dates:
-            if svc_date.month != expected_month or svc_date.year != expected_year:
-                row_issues.append(
-                    {
-                        "row": r,
-                        "mrn": mrn_val,
-                        "cms": None,
-                        "issue_type": "Service Date Wrong Month",
-                        "description": f"Date {svc_date.strftime('%Y-%m-%d')} not in {expected_year}-{expected_month:02d}",
-                    }
-                )
-                issues.append(
-                    f"OASCAPHS Row {r}: Service date {svc_date.strftime('%Y-%m-%d')} not in expected month {expected_year}-{expected_month:02d}"
-                )
-
-    # Check for duplicate MRNs
-    for mrn, rows in mrn_tracker.items():
-        if len(rows) > 1:
-            rows_str = ", ".join(str(r) for r in rows)
-            for r in rows:
-                row_issues.append(
-                    {
-                        "row": r,
-                        "mrn": mrn,
-                        "cms": None,
-                        "issue_type": "Duplicate MRN",
-                        "description": f"MRN appears in rows: {rows_str}",
-                    }
-                )
-            issues.append(f"OASCAPHS: Duplicate MRN '{mrn}' found in rows {rows_str}")
-
-    # ==============================================================
-    # END OF DATA QUALITY VALIDATION SECTION
-    # ==============================================================
+    issues, row_issues = column_validations(
+        sheet, headers, mrn_col, cms_col, em_col, issues, row_issues
+    )
 
     # 1. Surgical Category Validation (OASCAPHS)
     report_lines.append("")

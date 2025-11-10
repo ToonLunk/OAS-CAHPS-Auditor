@@ -34,3 +34,5 @@ Thumbs.db
 # executables
 *.exe
 distribution/audit.exe
+__pycache__/audit_lib_funcs.cpython-313.pyc
+__pycache__/audit_printer.cpython-313.pyc

@@ -1,6 +1,7 @@
 import re
 import datetime
 from openpyxl.worksheet.worksheet import Worksheet
+import phonenumbers
 
 
 # --- CPT ineligibility rules
@@ -689,3 +690,324 @@ def check_pop_upload_email_consistency(
             continue
 
     return mismatches
+
+
+def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_issues):
+    """
+    Perform data quality validation checks on OASCAPHS sheet columns.
+    Returns updated issues and row_issues lists.
+    """
+    from collections import defaultdict
+
+    svc_col = headers.get("SERVICE DATE")
+    age_col = headers.get("AGE")
+    email_col = headers.get("EMAIL ADDRESS")
+    lang_col = headers.get("SURVEY LANGUAGE")
+    tel_col = headers.get("TELEPHONE")
+    dob_col = headers.get("DATE OF BIRTH")
+    name_col = headers.get("PATIENT NAME")
+
+    # Track service dates to check they're all in the same month
+    service_dates = []
+    # Track MRNs to check for duplicates
+    mrn_tracker = defaultdict(list)
+
+    for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        if not any(row):
+            continue
+
+        mrn_val = row[mrn_col - 1] if mrn_col else None
+        cms_val = row[cms_col - 1] if cms_col else None
+        em_val = row[em_col - 1] if em_col else None
+
+        # Track MRN for duplicate check
+        if mrn_val:
+            mrn_tracker[mrn_val].append(r)
+
+        # SERVICE DATE - collect all dates for month validation
+        if svc_col:
+            svc_date = row[svc_col - 1]
+            if isinstance(svc_date, datetime.datetime):
+                service_dates.append((r, mrn_val, svc_date))
+
+        # AGE - must be 18 or older (only matters when CMS=1)
+        if age_col:
+            age_val = row[age_col - 1]
+            try:
+                age_int = int(float(str(age_val))) if age_val is not None else None
+                cms_int = (
+                    int(float(str(cms_val)))
+                    if cms_val is not None and str(cms_val).strip()
+                    else None
+                )
+
+                if age_int is not None and age_int < 18 and cms_int == 1:
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": cms_val,
+                            "issue_type": "Age Too Young",
+                            "description": f"Age {age_int} is below 18 (CMS=1)",
+                        }
+                    )
+                    issues.append(
+                        f"OASCAPHS Row {r}: Age {age_int} is below 18 (CMS=1)"
+                    )
+            except (ValueError, TypeError):
+                pass
+
+        # make sure date of birth is valid (day, month, and year are present and not in the future). it should look exactly like this: 01/01/2025, for example
+        if dob_col:
+            dob_val = row[dob_col - 1]
+            if dob_val:
+                # Convert to string for validation
+                if isinstance(dob_val, datetime.datetime):
+                    dob_str = dob_val.strftime("%m/%d/%Y")
+                else:
+                    dob_str = str(dob_val).strip()
+
+                # Check format MM/DD/YYYY
+                if not re.match(
+                    r"^(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/\d{4}$", dob_str
+                ):
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": cms_val,
+                            "issue_type": "Invalid DOB Format",
+                            "description": f"DOB '{dob_str}' must be MM/DD/YYYY format",
+                        }
+                    )
+                    issues.append(
+                        f"OASCAPHS Row {r}: DOB '{dob_str}' must be MM/DD/YYYY format"
+                    )
+                    continue
+
+                # Check if date is in the future
+                try:
+                    dob_date = datetime.datetime.strptime(dob_str, "%m/%d/%Y")
+                    if dob_date > datetime.datetime.now():
+                        row_issues.append(
+                            {
+                                "row": r,
+                                "mrn": mrn_val,
+                                "cms": cms_val,
+                                "issue_type": "DOB In Future",
+                                "description": f"DOB '{dob_str}' is in the future",
+                            }
+                        )
+                        issues.append(
+                            f"OASCAPHS Row {r}: DOB '{dob_str}' is in the future"
+                        )
+                except ValueError:
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": cms_val,
+                            "issue_type": "Invalid DOB",
+                            "description": f"DOB '{dob_str}' is not a valid date",
+                        }
+                    )
+                    issues.append(
+                        f"OASCAPHS Row {r}: DOB '{dob_str}' is not a valid date"
+                    )
+
+        # EMAIL ADDRESS - validate format when present
+        if email_col:
+            email_val = row[email_col - 1]
+            if email_val and str(email_val).strip():
+                email_str = str(email_val).strip()
+                # Basic email regex validation
+                if not re.match(
+                    r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email_str
+                ):
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": cms_val,
+                            "issue_type": "Invalid Email Format",
+                            "description": f"Email '{email_str}' has invalid format",
+                        }
+                    )
+                    issues.append(
+                        f"OASCAPHS Row {r}: Invalid email format '{email_str}'"
+                    )
+
+        # SURVEY LANGUAGE - must be en, es, ko, zh, or m (lowercase)
+        if lang_col:
+            lang_val = row[lang_col - 1]
+            valid_langs = ["en", "es", "ko", "zh", "m"]
+            lang_str = str(lang_val).strip() if lang_val else ""
+            if not lang_str or lang_str not in valid_langs:
+                row_issues.append(
+                    {
+                        "row": r,
+                        "mrn": mrn_val,
+                        "cms": cms_val,
+                        "issue_type": "Invalid Language Code",
+                        "description": f"Language '{lang_str}' not in {valid_langs}",
+                    }
+                )
+                issues.append(f"OASCAPHS Row {r}: Invalid language code '{lang_str}'")
+
+        # E/M and CMS INDICATOR logic
+        # - If CMS=1, E/M must be 'E' or 'M'
+        # - If CMS=2, E/M should NOT be 'E' or 'M'
+        if cms_col and em_col:
+            try:
+                cms_int = (
+                    int(float(str(cms_val)))
+                    if cms_val is not None and str(cms_val).strip()
+                    else None
+                )
+                em_str = str(em_val).strip().upper() if em_val else ""
+
+                if cms_int == 1:
+                    if em_str not in ["E", "M"]:
+                        row_issues.append(
+                            {
+                                "row": r,
+                                "mrn": mrn_val,
+                                "cms": cms_val,
+                                "issue_type": "Missing E/M for CMS=1",
+                                "description": f"CMS=1 but E/M is '{em_val}' (expected 'E' or 'M')",
+                            }
+                        )
+                        issues.append(f"OASCAPHS Row {r}: CMS=1 but E/M is '{em_val}'")
+                elif cms_int == 2:
+                    if em_str in ["E", "M"]:
+                        row_issues.append(
+                            {
+                                "row": r,
+                                "mrn": mrn_val,
+                                "cms": cms_val,
+                                "issue_type": "Unexpected E/M for CMS=2",
+                                "description": f"CMS=2 but E/M is '{em_val}' (should be blank)",
+                            }
+                        )
+                        issues.append(
+                            f"OASCAPHS Row {r}: CMS=2 but E/M has value '{em_val}'"
+                        )
+            except (ValueError, TypeError):
+                pass
+
+    # Check all SERVICE DATEs are in the same month
+    if service_dates:
+        # Get month/year from first date
+        first_date = service_dates[0][2]
+        expected_month = first_date.month
+        expected_year = first_date.year
+
+        for r, mrn_val, svc_date in service_dates:
+            if svc_date.month != expected_month or svc_date.year != expected_year:
+                row_issues.append(
+                    {
+                        "row": r,
+                        "mrn": mrn_val,
+                        "cms": None,
+                        "issue_type": "Service Date Wrong Month",
+                        "description": f"Date {svc_date.strftime('%Y-%m-%d')} not in {expected_year}-{expected_month:02d}",
+                    }
+                )
+                issues.append(
+                    f"OASCAPHS Row {r}: Service date {svc_date.strftime('%Y-%m-%d')} not in expected month {expected_year}-{expected_month:02d}"
+                )
+
+    # Check for duplicate MRNs
+    for mrn, rows in mrn_tracker.items():
+        if len(rows) > 1:
+            rows_str = ", ".join(str(r) for r in rows)
+            for r in rows:
+                row_issues.append(
+                    {
+                        "row": r,
+                        "mrn": mrn,
+                        "cms": None,
+                        "issue_type": "Duplicate MRN",
+                        "description": f"MRN appears in rows: {rows_str}",
+                    }
+                )
+            issues.append(f"OASCAPHS: Duplicate MRN '{mrn}' found in rows {rows_str}")
+
+    # check validity of telephone numbers using phonenumbers package
+    if tel_col:
+        for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+            if not any(row):
+                continue
+            tel_val = row[tel_col - 1]
+            mrn_val = row[mrn_col - 1] if mrn_col else None
+            cms_val = row[cms_col - 1] if cms_col else None
+
+            if tel_val and str(tel_val).strip():
+                tel_str = str(tel_val).strip()
+                try:
+                    phone_number = phonenumbers.parse(tel_str, "US")
+                    if not phonenumbers.is_valid_number(phone_number):
+                        row_issues.append(
+                            {
+                                "row": r,
+                                "mrn": mrn_val,
+                                "cms": cms_val,
+                                "issue_type": "Invalid Telephone Number",
+                                "description": f"Telephone '{tel_str}' is not a valid number",
+                            }
+                        )
+                        issues.append(
+                            f"OASCAPHS Row {r}: Invalid telephone number '{tel_str}'"
+                        )
+                except phonenumbers.NumberParseException:
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": cms_val,
+                            "issue_type": "Invalid Telephone Number Format",
+                            "description": f"Telephone '{tel_str}' has invalid format",
+                        }
+                    )
+                    issues.append(
+                        f"OASCAPHS Row {r}: Telephone '{tel_str}' has invalid format"
+                    )
+
+    # find placeholder/test names in patient name col
+    if name_col:
+        placeholder_names = {
+            "test",
+            "patient",
+            "sample",
+            "john doe",
+            "jane doe",
+            "asdf",
+            "qwerty",
+            "foo bar",
+        }
+        for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+            if not any(row):
+                continue
+            name_val = row[name_col - 1]
+            mrn_val = row[mrn_col - 1] if mrn_col else None
+            cms_val = row[cms_col - 1] if cms_col else None
+
+            if name_val and str(name_val).strip():
+                name_str = str(name_val).strip().lower()
+                for name in placeholder_names:
+                    if name in name_str:
+                        row_issues.append(
+                            {
+                                "row": r,
+                                "mrn": mrn_val,
+                                "cms": cms_val,
+                                "issue_type": "Placeholder Name",
+                                "description": f"Patient Name '{name_val}' contains placeholder/test name",
+                            }
+                        )
+                        issues.append(
+                            f"OASCAPHS Row {r}: Patient Name '{name_val}' contains placeholder/test name"
+                        )
+                        break
+
+    return issues, row_issues
