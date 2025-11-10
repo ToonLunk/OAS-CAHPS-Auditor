@@ -707,6 +707,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
     tel_col = headers.get("TELEPHONE")
     dob_col = headers.get("DATE OF BIRTH")
     name_col = headers.get("PATIENT NAME")
+    gender_col = headers.get("GENDER")
 
     # Track service dates to check they're all in the same month
     service_dates = []
@@ -725,11 +726,84 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
         if mrn_val:
             mrn_tracker[mrn_val].append(r)
 
-        # SERVICE DATE - collect all dates for month validation
+        # GENDER - must be M, F, 0, 1, or 2
+        if gender_col:
+            gender_val = row[gender_col - 1]
+            valid_genders = ["M", "F", "0", "1", "2"]
+            gender_str = str(gender_val).strip().upper() if gender_val else ""
+            if not gender_str or gender_str not in valid_genders:
+                row_issues.append(
+                    {
+                        "row": r,
+                        "mrn": mrn_val,
+                        "cms": cms_val,
+                        "issue_type": "Invalid Gender",
+                        "description": f"Gender '{gender_val}' not in {valid_genders}",
+                    }
+                )
+                issues.append(f"OASCAPHS Row {r}: Invalid gender '{gender_val}'")
+
+        # SERVICE DATE - validate format and collect all dates for month validation
         if svc_col:
-            svc_date = row[svc_col - 1]
-            if isinstance(svc_date, datetime.datetime):
-                service_dates.append((r, mrn_val, svc_date))
+            svc_val = row[svc_col - 1]
+            if svc_val:
+                # Convert to string for validation
+                if isinstance(svc_val, datetime.datetime):
+                    svc_str = svc_val.strftime("%m/%d/%Y")
+                    service_dates.append((r, mrn_val, svc_val))
+                else:
+                    svc_str = str(svc_val).strip()
+
+                # Check format MM/DD/YYYY
+                if not re.match(
+                    r"^(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/\d{4}$", svc_str
+                ):
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": cms_val,
+                            "issue_type": "Invalid Service Date Format",
+                            "description": f"Service Date '{svc_str}' must be MM/DD/YYYY format",
+                        }
+                    )
+                    issues.append(
+                        f"OASCAPHS Row {r}: Service Date '{svc_str}' must be MM/DD/YYYY format"
+                    )
+                    continue
+
+                # Check if date is in the future
+                try:
+                    svc_date = datetime.datetime.strptime(svc_str, "%m/%d/%Y")
+                    if svc_date > datetime.datetime.now():
+                        row_issues.append(
+                            {
+                                "row": r,
+                                "mrn": mrn_val,
+                                "cms": cms_val,
+                                "issue_type": "Service Date In Future",
+                                "description": f"Service Date '{svc_str}' is in the future",
+                            }
+                        )
+                        issues.append(
+                            f"OASCAPHS Row {r}: Service Date '{svc_str}' is in the future"
+                        )
+                    else:
+                        # Only add valid dates for month validation
+                        service_dates.append((r, mrn_val, svc_date))
+                except ValueError:
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": cms_val,
+                            "issue_type": "Invalid Service Date",
+                            "description": f"Service Date '{svc_str}' is not a valid date",
+                        }
+                    )
+                    issues.append(
+                        f"OASCAPHS Row {r}: Service Date '{svc_str}' is not a valid date"
+                    )
 
         # AGE - must be 18 or older (only matters when CMS=1)
         if age_col:

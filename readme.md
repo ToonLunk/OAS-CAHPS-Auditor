@@ -10,6 +10,34 @@ audit --all            # Audit all Excel files in current directory
 audit --version        # Show version number
 ```
 
+## Validation Checks
+
+**Header Validation:**
+
+- Ensures required headers are present and correctly named in OASCAPHS and UPLOAD tabs
+- Validates header formatting and order
+
+**Number Validation:**
+
+- Checks that the header's submitted # matches the total of INEL, Frame INEL, and Reported rows
+- Checks that Emails (E) and Mailings (M) sum to the sample size as well as the sum of rows where CMS=1
+- Checks that eligible is the same as submitted - all ineligible rows
+- and more!
+
+**Data Validation:**
+
+- Validates address fields (State, ZIP, City) for correct formatting
+- Validates CPT codes against a predefined list
+- Checks DOB and SERVICE DATE columns for valid date formats
+- Ensures no duplicate rows based on MRN
+- and more!
+
+## TODO
+
+- Check for "REPEAT" to the right of rows in INEL where nothing else is highlighted/marked
+- Add option "--6month" to check the 6month repeat file and make sure all data is there and in the right place.
+  -- When this option is used, the program should ask the user to input the directory where the 6month files are located. Then it should be saved in the .env file for future use.
+
 ## Installation
 
 If you have the distribution package (ZIP file):
