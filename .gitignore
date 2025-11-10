@@ -14,6 +14,8 @@ dist/
 distribution/
 *.spec
 
+*.zip
+
 # Virtual environments
 venv/
 env/
@@ -36,4 +38,5 @@ Thumbs.db
 
 # executables
 *.exe
+distribution/audit.exe
 distribution/audit.exe
