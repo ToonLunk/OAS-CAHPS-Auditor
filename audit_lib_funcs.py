@@ -533,7 +533,6 @@ MRN_ALIASES = [
     "patient chart number",
     "acctnum",
     "mrnum",
-    "arpnum",
     "patientid",
     "mrno",
     "per nbr",
@@ -544,6 +543,7 @@ MRN_ALIASES = [
     "patient_number",
     "pat_med_rec",
     "person mrn",
+    "armrnum",
 ]
 
 EMAIL_ALIASES = [
@@ -564,6 +564,7 @@ EMAIL_ALIASES = [
     "patmail",
     "pt_email_address",
     "per_email:per addr street 1",
+    "arpatmail",
 ]
 
 
