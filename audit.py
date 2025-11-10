@@ -10,7 +10,7 @@ from audit_lib_funcs import *
 
 
 # Version - updated by build script
-__version__ = "0.51-rc2"
+__version__ = "0.53-rc2"
 version = __version__
 
 
