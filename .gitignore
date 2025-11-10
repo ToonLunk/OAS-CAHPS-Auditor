@@ -4,6 +4,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
+__pycache__
+# everything inside __pycache__ folders
+__pycache__/*
 
 # PyInstaller build artifacts
 build/
@@ -34,5 +37,3 @@ Thumbs.db
 # executables
 *.exe
 distribution/audit.exe
-__pycache__/audit_lib_funcs.cpython-313.pyc
-__pycache__/audit_printer.cpython-313.pyc
