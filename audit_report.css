@@ -75,6 +75,10 @@ table.excel-style td {
   padding: 6px 12px;
 }
 
+table.excel-style tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
 table.data-table {
   width: 100%;
   border-collapse: collapse;
@@ -84,6 +88,10 @@ table.data-table {
 table.data-table td {
   padding: 4px 8px;
   border-bottom: 1px solid #e0e0e0;
+}
+
+table.data-table tr:nth-child(even) {
+  background-color: #f9f9f9;
 }
 
 table.data-table td:first-child {
@@ -112,6 +120,10 @@ table.validation-table td {
   border-bottom: 1px solid #e0e0e0;
 }
 
+table.validation-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
 table.validation-table td:first-child {
   text-align: left;
   width: 50%;
@@ -135,4 +147,26 @@ table.validation-table td.fail {
 
 table.validation-table tr:last-child td {
   border-bottom: none;
+}
+
+/* Collapsible sections */
+details {
+  margin: 10px 0;
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: bold;
+  padding: 8px;
+  background-color: #ecf0f1;
+  border-left: 3px solid #27ae60;
+  user-select: none;
+}
+
+details summary:hover {
+  background-color: #d5dbdc;
+}
+
+details[open] summary {
+  border-left-color: #2980b9;
 }

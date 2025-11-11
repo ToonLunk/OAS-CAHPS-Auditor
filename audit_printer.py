@@ -142,7 +142,7 @@ def build_report(
     if sample_size is not None and total_em != sample_size:
         issue_msg = f"<strong>WARNING:</strong> Reported total mismatch: <strong>{total_em}</strong> vs Sample Size <strong>{sample_size}</strong>"
         report_lines.append(
-            f"<tr><td '>{issue_msg}</td><td style='color: red;>✗</td></tr>"
+            f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
         )
         issues.append(issue_msg)
     else:
@@ -170,7 +170,7 @@ def build_report(
             "<strong>WARNING:</strong> POP tab missing or Submitted value not found"
         )
         report_lines.append(
-            f"<tr><td '>{issue_msg}</td><td style='color: red;>✗</td></tr>"
+            f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
         )
         issues.append(issue_msg)
 
@@ -182,7 +182,7 @@ def build_report(
         if upload_rows != oascaphs_rows:
             issue_msg = f"<strong>WARNING:</strong> UPLOAD mismatch: {upload_rows} rows vs {oascaphs_rows} rows in OASCAPHS"
             report_lines.append(
-                f"<tr><td '>{issue_msg}</td><td style='color: red;>✗</td></tr>"
+                f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
             )
             issues.append(issue_msg)
         else:
@@ -192,7 +192,7 @@ def build_report(
     else:
         issue_msg = "UPLOAD tab missing"
         report_lines.append(
-            f"<tr><td>{issue_msg}</td><td style='color: red;>✗</td></tr>"
+            f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
         )
         issues.append(issue_msg)
 
@@ -381,6 +381,8 @@ def build_report(
 
     # Display row-based issues in table format
     if row_issues:
+        report_lines.append("<details open>")
+        report_lines.append(f"<summary>Issues ({len(row_issues)} found)</summary>")
         report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
         report_lines.append(
             "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ISSUE TYPE</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>DESCRIPTION</th></tr>"
@@ -392,6 +394,7 @@ def build_report(
                 f"<tr><td style='padding: 3px 8px;'>{issue['row']}</td><td style='padding: 3px 8px;'>{mrn_display}</td><td style='padding: 3px 8px;'>{cms_display}</td><td style='padding: 3px 8px;'>{issue['issue_type']}</td><td style='padding: 3px 8px;'>{issue['description']}</td></tr>"
             )
         report_lines.append("</table>")
+        report_lines.append("</details>")
 
     # Display general/non-row issues as list
     non_row_issues = [
@@ -415,12 +418,16 @@ def build_report(
     # CPT ineligible summary
 
     if cpt_ineligible_rows:
-        report_lines.append("<h2>CPT INELIGIBLE SUMMARY</h2>")
+        report_lines.append("<h2>INELIGIBLE CPT CODES</h2>")
         report_lines.append(
             "<p><em>Note: Some ineligible CPT codes are expected to be in the non-report (CMS=2) section!</em></p>"
         )
         report_lines.append(
             f"<p><strong>Total ineligible CPT rows found: {len(cpt_ineligible_rows)}</strong></p>"
+        )
+        report_lines.append("<details open>")
+        report_lines.append(
+            f"<summary>Ineligible CPT Details ({len(cpt_ineligible_rows)} rows)</summary>"
         )
         report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
         report_lines.append(
@@ -433,6 +440,7 @@ def build_report(
                 f"<tr><td style='padding: 3px 8px;'>{r}</td><td style='padding: 3px 8px;'>{mrn_display}</td><td style='padding: 3px 8px;'>{cms_display}</td><td style='padding: 3px 8px;'>{cpt}</td><td style='padding: 3px 8px;'>{reason}</td></tr>"
             )
         report_lines.append("</table>")
+        report_lines.append("</details>")
 
     # INVALID ADDRESSES section
     # audit addresses using google's package
@@ -441,6 +449,10 @@ def build_report(
     )
     if invalid_addresses:
         report_lines.append("<h2>INVALID ADDRESSES FOUND</h2>")
+        report_lines.append("<details open>")
+        report_lines.append(
+            f"<summary>Invalid Address Details ({len(invalid_addresses)} found)</summary>"
+        )
         report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
         report_lines.append(
             "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>E/M</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STREET</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CITY</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STATE</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ZIP</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th></tr>"
@@ -489,10 +501,15 @@ def build_report(
                 f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{mrn_val}</td><td style='padding: 3px 8px;'>{cms_val}</td><td style='padding: 3px 8px;'>{em_val}</td><td style='padding: 3px 8px;'>{street}</td><td style='padding: 3px 8px;'>{city}</td><td style='padding: 3px 8px;'>{state}</td><td style='padding: 3px 8px;'>{zip_code}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
             )
         report_lines.append("</table>")
+        report_lines.append("</details>")
 
     # possibly problematic addresses
     if noted_addresses:
         report_lines.append("<h2>PROBLEMATIC ADDRESSES FOUND</h2>")
+        report_lines.append("<details open>")
+        report_lines.append(
+            f"<summary>Problematic Address Details ({len(noted_addresses)} found)</summary>"
+        )
         report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
         report_lines.append(
             "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>E/M</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ADDRESS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ISSUE(S)</th></tr>"
@@ -524,6 +541,7 @@ def build_report(
                 f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{mrn_val}</td><td style='padding: 3px 8px;'>{cms_val}</td><td style='padding: 3px 8px;'>{em_val}</td><td style='padding: 3px 8px;'>{addr_text}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
             )
         report_lines.append("</table>")
+        report_lines.append("</details>")
 
     report_lines.append("<hr>")
     report_lines.append(

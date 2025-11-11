@@ -5,12 +5,13 @@ import re
 import sys
 import uuid
 from tqdm import tqdm
+from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-
-# Version - updated by build script
-__version__ = "0.53-rc2"
+# Load version from .env file
+load_dotenv()
+__version__ = os.getenv("VERSION", "unknown")
 version = __version__
 
 
