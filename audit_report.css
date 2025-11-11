@@ -168,5 +168,5 @@ details summary:hover {
 }
 
 details[open] summary {
-  border-left-color: #2980b9;
+  border-left-color: #e8e8e8;
 }
