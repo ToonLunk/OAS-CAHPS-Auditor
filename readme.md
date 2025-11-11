@@ -84,3 +84,25 @@ See `docs/PACKAGING_README.md` for build details.
 - Rebuild: `build_exe.bat`
 
 See `PACKAGING_README.md` for build details.
+
+## Credit
+
+Code written by Tyler B.
+
+## License
+
+This software is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
+
+**What this means:**
+
+- ✓ Free to use, modify, and distribute
+- ✓ Must credit Tyler B. as the original author
+- ✓ Any derivative works must also be open-source under GPL-3.0
+- ✓ Cannot be made closed-source or sold as proprietary software
+- ✗ Provided "as is" without warranty
+
+Copyright © 2025 Tyler B.
+
+Developed for J.L. Morgan & Associates, Inc.
+
+See [LICENSE](LICENSE) file for full legal text or visit: https://www.gnu.org/licenses/gpl-3.0.en.html
