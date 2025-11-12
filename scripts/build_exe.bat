@@ -25,14 +25,13 @@ if errorlevel 1 (
 echo Cleaning old builds...
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
-if exist audit.spec del /q audit.spec
 echo.
 
-echo Building executable...
+echo Building executable using audit.spec...
 echo This may take a few minutes...
 echo.
 
-python -m PyInstaller --onefile --name "audit" --add-data "audit_report.css;." --collect-data i18naddress --console audit.py
+python -m PyInstaller audit.spec
 
 if errorlevel 1 (
     echo.
