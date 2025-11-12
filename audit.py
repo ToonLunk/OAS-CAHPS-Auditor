@@ -9,9 +9,8 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-# Load version from .env file
-load_dotenv()
-__version__ = os.getenv("VERSION", "unknown")
+# Version - update this when releasing new versions
+__version__ = "0.54-rc1"
 version = __version__
 
 
