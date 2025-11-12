@@ -32,12 +32,6 @@ audit --version        # Show version number
 - Ensures no duplicate rows based on MRN
 - and more!
 
-## TODO
-
-- Check for "REPEAT" to the right of rows in INEL where nothing else is highlighted/marked
-- Add option "--6month" to check the 6month repeat file and make sure all data is there and in the right place.
-  -- When this option is used, the program should ask the user to input the directory where the 6month files are located. Then it should be saved in the .env file for future use.
-
 ## Installation
 
 If you have the distribution package (ZIP file):
@@ -85,6 +79,16 @@ See `docs/PACKAGING_README.md` for build details.
 
 See `PACKAGING_README.md` for build details.
 
+## TODO
+
+- Check for "REPEAT" to the right of rows in INEL where nothing else is highlighted/marked
+- Add option "--6month" to check the 6month repeat file and make sure all data is there and in the right place.
+  -- When this option is used, the program should ask the user to input the directory where the 6month files are located. Then it should be saved in the .env file for future use.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for details on changes and updates.
+
 ## Credit
 
 Code written by Tyler B.
@@ -92,14 +96,6 @@ Code written by Tyler B.
 ## License
 
 This software is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
-
-**What this means:**
-
-- ✓ Free to use, modify, and distribute
-- ✓ Must credit Tyler B. as the original author
-- ✓ Any derivative works must also be open-source under GPL-3.0
-- ✓ Cannot be made closed-source or sold as proprietary software
-- ✗ Provided "as is" without warranty
 
 Copyright © 2025 Tyler B.
 
