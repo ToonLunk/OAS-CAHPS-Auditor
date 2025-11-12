@@ -11,8 +11,7 @@ echo Version: %VERSION%
 echo ====================================
 echo.
 
-REM Update version in audit.py
-powershell -Command "(Get-Content audit.py) -replace '__version__ = \".*\"', '__version__ = \"%VERSION%\"' | Set-Content audit.py"
+REM Version will be loaded from .env file included in the build
 
 REM Check if PyInstaller is installed
 python -c "import PyInstaller" 2>NUL
