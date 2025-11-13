@@ -351,36 +351,50 @@ def is_blank_row(row) -> bool:
 
 
 def parse_dob(raw):
-    """Parse DOB in either MM/DD/YYYY or 'M/D/YYYY (leading apostrophe allows 1-digit month/day).
+    """Parse DOB from various formats (M/D/YYYY, MM/DD/YYYY, YYYY-MM-DD, etc.).
     Returns (ok, normalized, error_reason). Normalized is always MM/DD/YYYY when ok.
+    Flags dates that are invalid, more than 120 years in the past, or in the future.
     """
     if raw is None:
         return False, None, "blank"
+
     s = str(raw).strip()
     if s.startswith("'"):
         s = s[1:].strip()
-    parts = s.split("/")
-    if len(parts) != 3:
-        return False, None, "needs 3 parts"
-    mm, dd, yyyy = parts
-    if not (mm.isdigit() and dd.isdigit() and yyyy.isdigit()):
-        return False, None, "non-numeric"
-    mm_i = int(mm)
-    dd_i = int(dd)
-    yr_i = int(yyyy)
-    if not (1 <= mm_i <= 12):
-        return False, None, "bad month"
-    if not (1 <= dd_i <= 31):
-        return False, None, "bad day"
-    mm_norm = str(mm_i).zfill(2)
-    dd_norm = str(dd_i).zfill(2)
-    try:
-        dt = datetime.datetime(yr_i, mm_i, dd_i)
-    except ValueError:
-        return False, None, "invalid calendar date"
-    if dt > datetime.datetime.now():
-        return False, None, "future"
-    return True, f"{mm_norm}/{dd_norm}/{yyyy}", None
+
+    # Try common date formats
+    formats = [
+        "%m/%d/%Y",  # 3/10/1986 or 03/10/1986
+        "%Y-%m-%d",  # 1986-03-10
+        "%m-%d-%Y",  # 03-10-1986
+    ]
+
+    # Handle datetime objects or strings with time components
+    if " " in s:
+        s = s.split()[0]  # Take just the date part
+
+    dt = None
+    for fmt in formats:
+        try:
+            dt = datetime.datetime.strptime(s, fmt)
+            break
+        except ValueError:
+            continue
+
+    if dt is None:
+        return False, None, "invalid date format"
+
+    # Check if date is valid and within reasonable range
+    now = datetime.datetime.now()
+    years_ago_120 = now - datetime.timedelta(days=120 * 365.25)
+
+    if dt > now:
+        return False, None, "future date"
+    if dt < years_ago_120:
+        return False, None, "more than 120 years old"
+
+    # Return normalized format MM/DD/YYYY
+    return True, dt.strftime("%m/%d/%Y"), None
 
 
 # CPT eligibility check
