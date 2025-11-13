@@ -2,9 +2,6 @@ import os
 import sys
 import datetime
 import math
-import re
-from collections import defaultdict
-import phonenumbers
 
 from requests import head
 from audit_lib_funcs import check_address, check_pop_upload_email_consistency
