@@ -35,6 +35,8 @@ def build_report(
     em_col=None,
     find_frame_inel_count=None,
     mrn_col=None,
+    sid_col=None,
+    sid_row_issues=None,
 ):
     """
     Build the HTML audit report for saving as .html
@@ -48,6 +50,10 @@ def build_report(
 
     # Track row-based issues separately for table display
     row_issues = []  # List of dicts: {row, mrn, cms, issue_type, description}
+    
+    # Add SID row issues if provided
+    if sid_row_issues:
+        row_issues.extend(sid_row_issues)
 
     # missing required headers -> issues
     if missing_req_headers:
@@ -194,6 +200,25 @@ def build_report(
         issues.append(issue_msg)
 
     estimated_percentage = math.ceil((sample_size / eligible_patients) * 100)
+
+    # Check 5: SID validation
+    if sid_row_issues is not None:
+        if not sid_row_issues:
+            report_lines.append(
+                "<tr><td>SIDs present and in order</td><td style='color: #28a745;'>✓</td></tr>"
+            )
+        else:
+            issue_types = set(issue['issue_type'] for issue in sid_row_issues)
+            issue_summary = ', '.join(issue_types)
+            issue_msg = f"<strong>WARNING:</strong> SID validation failed: {issue_summary} ({len(sid_row_issues)} issues)"
+            report_lines.append(
+                f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
+            )
+    else:
+        issue_msg = "SID validation not performed"
+        report_lines.append(
+            f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
+        )
 
     report_lines.append("</table>")
 

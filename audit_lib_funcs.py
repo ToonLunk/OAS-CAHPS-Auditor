@@ -522,6 +522,7 @@ def find_frame_inel_count(
 # function to check for required headers
 def check_req_headers(headers):
     required_names = [
+        "SID",
         "PATIENT NAME",
         "ADDRESS1",
         "CITY",
@@ -558,12 +559,137 @@ def check_req_headers(headers):
         print("  ! AUDIT FAILED: CMS INDICATOR or E/M COLUMN MISSING!")
     if "SURVEY LANGUAGE" in missing_req_headers:
         print("  ! AUDIT FAILED: SURVEY LANGUAGE MISSING!")
+    if "SID" in missing_req_headers:
+        print("  ! AUDIT FAILED: SID COLUMN MISSING!")
 
     if missing_req_headers:
         # raise a simple exception containing the missing list
         raise ValueError(f"Missing required headers: {missing_req_headers}")
 
     return mapping
+
+
+def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
+    """
+    Validate SID sequence for proper formatting, uniqueness, and numerical order.
+    Only validates rows where CMS INDICATOR = 1.
+    Returns (issues, row_issues) lists.
+    
+    Args:
+        sheet: The worksheet to validate
+        sid_col: Column index for SID (1-based)
+        cms_col: Column index for CMS INDICATOR (1-based)
+        header_sid: The SID from the header (should be first SID - 1)
+    """
+    issues = []
+    row_issues = []
+    
+    sid_pattern = re.compile(r'^([A-Z]{3})(\d+)$')
+    
+    sids_found = []
+    expected_prefix = None
+    expected_start_num = None
+    cms1_rows_processed = 0
+    
+    if header_sid:
+        header_match = sid_pattern.match(str(header_sid).strip().upper())
+        if header_match:
+            expected_prefix = header_match.group(1)
+            expected_start_num = int(header_match.group(2)) + 1
+        else:
+            issues.append(f"Header SID '{header_sid}' does not match expected format (3 letters + numbers)")
+    
+    row_num = 2
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        if not any(cell for cell in row):
+            break
+            
+        cms_value = row[cms_col - 1] if cms_col <= len(row) else None
+        
+        try:
+            cms_int = int(float(str(cms_value).strip())) if cms_value is not None and str(cms_value).strip() != "" else None
+        except (ValueError, TypeError):
+            cms_int = None
+        
+        if cms_int != 1:
+            row_num += 1
+            continue
+            
+        cms1_rows_processed += 1
+        sid_value = row[sid_col - 1] if sid_col <= len(row) else None
+        mrn_value = row[0] if len(row) > 0 else None
+        
+        if sid_value is None or str(sid_value).strip() == "":
+            row_issues.append({
+                'row': row_num,
+                'mrn': mrn_value,
+                'cms': cms_value,
+                'issue_type': 'SID Missing',
+                'description': f"Row {row_num}: SID is missing or empty (CMS=1)"
+            })
+            row_num += 1
+            continue
+            
+        sid_str = str(sid_value).strip().upper()
+        
+        match = sid_pattern.match(sid_str)
+        if not match:
+            row_issues.append({
+                'row': row_num,
+                'mrn': mrn_value,
+                'cms': cms_value,
+                'issue_type': 'SID Format',
+                'description': f"Row {row_num}: SID '{sid_str}' does not match format (3 letters + numbers)"
+            })
+            row_num += 1
+            continue
+            
+        prefix = match.group(1)
+        number = int(match.group(2))
+        
+        if expected_prefix is None:
+            expected_prefix = prefix
+            if header_sid:
+                expected_start_num = number
+            else:
+                expected_start_num = number
+        
+        if prefix != expected_prefix:
+            row_issues.append({
+                'row': row_num,
+                'mrn': mrn_value,
+                'cms': cms_value,
+                'issue_type': 'SID Prefix',
+                'description': f"Row {row_num}: SID prefix '{prefix}' does not match expected '{expected_prefix}'"
+            })
+        
+        if sid_str in sids_found:
+            row_issues.append({
+                'row': row_num,
+                'mrn': mrn_value,
+                'cms': cms_value,
+                'issue_type': 'SID Duplicate',
+                'description': f"Row {row_num}: Duplicate SID '{sid_str}'"
+            })
+        
+        sids_found.append(sid_str)
+        
+        expected_num = expected_start_num + (cms1_rows_processed - 1)
+        if number != expected_num:
+            row_issues.append({
+                'row': row_num,
+                'mrn': mrn_value,
+                'cms': cms_value,
+                'issue_type': 'SID Sequence',
+                'description': f"Row {row_num}: Expected SID '{expected_prefix}{expected_num:05d}', found '{sid_str}'"
+            })
+        
+        row_num += 1
+    
+    if row_issues:
+        issues.append(f"Found {len(row_issues)} SID validation issues")
+    
+    return issues, row_issues
 
 
 # --- Cross-tab consistency checking ---

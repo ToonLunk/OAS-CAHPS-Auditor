@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.55"
+__version__ = "0.56r1"
 version = __version__
 
 
@@ -42,6 +42,10 @@ def audit_excel(file_path):
     m = re.search(r"(?<![A-Z])([A-Z]{2})(?![A-Z])", header_clean)
     two_letter_code = m.group(1) if m else ""
 
+    # Extract SID from header (should be first SID in sequence)
+    sid_match = re.search(r"([A-Z]{3}\d+)", header_clean)
+    header_sid = sid_match.group(1) if sid_match else None
+
     # convert letters to alphabet positions (A=1, B=2) and append to UUID
     nums = "".join(str(ord(c) - 64) for c in two_letter_code)
     uuid_code = uuid.uuid4().hex
@@ -70,6 +74,7 @@ def audit_excel(file_path):
         )
         raise Exception(f"Missing required columns: {missing_req_headers}")
 
+    sid_col = mapping["SID"]
     pat_col = mapping["PATIENT NAME"]
     addr1_col = mapping["ADDRESS1"]
     city_col = mapping["CITY"]
@@ -92,6 +97,10 @@ def audit_excel(file_path):
     lang_col = mapping["SURVEY LANGUAGE"]
 
     issues = []
+
+    # Validate SID sequence (only for rows with CMS=1)
+    sid_issues, sid_row_issues = validate_sid_sequence(sheet, sid_col, cms_col, header_sid)
+    issues.extend(sid_issues)
 
     try:
         total_em, emails, mailings, non_reported, cms1_count = calc_e_m_total(
@@ -134,6 +143,8 @@ def audit_excel(file_path):
         em_col=em_col,
         find_frame_inel_count=find_frame_inel_count,  # optional
         mrn_col=mrn_col,  # optional
+        sid_col=sid_col,  # SID column
+        sid_row_issues=sid_row_issues,  # SID validation issues
     )
 
     return file_path, report_lines
