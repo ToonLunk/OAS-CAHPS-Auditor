@@ -237,8 +237,10 @@ def build_report(
     cpt_col = headers.get("CPT")
     cat_col = headers.get("SURGICAL CATEGORY")
     if cpt_col and cat_col:
+        from audit_lib_funcs import is_blank_row
+
         for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-            if not any(row):
+            if is_blank_row(row):
                 continue
             cpt_val = row[cpt_col - 1]
             cat_val = row[cat_col - 1]

@@ -342,6 +342,47 @@ def count_nonempty_rows(sheet):
     return count
 
 
+def is_blank_row(row) -> bool:
+    """Return True if the row contains no meaningful (non-empty) values."""
+    for cell in row:
+        if cell is not None and str(cell).strip() != "":
+            return False
+    return True
+
+
+def parse_dob(raw):
+    """Parse DOB in either MM/DD/YYYY or 'M/D/YYYY (leading apostrophe allows 1-digit month/day).
+    Returns (ok, normalized, error_reason). Normalized is always MM/DD/YYYY when ok.
+    """
+    if raw is None:
+        return False, None, "blank"
+    s = str(raw).strip()
+    if s.startswith("'"):
+        s = s[1:].strip()
+    parts = s.split("/")
+    if len(parts) != 3:
+        return False, None, "needs 3 parts"
+    mm, dd, yyyy = parts
+    if not (mm.isdigit() and dd.isdigit() and yyyy.isdigit()):
+        return False, None, "non-numeric"
+    mm_i = int(mm)
+    dd_i = int(dd)
+    yr_i = int(yyyy)
+    if not (1 <= mm_i <= 12):
+        return False, None, "bad month"
+    if not (1 <= dd_i <= 31):
+        return False, None, "bad day"
+    mm_norm = str(mm_i).zfill(2)
+    dd_norm = str(dd_i).zfill(2)
+    try:
+        dt = datetime.datetime(yr_i, mm_i, dd_i)
+    except ValueError:
+        return False, None, "invalid calendar date"
+    if dt > datetime.datetime.now():
+        return False, None, "future"
+    return True, f"{mm_norm}/{dd_norm}/{yyyy}", None
+
+
 # CPT eligibility check
 def cpt_is_ineligible(cpt_raw) -> tuple[bool, str]:
     """
@@ -715,7 +756,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
     mrn_tracker = defaultdict(list)
 
     for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-        if not any(row):
+        if is_blank_row(row):
             continue
 
         mrn_val = row[mrn_col - 1] if mrn_col else None
@@ -836,59 +877,19 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
         if dob_col:
             dob_val = row[dob_col - 1]
             if dob_val:
-                # Convert to string for validation
-                if isinstance(dob_val, datetime.datetime):
-                    dob_str = dob_val.strftime("%m/%d/%Y")
-                else:
-                    dob_str = str(dob_val).strip()
-
-                # Check format MM/DD/YYYY
-                if not re.match(
-                    r"^(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/\d{4}$", dob_str
-                ):
+                ok, normalized, err = parse_dob(dob_val)
+                if not ok:
+                    issue_type = "DOB In Future" if err == "future" else "Invalid DOB"
                     row_issues.append(
                         {
                             "row": r,
                             "mrn": mrn_val,
                             "cms": cms_val,
-                            "issue_type": "Invalid DOB Format",
-                            "description": f"DOB '{dob_str}' must be MM/DD/YYYY format",
+                            "issue_type": issue_type,
+                            "description": f"DOB '{dob_val}' error: {err}",
                         }
                     )
-                    issues.append(
-                        f"OASCAPHS Row {r}: DOB '{dob_str}' must be MM/DD/YYYY format"
-                    )
-                    continue
-
-                # Check if date is in the future
-                try:
-                    dob_date = datetime.datetime.strptime(dob_str, "%m/%d/%Y")
-                    if dob_date > datetime.datetime.now():
-                        row_issues.append(
-                            {
-                                "row": r,
-                                "mrn": mrn_val,
-                                "cms": cms_val,
-                                "issue_type": "DOB In Future",
-                                "description": f"DOB '{dob_str}' is in the future",
-                            }
-                        )
-                        issues.append(
-                            f"OASCAPHS Row {r}: DOB '{dob_str}' is in the future"
-                        )
-                except ValueError:
-                    row_issues.append(
-                        {
-                            "row": r,
-                            "mrn": mrn_val,
-                            "cms": cms_val,
-                            "issue_type": "Invalid DOB",
-                            "description": f"DOB '{dob_str}' is not a valid date",
-                        }
-                    )
-                    issues.append(
-                        f"OASCAPHS Row {r}: DOB '{dob_str}' is not a valid date"
-                    )
+                    issues.append(f"OASCAPHS Row {r}: DOB '{dob_val}' error: {err}")
 
         # EMAIL ADDRESS - validate format when present
         if email_col:
@@ -1011,7 +1012,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
     # check validity of telephone numbers using phonenumbers package
     if tel_col:
         for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-            if not any(row):
+            if is_blank_row(row):
                 continue
             tel_val = row[tel_col - 1]
             mrn_val = row[mrn_col - 1] if mrn_col else None
@@ -1061,7 +1062,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
             "foo bar",
         }
         for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-            if not any(row):
+            if is_blank_row(row):
                 continue
             name_val = row[name_col - 1]
             mrn_val = row[mrn_col - 1] if mrn_col else None
