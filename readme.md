@@ -87,9 +87,17 @@ See `PACKAGING_README.md` for build details.
 
 ## TODO
 
+High Priority:
 - Check for "REPEAT" to the right of rows in INEL where nothing else is highlighted/marked
 - Add option "--6month" to check the 6month repeat file and make sure all data is there and in the right place.
   -- When this option is used, the program should ask the user to input the directory where the 6month files are located. Then it should be saved in the .env file for future use.
+- Add summary report showing expected vs actual SID range at the top of the validation section for better visibility
+
+Low Priority:
+- Create a config file (JSON) to allow customization; for example, editing CPT code lists without having to modify source code,
+changing appearance settings like colors of the output report, and adjusting validation types
+- Add charts/graphs showing validation metrics using matplotlib or plotly
+- Check GitHub releases for newer versions when running and notify user if an update is available
 
 ## Changelog
 
