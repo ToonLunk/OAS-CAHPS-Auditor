@@ -10,6 +10,12 @@ audit --all            # Audit all Excel files in current directory
 audit --version        # Show version number
 ```
 
+## Output
+
+This software generates an HTML report summarizing validation results, including errors and warnings found during the audit process.
+
+Example Audit Report: [docs/SAMPLE_AUDIT.png](docs/SAMPLE_AUDIT.png)
+
 ## Validation Checks
 
 **Header Validation:**
