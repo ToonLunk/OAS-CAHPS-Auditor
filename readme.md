@@ -49,7 +49,7 @@ If you have the distribution package (ZIP file):
 
 The tool installs to `C:\OAS-CAHPS-Auditor` and is added to your system PATH, so you can run `audit` from anywhere.
 
-See `INSTALL.txt` in the package for detailed instructions and troubleshooting.
+See `Installation Instructions.txt` in the package for detailed instructions and troubleshooting.
 
 ## Building from Source
 

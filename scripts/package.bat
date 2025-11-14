@@ -34,7 +34,8 @@ mkdir distribution
 REM Copy files to distribution folder
 copy "dist\audit.exe" "distribution\" >nul
 copy "scripts\deploy.bat" "distribution\" >nul
-copy "docs\INSTALL.txt" "distribution\" >nul
+copy "docs\Installation Instructions.txt" "distribution\" >nul
+copy "LICENSE" "distribution\" >nul
 
 REM Step 3: Create ZIP file
 echo.
@@ -60,7 +61,8 @@ if exist "%ZIPNAME%" (
     echo This ZIP contains:
     echo   - audit.exe
     echo   - deploy.bat
-    echo   - INSTALL.txt
+    echo   - Installation Instructions.txt
+    echo   - LICENSE
     echo.
     echo Ready to share!
     echo ========================================

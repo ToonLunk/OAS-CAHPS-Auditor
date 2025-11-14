@@ -50,7 +50,7 @@ This automatically runs `build_exe.bat` first, then packages everything.
 
 - `audit.exe` - The executable
 - `deploy.bat` - System-wide installation script
-- `INSTALL.txt` - Installation instructions
+- `Installation Instructions.txt` - Installation instructions
 
 This ZIP file is ready to share. Recipients run `deploy.bat` as administrator to install.
 
@@ -101,7 +101,7 @@ project/
 │   └── install.bat
 └── docs/                       # Documentation
     ├── PACKAGING_README.md
-    └── INSTALL.txt
+    └── Installation Instructions.txt
 ```
 
 ## Technical Notes
