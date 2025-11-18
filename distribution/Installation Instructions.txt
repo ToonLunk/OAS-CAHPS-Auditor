@@ -14,7 +14,8 @@ INSTALLATION:
 
 HOW TO USE:
 
-Go to the folder with your Excel files, then:
+Go to the folder with your Excel files, then right-click inside the folder, 
+choose "Open in Terminal", and run one of these commands:
 
   audit filename.xlsx      Check a single file
   audit --all              Check all Excel files in the folder
@@ -34,7 +35,7 @@ You can install manually:
   3. Click "Edit the system environment variables"
   4. Click "Environment Variables"
   5. Find "Path" and click "Edit"
-  6. Click "New" and type your folder path
+  6. Click "New" and type your folder path (e.g., C:\Tools)
   7. Click OK on everything
   8. Close and reopen your terminal
 
@@ -43,12 +44,18 @@ You can install manually:
 COMMON ISSUES:
 
   "Windows protected your PC" message:
-    This is normal. Click "More info" then "Run anyway"
+    This is normal. Click "More info" then "Run anyway".
 
   Antivirus blocks audit.exe:
     The file is safe. Add it as an exception in your antivirus
 
   "audit" command not found:
-    You need to restart your terminal after installing
+    You need to restart your terminal after installing. If that doesn't help,
+    check that the folder with audit.exe is in your system PATH variable. 
 
+  If the program still doesn't work after trying these steps, please contact
+  support (Tyler Brock) for help.
+
+  Copyright 2025 © Tyler Brock. No warranty is provided. For full license details,
+  please see the LICENSE file included with this software.
 ================================================================================
