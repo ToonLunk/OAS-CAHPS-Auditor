@@ -33,7 +33,10 @@ mkdir distribution
 
 REM Copy files to distribution folder
 copy "dist\audit.exe" "distribution\" >nul
-copy "scripts\deploy.bat" "distribution\" >nul
+copy "distribution\deploy.bat" "distribution\deploy_temp.bat" >nul
+move /y "distribution\deploy_temp.bat" "distribution\deploy.bat" >nul
+copy "scripts\register_context_menu.ps1" "distribution\" >nul
+copy "scripts\unregister_context_menu.ps1" "distribution\" >nul
 copy "docs\Installation Instructions.txt" "distribution\" >nul
 copy "LICENSE" "distribution\" >nul
 
@@ -61,6 +64,8 @@ if exist "%ZIPNAME%" (
     echo This ZIP contains:
     echo   - audit.exe
     echo   - deploy.bat
+    echo   - register_context_menu.ps1
+    echo   - unregister_context_menu.ps1
     echo   - Installation Instructions.txt
     echo   - LICENSE
     echo.
