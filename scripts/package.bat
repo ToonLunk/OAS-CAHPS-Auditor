@@ -25,20 +25,18 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Step 2: Create distribution folder
+REM Step 2: Prepare distribution folder
 echo.
 echo [2/3] Preparing distribution package...
-if exist "distribution" rmdir /s /q distribution
-mkdir distribution
 
-REM Copy files to distribution folder
-copy "dist\audit.exe" "distribution\" >nul
-copy "distribution\deploy.bat" "distribution\deploy_temp.bat" >nul
-move /y "distribution\deploy_temp.bat" "distribution\deploy.bat" >nul
-copy "scripts\register_context_menu.ps1" "distribution\" >nul
-copy "scripts\unregister_context_menu.ps1" "distribution\" >nul
-copy "docs\Installation Instructions.txt" "distribution\" >nul
-copy "LICENSE" "distribution\" >nul
+REM Update files in distribution folder
+copy /Y "dist\audit.exe" "distribution\" >nul
+copy /Y "scripts\register_context_menu.ps1" "distribution\" >nul
+copy /Y "scripts\unregister_context_menu.ps1" "distribution\" >nul
+copy /Y "docs\Installation Instructions.txt" "distribution\" >nul
+copy /Y "LICENSE" "distribution\" >nul
+
+echo Distribution folder updated.
 
 REM Step 3: Create ZIP file
 echo.
