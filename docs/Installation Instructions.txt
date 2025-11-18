@@ -6,14 +6,22 @@ INSTALLATION:
 
   1. Find deploy.bat in this folder
   2. Right-click it and choose "Run as administrator"
-  3. Wait for it to finish (takes a few seconds)
-  4. Close this window and open a new Command Prompt or PowerShell
-  5. Test it by typing: audit --help
+  3. When prompted, choose "Y" to install context menu (recommended!)
+  4. Wait for it to finish (takes a few seconds)
+  5. Close this window and open a new Command Prompt or PowerShell
+  6. Test it by typing: audit --help
 
 ================================================================================
 
 HOW TO USE:
 
+EASIEST WAY (If you installed context menu):
+  1. Open File Explorer and go to the folder with your OAS Excel files
+  2. Right-click on empty space inside the folder
+  3. Click "Audit All OAS Files"
+  4. Done! The audit runs automatically.
+
+COMMAND LINE WAY:
 Go to the folder with your Excel files, then right-click inside the folder, 
 choose "Open in Terminal", and run one of these commands:
 
@@ -51,7 +59,14 @@ COMMON ISSUES:
 
   "audit" command not found:
     You need to restart your terminal after installing. If that doesn't help,
-    check that the folder with audit.exe is in your system PATH variable. 
+    check that the folder with audit.exe is in your system PATH variable.
+
+  Don't see "Audit All OAS Files" when right-clicking:
+    You might have skipped the context menu installation. Run 
+    scripts\register_context_menu.ps1 as administrator to add it.
+
+  Want to remove the context menu:
+    Run scripts\unregister_context_menu.ps1 as administrator. 
 
   If the program still doesn't work after trying these steps, please contact
   support (Tyler Brock) for help.
