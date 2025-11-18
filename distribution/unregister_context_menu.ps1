@@ -4,32 +4,17 @@
 
 Write-Host "Removing context menu for folders..." -ForegroundColor Cyan
 
-# Remove legacy context menu
 $folderShellKey = "Registry::HKEY_CLASSES_ROOT\Directory\Background\shell\AuditAll"
-$win11Key = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\AuditAll"
 
 try {
-    $removed = $false
-    
     if (Test-Path $folderShellKey) {
         Remove-Item -Path $folderShellKey -Recurse -Force
-        Write-Host "✓ Removed legacy context menu" -ForegroundColor Green
-        $removed = $true
-    }
-    
-    if (Test-Path $win11Key) {
-        Remove-Item -Path $win11Key -Recurse -Force
-        Write-Host "✓ Removed Windows 11 context menu" -ForegroundColor Green
-        $removed = $true
-    }
-    
-    if ($removed) {
-        Write-Host ""
         Write-Host "SUCCESS: Context menu removed!" -ForegroundColor Green
+        exit 0
     } else {
         Write-Host "Context menu was not installed." -ForegroundColor Yellow
+        exit 0
     }
-    exit 0
 } catch {
     Write-Host "ERROR: Failed to remove context menu" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red

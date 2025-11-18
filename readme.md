@@ -15,6 +15,8 @@ audit --version        # Show version number
 
 If you installed the context menu during setup, you can:
 - **Right-click** inside any folder → **"Audit All OAS Files"** - Audits all OAS .xlsx files in that folder
+  - **Windows 10:** Regular right-click works
+  - **Windows 11:** Hold **SHIFT** while right-clicking (opens extended menu), or right-click and select **"Show more options"**
 
 No need to use the command line at all!
 

@@ -17,7 +17,10 @@ HOW TO USE:
 
 EASIEST WAY (If you installed context menu):
   1. Open File Explorer and go to the folder with your OAS Excel files
-  2. Right-click on empty space inside the folder
+  2. Right-click on empty space inside the folder:
+     - Windows 10: Right-click
+     - Windows 11: SHIFT + Right-click (opens extended menu)
+     - Windows 11 (Alternative): Right click, then click "Show more options"
   3. Click "Audit All OAS Files"
   4. Done! The audit runs automatically.
 
@@ -62,8 +65,11 @@ COMMON ISSUES:
     check that the folder with audit.exe is in your system PATH variable.
 
   Don't see "Audit All OAS Files" when right-clicking:
-    You might have skipped the context menu installation. 
-    Run scripts\register_context_menu.ps1 as administrator to add it.
+    - Windows 11: Make sure you're holding SHIFT while right-clicking!
+      (Windows 11 hides this in the extended menu)
+    - Windows 10: Should appear with regular right-click
+    - If still missing: You might have skipped context menu installation.
+      Run scripts\register_context_menu.ps1 as administrator to add it.
 
   Want to remove the context menu:
     Run scripts\unregister_context_menu.ps1 as administrator. 

@@ -42,7 +42,8 @@ try {
     
     $win11CommandKey = "$win11Key\command"
     New-Item -Path $win11CommandKey -Force | Out-Null
-    Set-ItemProperty -Path $win11CommandKey -Name "(Default)" -Value "cmd.exe /c cd /d `"%V`" && `"$exePath`" --all && pause"
+    $commandValue = "cmd.exe /c cd /d `"%V`" && `"$exePath`" --all && pause"
+    Set-ItemProperty -Path $win11CommandKey -Name "(Default)" -Value $commandValue
     
     Write-Host "✓ Registered for Windows 11 new context menu" -ForegroundColor Green
 
