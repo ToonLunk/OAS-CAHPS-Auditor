@@ -21,6 +21,8 @@ EASIEST WAY (If you installed context menu):
   3. Click "Audit All OAS Files"
   4. Done! The audit runs automatically.
 
+  Note: Works on both Windows 10 and Windows 11 new context menu!
+
 COMMAND LINE WAY:
 Go to the folder with your Excel files, then right-click inside the folder, 
 choose "Open in Terminal", and run one of these commands:
@@ -62,8 +64,8 @@ COMMON ISSUES:
     check that the folder with audit.exe is in your system PATH variable.
 
   Don't see "Audit All OAS Files" when right-clicking:
-    You might have skipped the context menu installation. Run 
-    scripts\register_context_menu.ps1 as administrator to add it.
+    You might have skipped the context menu installation. 
+    Run scripts\register_context_menu.ps1 as administrator to add it.
 
   Want to remove the context menu:
     Run scripts\unregister_context_menu.ps1 as administrator. 

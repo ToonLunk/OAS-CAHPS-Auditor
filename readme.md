@@ -14,7 +14,7 @@ audit --version        # Show version number
 **Context Menu (Right-Click):**
 
 If you installed the context menu during setup, you can:
-- Right-click inside any folder → **"Audit All OAS Files"** - Audits all OAS .xlsx files in that folder
+- **Right-click** inside any folder → **"Audit All OAS Files"** - Audits all OAS .xlsx files in that folder
 
 No need to use the command line at all!
 
