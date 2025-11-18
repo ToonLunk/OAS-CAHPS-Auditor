@@ -70,4 +70,30 @@ echo   audit filename.xlsx
 echo.
 echo from any directory!
 echo.
+echo.
+echo ====================================
+echo OPTIONAL: Context Menu Integration
+echo ====================================
+echo.
+echo Would you like to add "Audit All OAS Files" to your
+echo right-click context menu? This lets you right-click inside
+echo any folder and audit all OAS files without using the command line.
+echo.
+set /p INSTALL_CONTEXT="Install context menu? (Y/N): "
+
+if /i "%INSTALL_CONTEXT%"=="Y" (
+    echo.
+    echo Installing context menu...
+    powershell -ExecutionPolicy Bypass -File "%SCRIPT_DIR%register_context_menu.ps1"
+    if errorlevel 1 (
+        echo Context menu installation failed.
+    )
+) else (
+    echo.
+    echo Skipping context menu installation.
+    echo You can install it later by running:
+    echo   %SCRIPT_DIR%register_context_menu.ps1
+)
+
+echo.
 pause

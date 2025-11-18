@@ -4,11 +4,19 @@ Command-line tool for auditing OAS CAHPS Excel files. Validates headers, sample 
 
 ## Usage
 
+**Command Line:**
 ```cmd
 audit filename.xlsx    # Audit a specific file
 audit --all            # Audit all Excel files in current directory
 audit --version        # Show version number
 ```
+
+**Context Menu (Right-Click):**
+
+If you installed the context menu during setup, you can:
+- Right-click inside any folder → **"Audit All OAS Files"** - Audits all OAS .xlsx files in that folder
+
+No need to use the command line at all!
 
 ## Output
 
@@ -44,12 +52,17 @@ If you have the distribution package (ZIP file):
 
 1. Extract the ZIP file
 2. Right-click `deploy.bat` and select "Run as administrator"
-3. Restart your terminal
-4. Verify installation by running: `audit --help`
+3. Choose whether to install context menu integration (recommended!)
+4. Restart your terminal (if using command line)
+5. Verify installation by running: `audit --help` or right-clicking in a folder
 
 The tool installs to `C:\OAS-CAHPS-Auditor` and is added to your system PATH, so you can run `audit` from anywhere.
 
+**Context Menu:** During installation, you'll be asked if you want to add right-click integration. This is highly recommended for ease of use - you can audit folders without opening a terminal!
+
 See `Installation Instructions.txt` in the package for detailed instructions and troubleshooting.
+
+**To Remove Context Menu:** Run `scripts\unregister_context_menu.ps1` as administrator.
 
 ## Building from Source
 
