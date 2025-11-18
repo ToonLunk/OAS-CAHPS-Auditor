@@ -71,6 +71,6 @@ COMMON ISSUES:
   If the program still doesn't work after trying these steps, please contact
   support (Tyler Brock) for help.
 
-  Copyright 2025 © Tyler Brock. No warranty is provided. For full license details,
+  No warranty is provided. For full license details,
   please see the LICENSE file included with this software.
 ================================================================================
