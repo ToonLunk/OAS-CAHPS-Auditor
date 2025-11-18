@@ -21,8 +21,6 @@ EASIEST WAY (If you installed context menu):
   3. Click "Audit All OAS Files"
   4. Done! The audit runs automatically.
 
-  Note: Works on both Windows 10 and Windows 11 new context menu!
-
 COMMAND LINE WAY:
 Go to the folder with your Excel files, then right-click inside the folder, 
 choose "Open in Terminal", and run one of these commands:
