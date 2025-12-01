@@ -13,13 +13,13 @@ try {
     
     if (Test-Path $folderShellKey) {
         Remove-Item -Path $folderShellKey -Recurse -Force
-        Write-Host "✓ Removed legacy context menu" -ForegroundColor Green
+        Write-Host "Removed legacy context menu" -ForegroundColor Green
         $removed = $true
     }
     
     if (Test-Path $win11Key) {
         Remove-Item -Path $win11Key -Recurse -Force
-        Write-Host "✓ Removed Windows 11 context menu" -ForegroundColor Green
+        Write-Host "Removed Windows 11 context menu" -ForegroundColor Green
         $removed = $true
     }
     
@@ -34,7 +34,7 @@ try {
     }
     
     if ($removed) {
-        Write-Host "✓ Removed Excel file context menu" -ForegroundColor Green
+        Write-Host "Removed Excel file context menu" -ForegroundColor Green
     }
     
     if ($removed) {

@@ -25,11 +25,11 @@ try {
     New-Item -Path $folderCommandKey -Force | Out-Null
     Set-ItemProperty -Path $folderCommandKey -Name "(Default)" -Value "cmd.exe /c cd /d `"%V`" && `"$exePath`" --all && pause"
 
-    Write-Host "✓ Registered for legacy context menu (Shift+Right-click)" -ForegroundColor Green
+    Write-Host "Registered for legacy context menu (Shift+Right-click)" -ForegroundColor Green
 
     # Add to Windows 11 new context menu
     # This uses the ExplorerCommandHandler which appears in the new Win11 menu
-    Write-Host "✓ Attempting to register for Windows 11 new context menu..." -ForegroundColor Cyan
+    Write-Host "Attempting to register for Windows 11 new context menu..." -ForegroundColor Cyan
     
     # Create GUID for the command
     $guid = "{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}"
@@ -45,10 +45,10 @@ try {
     $commandValue = "cmd.exe /c cd /d `"%V`" && `"$exePath`" --all && pause"
     Set-ItemProperty -Path $win11CommandKey -Name "(Default)" -Value $commandValue
     
-    Write-Host "✓ Registered for Windows 11 new context menu" -ForegroundColor Green
+    Write-Host "Registered for Windows 11 new context menu" -ForegroundColor Green
 
     # Register for individual Excel files (.xlsx, .xls, .xlsm)
-    Write-Host "✓ Installing context menu for individual Excel files..." -ForegroundColor Cyan
+    Write-Host "Installing context menu for individual Excel files..." -ForegroundColor Cyan
     
     $extensions = @(".xlsx", ".xls", ".xlsm")
     foreach ($ext in $extensions) {
@@ -61,7 +61,7 @@ try {
         New-Item -Path $fileCommandKey -Force | Out-Null
         Set-ItemProperty -Path $fileCommandKey -Name "(Default)" -Value "cmd.exe /c `"$exePath`" `"%1`" && pause"
     }
-    Write-Host "✓ Registered for Excel files (.xlsx, .xls, .xlsm)" -ForegroundColor Green
+    Write-Host "Registered for Excel files (.xlsx, .xls, .xlsm)" -ForegroundColor Green
 
     Write-Host ""
     Write-Host "SUCCESS: Context menu installed!" -ForegroundColor Green

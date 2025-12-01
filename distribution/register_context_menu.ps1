@@ -26,14 +26,27 @@ try {
     $command = 'cmd.exe /c cd /d "%V" && "' + $exePath + '" --all && pause'
     Set-ItemProperty -Path $folderCommandKey -Name "(Default)" -Value $command
 
+    # Register for individual Excel files (.xlsx, .xls, .xlsm)
+    Write-Host "Installing context menu for individual Excel files..." -ForegroundColor Cyan
+    
+    $extensions = @(".xlsx", ".xls", ".xlsm")
+    foreach ($ext in $extensions) {
+        $fileKey = "Registry::HKEY_CLASSES_ROOT\SystemFileAssociations\$ext\shell\AuditFile"
+        New-Item -Path $fileKey -Force | Out-Null
+        Set-ItemProperty -Path $fileKey -Name "(Default)" -Value "Audit This OAS File"
+        Set-ItemProperty -Path $fileKey -Name "Icon" -Value "$exePath,0"
+        
+        $fileCommandKey = "$fileKey\command"
+        New-Item -Path $fileCommandKey -Force | Out-Null
+        Set-ItemProperty -Path $fileCommandKey -Name "(Default)" -Value "cmd.exe /c `"$exePath`" `"%1`" && pause"
+    }
+    Write-Host "Registered for Excel files (.xlsx, .xls, .xlsm)" -ForegroundColor Green
+
     Write-Host ""
     Write-Host "SUCCESS: Context menu installed!" -ForegroundColor Green
     Write-Host ""
-    Write-Host "How to use:" -ForegroundColor Cyan
-    Write-Host "  Windows 10: Right-click inside any folder" -ForegroundColor White
-    Write-Host "  Windows 11: SHIFT + Right-click inside any folder" -ForegroundColor White
-    Write-Host "  Then select 'Audit All OAS Files'" -ForegroundColor White
-    Write-Host ""
+    Write-Host "Folder auditing: Right-click inside any folder → 'Audit All OAS Files'" -ForegroundColor White
+    Write-Host "File auditing: Right-click any Excel file → 'Audit This OAS File'" -ForegroundColor White
     exit 0
 } catch {
     Write-Host "ERROR: Failed to register context menu" -ForegroundColor Red
