@@ -43,9 +43,13 @@ try {
     } else {
         Write-Host "Context menu was not installed." -ForegroundColor Yellow
     }
+    Write-Host ""
+    pause
     exit 0
 } catch {
     Write-Host "ERROR: Failed to remove context menu" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
+    Write-Host ""
+    pause
     exit 1
 }

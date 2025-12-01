@@ -54,6 +54,10 @@ if errorlevel 1 (
 )
 
 echo.
+echo Installing context menu integration...
+powershell -ExecutionPolicy Bypass -File "%SCRIPT_DIR%register_context_menu.ps1"
+
+echo.
 echo ====================================
 echo INSTALLATION COMPLETE!
 echo ====================================
@@ -61,13 +65,15 @@ echo.
 echo The audit tool is now installed at:
 echo   %INSTALL_DIR%\audit.exe
 echo.
+echo Context menus installed:
+echo   - Right-click inside folders: "Audit All OAS Files"
+echo   - Right-click Excel files: "Audit This OAS File"
+echo.
 echo IMPORTANT: Close and reopen any Command Prompt or PowerShell windows
 echo for the PATH change to take effect.
 echo.
-echo After reopening your terminal, you can run:
+echo You can also run from command line:
 echo   audit --all
 echo   audit filename.xlsx
-echo.
-echo from any directory!
 echo.
 pause
