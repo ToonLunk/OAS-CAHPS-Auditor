@@ -23,6 +23,20 @@ try {
         $removed = $true
     }
     
+    # Remove file-level context menu entries
+    $extensions = @(".xlsx", ".xls", ".xlsm")
+    foreach ($ext in $extensions) {
+        $fileKey = "Registry::HKEY_CLASSES_ROOT\SystemFileAssociations\$ext\shell\AuditFile"
+        if (Test-Path $fileKey) {
+            Remove-Item -Path $fileKey -Recurse -Force
+            $removed = $true
+        }
+    }
+    
+    if ($removed) {
+        Write-Host "✓ Removed Excel file context menu" -ForegroundColor Green
+    }
+    
     if ($removed) {
         Write-Host ""
         Write-Host "SUCCESS: Context menu removed!" -ForegroundColor Green
