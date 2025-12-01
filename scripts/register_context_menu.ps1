@@ -59,7 +59,8 @@ try {
         
         $fileCommandKey = "$fileKey\command"
         New-Item -Path $fileCommandKey -Force | Out-Null
-        Set-ItemProperty -Path $fileCommandKey -Name "(Default)" -Value "cmd.exe /c `"""`$exePath`"" `"""%1`""" && pause"
+        $fileCommand = "cmd.exe /c `"`"$exePath`" `"%1`" && pause`""
+        Set-ItemProperty -Path $fileCommandKey -Name "(Default)" -Value $fileCommand
     }
     Write-Host "Registered for Excel files (.xlsx, .xls, .xlsm)" -ForegroundColor Green
 
