@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.57rc1"
+__version__ = "0.58rc1"
 version = __version__
 
 
