@@ -14,7 +14,13 @@ audit --version        # Show version number
 **Context Menu (Right-Click):**
 
 If you installed the context menu during setup, you can:
+Audit an entire folder:
 - **Right-click** inside any folder → **"Audit All OAS Files"** - Audits all OAS .xlsx files in that folder
+  - **Windows 10:** Regular right-click works
+  - **Windows 11:** Hold **SHIFT** while right-clicking (opens extended menu), or right-click and select **"Show more options"**
+
+Audit a single file:
+- **Right-click** on any `.xlsx` file → **"Audit OAS File"** - Audits just that one file
   - **Windows 10:** Regular right-click works
   - **Windows 11:** Hold **SHIFT** while right-clicking (opens extended menu), or right-click and select **"Show more options"**
 
@@ -32,12 +38,13 @@ Example Audit Report: [docs/SAMPLE_AUDIT.png](docs/SAMPLE_AUDIT.png)
 
 - Ensures required headers are present and correctly named in OASCAPHS and UPLOAD tabs
 - Validates header formatting and order
+- Validates sample size and other key header values
+- Checks SIDs for correct formatting and ranges
 
 **Number Validation:**
 
-- Checks that the header's submitted # matches the total of INEL, Frame INEL, and Reported rows
 - Checks that Emails (E) and Mailings (M) sum to the sample size as well as the sum of rows where CMS=1
-- Checks that eligible is the same as submitted - all ineligible rows
+- Checks that eligible is the same as submitted minus all ineligible rows
 - and more!
 
 **Data Validation:**
@@ -85,18 +92,9 @@ Output: `dist/audit.exe`
 scripts\package.bat
 ```
 
-Output: `OAS-CAHPS-Auditor-v{VERSION}.zip` (ready to share)
+Output: `OAS-CAHPS-Auditor-v{VERSION}.zip` (ready to share; includes installer, powershell files, installation instructions, and license)
 
 **Development:**
-
-- Edit source files: `audit.py`, `audit_lib_funcs.py`, `audit_printer.py`, `audit_report.css`
-- Update version: Edit `.env` file
-- Test changes: `python audit.py <file>`
-- Rebuild: `scripts\build_exe.bat`
-
-See `docs/PACKAGING_README.md` for build details.
-
-- Rebuild: `build_exe.bat`
 
 See `PACKAGING_README.md` for build details.
 
@@ -118,21 +116,18 @@ changing appearance settings like colors of the output report, and adjusting val
 - Check GitHub releases for newer versions when running and notify user if an update is available
 - Add charts/graphs showing validation metrics using matplotlib or plotly
 - Add a GUI using Tkinter or PyQt for users who prefer not to use command line
+- Add place for user to put notes or comments onto the HTML report after the audit is complete
 
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for details on changes and updates.
 
-## Credit
-
-Code written by Tyler B.
-
-## License
+## License and Credit
 
 This software is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
 
-Copyright © 2025 Tyler B.
+Copyright © 2025 Tyler Brock.
 
-Developed for J.L. Morgan & Associates, Inc.
+Developed for J.L. Morgan & Associates, Inc. Code written by Tyler Brock.
 
 See [LICENSE](LICENSE) file for full legal text or visit: https://www.gnu.org/licenses/gpl-3.0.en.html
