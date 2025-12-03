@@ -13,6 +13,28 @@ __version__ = "0.59"
 version = __version__
 
 
+def check_for_updates():
+    """Check GitHub for latest version and notify if update available."""
+    try:
+        import urllib.request
+        import json
+        
+        url = "https://api.github.com/repos/ToonLunk/OAS-CAHPS-Auditor/releases/latest"
+        req = urllib.request.Request(url)
+        req.add_header('User-Agent', 'OAS-CAHPS-Auditor')
+        
+        with urllib.request.urlopen(req, timeout=3) as response:
+            data = json.loads(response.read().decode())
+            latest_version = data.get('tag_name', '').lstrip('v')
+            
+            if latest_version and latest_version != version:
+                print(f"Update available: v{latest_version} (current: v{version})")
+                print(f"Download: https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases/latest")
+                print()
+    except:
+        pass  # Silently fail if unable to check
+
+
 def audit_excel(file_path):
     try:
         wb = openpyxl.load_workbook(file_path, data_only=True)
@@ -151,6 +173,8 @@ def audit_excel(file_path):
 
 
 if __name__ == "__main__":
+    check_for_updates()
+    
     if len(sys.argv) != 2:
         print("Usage: audit <excel_file> or audit --all")
         print("Options:")

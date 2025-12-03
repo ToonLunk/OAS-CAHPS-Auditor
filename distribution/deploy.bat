@@ -42,16 +42,29 @@ copy /Y "%SCRIPT_DIR%audit.exe" "%INSTALL_DIR%\audit.exe" >nul
 echo Copying LICENSE to %INSTALL_DIR%...
 copy /Y "%SCRIPT_DIR%LICENSE" "%INSTALL_DIR%\LICENSE" >nul
 
-REM Copy cpt_codes.json only if it doesn't exist (don't overwrite user's config)
+REM Handle cpt_codes.json installation
 if not exist "%INSTALL_DIR%\cpt_codes.json" (
     echo Installing default cpt_codes.json...
     copy /Y "%SCRIPT_DIR%cpt_codes.json" "%INSTALL_DIR%\cpt_codes.json" >nul
-) else (
-    echo Preserving existing cpt_codes.json configuration...
-    REM Save the new version with .new extension for reference
-    copy /Y "%SCRIPT_DIR%cpt_codes.json" "%INSTALL_DIR%\cpt_codes.json.new" >nul
-    echo   (New default saved as cpt_codes.json.new for reference)
+    goto :cpt_done
 )
+
+echo.
+echo Existing cpt_codes.json configuration found.
+:ask_overwrite
+set /p "OVERWRITE=Do you want to install the new version? (Y/N): "
+if /i "%OVERWRITE%"=="Y" (
+    echo Installing new cpt_codes.json...
+    copy /Y "%SCRIPT_DIR%cpt_codes.json" "%INSTALL_DIR%\cpt_codes.json" >nul
+    goto :cpt_done
+)
+if /i "%OVERWRITE%"=="N" (
+    echo Keeping existing cpt_codes.json configuration...
+    goto :cpt_done
+)
+echo Invalid input. Please enter Y or N.
+goto :ask_overwrite
+:cpt_done
 
 echo Adding %INSTALL_DIR% to system PATH...
 
