@@ -19,20 +19,21 @@ def check_for_updates():
         import urllib.request
         import json
         
-        url = "https://api.github.com/repos/ToonLunk/OAS-CAHPS-Auditor/releases/latest"
+        url = "https://api.github.com/repos/ToonLunk/OAS-CAHPS-Auditor/releases"
         req = urllib.request.Request(url)
         req.add_header('User-Agent', 'OAS-CAHPS-Auditor')
         
         with urllib.request.urlopen(req, timeout=3) as response:
-            data = json.loads(response.read().decode())
-            latest_version = data.get('tag_name', '').lstrip('v')
-            
-            if latest_version and latest_version != version:
-                print(f"Update available: v{latest_version} (current: v{version})")
-                print(f"Download: https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases/latest")
-                print()
-    except:
-        pass  # Silently fail if unable to check
+            releases = json.loads(response.read().decode())
+            if releases:
+                latest_version = releases[0].get('tag_name', '').lstrip('v')
+                
+                if latest_version and latest_version != version:
+                    print(f"\nUpdate available: v{latest_version} (current: v{version})")
+                    print(f"Download: https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases/latest\n")
+    except Exception as e:
+        # Silently fail if unable to check
+        pass
 
 
 def audit_excel(file_path):
