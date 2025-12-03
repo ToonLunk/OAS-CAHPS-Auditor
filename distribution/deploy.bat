@@ -39,6 +39,20 @@ if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 echo Copying audit.exe to %INSTALL_DIR%...
 copy /Y "%SCRIPT_DIR%audit.exe" "%INSTALL_DIR%\audit.exe" >nul
 
+echo Copying LICENSE to %INSTALL_DIR%...
+copy /Y "%SCRIPT_DIR%LICENSE" "%INSTALL_DIR%\LICENSE" >nul
+
+REM Copy cpt_codes.json only if it doesn't exist (don't overwrite user's config)
+if not exist "%INSTALL_DIR%\cpt_codes.json" (
+    echo Installing default cpt_codes.json...
+    copy /Y "%SCRIPT_DIR%cpt_codes.json" "%INSTALL_DIR%\cpt_codes.json" >nul
+) else (
+    echo Preserving existing cpt_codes.json configuration...
+    REM Save the new version with .new extension for reference
+    copy /Y "%SCRIPT_DIR%cpt_codes.json" "%INSTALL_DIR%\cpt_codes.json.new" >nul
+    echo   (New default saved as cpt_codes.json.new for reference)
+)
+
 echo Adding %INSTALL_DIR% to system PATH...
 
 REM Get current system PATH

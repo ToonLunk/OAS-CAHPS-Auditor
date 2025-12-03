@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
 
-datas = [('audit_report.css', '.')]
+datas = [('audit_report.css', '.'), ('cpt_codes.json', '.')]
 datas += collect_data_files('i18naddress')
 
 

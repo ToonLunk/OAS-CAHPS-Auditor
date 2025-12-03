@@ -33,6 +33,7 @@ REM Update all files in distribution folder from their source of truth
 copy /Y "dist\audit.exe" "distribution\" >nul
 copy /Y "docs\Installation Instructions.txt" "distribution\" >nul
 copy /Y "LICENSE" "distribution\" >nul
+copy /Y "cpt_codes.json" "distribution\" >nul
 copy /Y "scripts\register_context_menu.ps1" "distribution\" >nul
 copy /Y "scripts\unregister_context_menu.ps1" "distribution\" >nul
 copy /Y "scripts\deploy.bat" "distribution\" >nul
@@ -67,6 +68,7 @@ if exist "%ZIPNAME%" (
     echo   - unregister_context_menu.ps1
     echo   - Installation Instructions.txt
     echo   - LICENSE
+    echo   - cpt_codes.json
     echo.
     echo Ready to share!
     echo ========================================

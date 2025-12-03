@@ -1,132 +1,50 @@
 import re
 import datetime
+import json
+import os
+import sys
 from openpyxl.worksheet.worksheet import Worksheet
 import phonenumbers
 
 
-# --- CPT ineligibility rules
-INVALID_CPT_SET = {
-    "11042",
-    "11045",
-    "16020",
-    "16025",
-    "16030",
-    "19081",
-    "19083",
-    "19085",
-    "20560",
-    "20561",
-    "25246",
-    "27093",
-    "29000",
-    "29010",
-    "29015",
-    "29020",
-    "29025",
-    "29035",
-    "29040",
-    "29044",
-    "29046",
-    "29049",
-    "29055",
-    "29058",
-    "29065",
-    "29075",
-    "29085",
-    "29086",
-    "29105",
-    "29125",
-    "29126",
-    "29130",
-    "29131",
-    "29200",
-    "29240",
-    "29260",
-    "29280",
-    "29305",
-    "29325",
-    "29345",
-    "29355",
-    "29358",
-    "29365",
-    "29405",
-    "29425",
-    "29435",
-    "29440",
-    "29445",
-    "29450",
-    "29505",
-    "29515",
-    "29520",
-    "29530",
-    "29540",
-    "29550",
-    "29580",
-    "29581",
-    "29582",
-    "29583",
-    "29584",
-    "29700",
-    "29705",
-    "29710",
-    "29715",
-    "29720",
-    "29730",
-    "29740",
-    "29750",
-    "29799",
-    "31500",
-    "32555",
-    "36005",
-    "36010",
-    "36215",
-    "36221",
-    "36400",
-    "36405",
-    "36406",
-    "36410",
-    "36415",
-    "36416",
-    "36420",
-    "36425",
-    "36430",
-    "36440",
-    "36450",
-    "36455",
-    "36460",
-    "36468",
-    "36469",
-    "36470",
-    "36471",
-    "36591",
-    "36592",
-    "36593",
-    "36600",
-    "36620",
-    "36625",
-    "36660",
-    "37252",
-    "38505",
-    "49424",
-    "51701",
-    "51702",
-    "51798",
-    "59020",
-    "59025",
-    "59050",
-}
+# --- CPT ineligibility rules (loaded from JSON)
+def _get_cpt_config_path():
+    """Get the path to cpt_codes.json, handling both dev and bundled scenarios."""
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller bundle
+        base_path = sys._MEIPASS
+    else:
+        # Running as script
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, 'cpt_codes.json')
 
-EXPLICIT_VALID_SET = {
-    "G0104",
-    "G0105",
-    "G0121",
-    "G0260",
-    "92920",
-    "92921",
-    "92928",
-    "92929",
-    "92978",
-}
+
+def _load_cpt_config():
+    """Load CPT code configuration from JSON file."""
+    config_path = _get_cpt_config_path()
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        return {
+            'valid_ranges': config.get('valid_ranges', []),
+            'invalid_ranges': config.get('invalid_ranges', []),
+            'valid_codes': set(str(c).upper() for c in config.get('valid_codes', [])),
+            'invalid_codes': set(str(c).upper() for c in config.get('invalid_codes', []))
+        }
+    except Exception as e:
+        print(f"Warning: Could not load CPT config from {config_path}: {e}")
+        # Return defaults if file not found
+        return {
+            'valid_ranges': [[10004, 69990], [93451, 93462], [93566, 93572], [93985, 93986]],
+            'invalid_ranges': [],
+            'valid_codes': set(),
+            'invalid_codes': set()
+        }
+
+
+_CPT_CONFIG = _load_cpt_config()
+EXPLICIT_VALID_SET = _CPT_CONFIG['valid_codes']
+INVALID_CPT_SET = _CPT_CONFIG['invalid_codes']
 
 
 def get_hf_text(item):
@@ -420,16 +338,18 @@ def cpt_is_ineligible(cpt_raw) -> tuple[bool, str]:
     # If purely numeric, check valid ranges
     if cpt.isdigit():
         num = int(cpt)
-        # Ranges considered valid by VBA's IsInValidRange
-        if (
-            (10004 <= num <= 69990)
-            or (93451 <= num <= 93462)
-            or (93566 <= num <= 93572)
-            or (93985 <= num <= 93986)
-        ):
-            return False, "numeric in valid range"
-        else:
-            return True, "outside valid ranges"
+        
+        # Check invalid ranges first
+        for range_pair in _CPT_CONFIG['invalid_ranges']:
+            if range_pair[0] <= num <= range_pair[1]:
+                return True, "numeric in invalid range"
+        
+        # Check valid ranges
+        for range_pair in _CPT_CONFIG['valid_ranges']:
+            if range_pair[0] <= num <= range_pair[1]:
+                return False, "numeric in valid range"
+        
+        return True, "outside valid ranges"
 
     # Non-numeric codes that are not in EXPLICIT_VALID_SET are ineligible
     return True, "not explicitly valid, and not in ranges"
