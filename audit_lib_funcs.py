@@ -9,14 +9,15 @@ import phonenumbers
 
 # --- CPT ineligibility rules (loaded from JSON)
 def _get_cpt_config_path():
-    """Get the path to cpt_codes.json, handling both dev and bundled scenarios."""
+    """Get the path to cpt_codes.json from the installation directory."""
     if getattr(sys, 'frozen', False):
-        # Running as PyInstaller bundle
-        base_path = sys._MEIPASS
+        # Running as PyInstaller bundle - use installation directory
+        exe_dir = os.path.dirname(sys.executable)
+        return os.path.join(exe_dir, 'cpt_codes.json')
     else:
         # Running as script
         base_path = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base_path, 'cpt_codes.json')
+        return os.path.join(base_path, 'cpt_codes.json')
 
 
 def _load_cpt_config():
