@@ -18,6 +18,7 @@ def check_for_updates():
     try:
         import urllib.request
         import json
+        from packaging import version as pkg_version
         
         url = "https://api.github.com/repos/ToonLunk/OAS-CAHPS-Auditor/releases"
         req = urllib.request.Request(url)
@@ -28,7 +29,8 @@ def check_for_updates():
             if releases:
                 latest_version = releases[0].get('tag_name', '').lstrip('v')
                 
-                if latest_version and latest_version != version:
+                # Only notify if the latest version is greater than current version
+                if latest_version and pkg_version.parse(latest_version) > pkg_version.parse(version):
                     print(f"\nUpdate available: v{latest_version} (current: v{version})")
                     print(f"Download: https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases/latest\n")
     except Exception as e:
