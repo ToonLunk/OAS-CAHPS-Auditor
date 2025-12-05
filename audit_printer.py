@@ -37,6 +37,8 @@ def build_report(
     mrn_col=None,
     sid_col=None,
     sid_row_issues=None,
+    inel_row_issues=None,
+    sid_prefix=None,
 ):
     """
     Build the HTML audit report for saving as .html
@@ -46,7 +48,7 @@ def build_report(
     base_before_hash = basefname.split("#", 1)[0]
 
     # Start HTML document with helper function
-    report_lines = _build_html_header(file_path, version, audit_id)
+    report_lines = _build_html_header(file_path, version, audit_id, sid_prefix)
 
     # Track row-based issues separately for table display
     row_issues = []  # List of dicts: {row, mrn, cms, issue_type, description}
@@ -54,6 +56,10 @@ def build_report(
     # Add SID row issues if provided
     if sid_row_issues:
         row_issues.extend(sid_row_issues)
+    
+    # Add INEL row issues if provided
+    if inel_row_issues:
+        row_issues.extend(inel_row_issues)
 
     # missing required headers -> issues
     if missing_req_headers:
@@ -220,13 +226,33 @@ def build_report(
             f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
         )
 
+    # Check 6: INEL REPEAT validation
+    if inel_row_issues is not None:
+        if not inel_row_issues:
+            report_lines.append(
+                "<tr><td>INEL tab REPEAT entries properly formatted</td><td style='color: #28a745;'>✓</td></tr>"
+            )
+        else:
+            issue_types = set(issue['issue_type'] for issue in inel_row_issues)
+            issue_summary = ', '.join(issue_types)
+            issue_msg = f"<strong>WARNING:</strong> INEL REPEAT validation failed: {issue_summary} ({len(inel_row_issues)} issues)"
+            report_lines.append(
+                f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
+            )
+    else:
+        if "INEL" in wb.sheetnames:
+            issue_msg = "INEL REPEAT validation not performed"
+            report_lines.append(
+                f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
+            )
+
     report_lines.append("</table>")
 
     report_lines.append("<h2>ESTIMATED QTR SHEET LINE</h2>")
     report_lines.append("<table class='excel-style'>")
     report_lines.append("<tr>")
     report_lines.append(
-        "<th>Client</th>" "<th>Non-Reported</th>" "<th>Emails</th>" "<th>Mailings</th>"
+        "<th>SID</th>" "<th>Client</th>" "<th>Non-Reported</th>" "<th>Emails</th>" "<th>Mailings</th>"
     )
     report_lines.append(
         "<th>Selection %</th>"
@@ -236,6 +262,7 @@ def build_report(
     )
     report_lines.append("</tr>")
     report_lines.append("<tr>")
+    report_lines.append(f"<td>{sid_prefix if sid_prefix else 'N/A'}</td>")
     report_lines.append(f"<td>{base_before_hash}</td>")
     report_lines.append(f"<td>{non_reported}</td>")
     report_lines.append(f"<td>{emails}</td>")
@@ -578,7 +605,7 @@ def build_report(
     return report_lines, issues
 
 
-def _build_html_header(file_path, version, audit_id=None):
+def _build_html_header(file_path, version, audit_id=None, sid_prefix=None):
     """
     Build the HTML header section (reusable for both success and failure reports)
     """
@@ -631,7 +658,8 @@ def _build_html_header(file_path, version, audit_id=None):
     header_lines.append(
         "<div style='display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;'>"
     )
-    header_lines.append(f"<div><strong>Client:</strong> {base_before_hash}</div>")
+    client_display = f"{base_before_hash}, {sid_prefix}" if sid_prefix else base_before_hash
+    header_lines.append(f"<div><strong>Client:</strong> {client_display}</div>")
     if audit_id is None:
         header_lines.append("<div><strong>Audit ID:</strong> N/A (audit failed)</div>")
     else:

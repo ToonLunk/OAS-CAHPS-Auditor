@@ -511,6 +511,7 @@ def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
     expected_prefix = None
     expected_start_num = None
     cms1_rows_processed = 0
+    first_sid_encountered = False
     
     if header_sid:
         header_match = sid_pattern.match(str(header_sid).strip().upper())
@@ -567,12 +568,12 @@ def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
             
         prefix = match.group(1)
         number = int(match.group(2))
-        
-        if expected_prefix is None:
-            expected_prefix = prefix
-            if header_sid:
+        if not first_sid_encountered:
+            first_sid_encountered = True
+            if expected_prefix is None:
+                expected_prefix = prefix
+            if expected_start_num is None:
                 expected_start_num = number
-            else:
                 expected_start_num = number
         
         if prefix != expected_prefix:
@@ -592,27 +593,166 @@ def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
                 'issue_type': 'SID Duplicate',
                 'description': f"Row {row_num}: Duplicate SID '{sid_str}'"
             })
+            sids_found.append(sid_str)
+            
+            if expected_start_num is not None:
+                expected_num = expected_start_num + (cms1_rows_processed - 1)
+                if number != expected_num:
+                    row_issues.append({
+                        'row': row_num,
+                        'mrn': mrn_value,
+                        'cms': cms_value,
+                        'issue_type': 'SID Sequence',
+                        'description': f"Row {row_num}: Expected SID '{expected_prefix}{expected_num:05d}', found '{sid_str}'"
+                    })
+            
+            row_num += 1
         
-        sids_found.append(sid_str)
+        if row_issues:
+            issues.append(f"Found {len(row_issues)} SID validation issues")
         
-        expected_num = expected_start_num + (cms1_rows_processed - 1)
-        if number != expected_num:
+        return issues, row_issues
+
+
+def validate_inel_repeat_rows(inel_sheet):
+    """
+    Validate INEL tab REPEAT entries.
+    
+    For rows marked as REPEAT (duplicates):
+    - All cells in the row should have red font (RGB 255, 0, 0)
+    - "REPEAT" should appear in the rightmost column
+    - The "REPEAT" cell should have yellow background fill and bold red font
+    - No other cells should have highlighting (yellow background)
+    
+    For rows with no cell-level highlighting:
+    - They MUST have "REPEAT" marker, otherwise there's no indication why they're in INEL
+    
+    Returns (issues, row_issues) lists.
+    """
+    issues = []
+    row_issues = []
+    
+    if inel_sheet is None:
+        return issues, row_issues
+    
+    # Get the maximum column used in the sheet
+    max_col = inel_sheet.max_column
+    
+    for row_num in range(2, inel_sheet.max_row + 1):
+        row = list(inel_sheet[row_num])
+        
+        # Skip completely empty rows
+        if not any(cell.value is not None and str(cell.value).strip() != "" for cell in row):
+            continue
+        
+        # Check if "REPEAT" exists in the rightmost column
+        has_repeat = False
+        repeat_cell = None
+        rightmost_cell = inel_sheet.cell(row_num, max_col)
+        
+        if rightmost_cell.value and str(rightmost_cell.value).strip().upper() == "REPEAT":
+            has_repeat = True
+            repeat_cell = rightmost_cell
+        
+        # Check for yellow highlighting (background fill) in non-REPEAT cells
+        cells_with_yellow_bg = []
+        cells_with_red_font = []
+        
+        for col_num, cell in enumerate(row[:max_col-1], start=1):  # Exclude rightmost column
+            if cell.value is not None and str(cell.value).strip() != "":
+                # Check for yellow background fill
+                if cell.fill and cell.fill.fgColor and cell.fill.fgColor.rgb:
+                    rgb = cell.fill.fgColor.rgb
+                    # Yellow is typically FFFFFF00 or variations
+                    if isinstance(rgb, str) and len(rgb) >= 6:
+                        # Extract RGB values (ignoring alpha channel if present)
+                        rgb_str = rgb[-6:] if len(rgb) == 8 else rgb
+                        if rgb_str.upper() in ['FFFF00', 'FFFFE0', 'FFFFCC']:  # Common yellow shades
+                            cells_with_yellow_bg.append((row_num, col_num))
+                
+                # Check for red font
+                if cell.font and cell.font.color and cell.font.color.rgb:
+                    rgb = cell.font.color.rgb
+                    if isinstance(rgb, str) and len(rgb) >= 6:
+                        rgb_str = rgb[-6:] if len(rgb) == 8 else rgb
+                        if rgb_str.upper() == 'FF0000':  # Red font
+                            cells_with_red_font.append((row_num, col_num))
+        
+        # Validate REPEAT rows
+        if has_repeat and repeat_cell is not None:
+            # Check REPEAT cell formatting
+            repeat_font_ok = False
+            repeat_bg_ok = False
+            repeat_bold_ok = False
+            
+            if repeat_cell.font is not None:
+                if repeat_cell.font.color and repeat_cell.font.color.rgb:
+                    rgb = repeat_cell.font.color.rgb
+                    if isinstance(rgb, str) and len(rgb) >= 6:
+                        rgb_str = rgb[-6:] if len(rgb) == 8 else rgb
+                        if rgb_str.upper() == 'FF0000':
+                            repeat_font_ok = True
+                if repeat_cell.font.bold:
+                    repeat_bold_ok = True
+            
+            if repeat_cell.fill is not None and repeat_cell.fill.fgColor and repeat_cell.fill.fgColor.rgb:
+                rgb = repeat_cell.fill.fgColor.rgb
+                if isinstance(rgb, str) and len(rgb) >= 6:
+                    rgb_str = rgb[-6:] if len(rgb) == 8 else rgb
+                    if rgb_str.upper() in ['FFFF00', 'FFFFE0', 'FFFFCC']:
+                        repeat_bg_ok = True
+            
+            # Check if there are other highlighted cells (conflicting indicators)
+            if cells_with_yellow_bg:
+                row_issues.append({
+                    'row': row_num,
+                    'issue_type': 'INEL REPEAT Conflict',
+                    'description': f"Row {row_num}: Has 'REPEAT' marker but also has {len(cells_with_yellow_bg)} other highlighted cell(s) - conflicting INEL reasons"
+                })
+                issues.append(f"INEL Row {row_num}: REPEAT marker conflicts with other cell highlighting")
+            
+            # Check if all cells have red font
+            expected_red_cells = len([c for c in row[:max_col-1] if c.value is not None and str(c.value).strip() != ""])
+            actual_red_cells = len(cells_with_red_font)
+            
+            if actual_red_cells < expected_red_cells:
+                row_issues.append({
+                    'row': row_num,
+                    'issue_type': 'INEL REPEAT Formatting',
+                    'description': f"Row {row_num}: REPEAT row should have red font on ALL cells ({actual_red_cells}/{expected_red_cells} cells have red font)"
+                })
+                issues.append(f"INEL Row {row_num}: REPEAT row doesn't have red font on all cells")
+            
+            # Check REPEAT cell formatting
+            formatting_issues = []
+            if not repeat_font_ok:
+                formatting_issues.append("red font")
+            if not repeat_bold_ok:
+                formatting_issues.append("bold")
+            if not repeat_bg_ok:
+                formatting_issues.append("yellow background")
+            
+            if formatting_issues:
+                row_issues.append({
+                    'row': row_num,
+                    'issue_type': 'INEL REPEAT Cell Format',
+                    'description': f"Row {row_num}: REPEAT cell missing {', '.join(formatting_issues)}"
+                })
+                issues.append(f"INEL Row {row_num}: REPEAT cell missing {', '.join(formatting_issues)}")
+        
+        # Check rows with no highlighting - they should have REPEAT
+        elif not cells_with_yellow_bg:
+            # No REPEAT and no highlighted cells = no indication of INEL reason
             row_issues.append({
                 'row': row_num,
-                'mrn': mrn_value,
-                'cms': cms_value,
-                'issue_type': 'SID Sequence',
-                'description': f"Row {row_num}: Expected SID '{expected_prefix}{expected_num:05d}', found '{sid_str}'"
+                'issue_type': 'INEL Missing Reason',
+                'description': f"Row {row_num}: No highlighted cells and no REPEAT marker - no indication of why row is in INEL"
             })
-        
-        row_num += 1
-    
-    if row_issues:
-        issues.append(f"Found {len(row_issues)} SID validation issues")
+            issues.append(f"INEL Row {row_num}: Missing INEL reason indicator (no highlighting or REPEAT marker)")
     
     return issues, row_issues
-
-
+        
+        
 # --- Cross-tab consistency checking ---
 
 # MRN and Email alias mappings (from VBA script)

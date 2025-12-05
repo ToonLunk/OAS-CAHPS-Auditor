@@ -68,6 +68,9 @@ def audit_excel(file_path):
     # Extract SID from header (should be first SID in sequence)
     sid_match = re.search(r"([A-Z]{3}\d+)", header_clean)
     header_sid = sid_match.group(1) if sid_match else None
+    
+    # Extract SID prefix (3-letter code) for display
+    sid_prefix = header_sid[:3] if header_sid and len(header_sid) >= 3 else None
 
     # convert letters to alphabet positions (A=1, B=2) and append to UUID
     nums = "".join(str(ord(c) - 64) for c in two_letter_code)
@@ -125,6 +128,14 @@ def audit_excel(file_path):
     sid_issues, sid_row_issues = validate_sid_sequence(sheet, sid_col, cms_col, header_sid)
     issues.extend(sid_issues)
 
+    # Validate INEL tab REPEAT entries
+    inel_issues = []
+    inel_row_issues = []
+    if "INEL" in wb.sheetnames:
+        inel_sheet = wb["INEL"]
+        inel_issues, inel_row_issues = validate_inel_repeat_rows(inel_sheet)
+        issues.extend(inel_issues)
+
     try:
         total_em, emails, mailings, non_reported, cms1_count = calc_e_m_total(
             sheet, cms_col, em_col
@@ -148,6 +159,7 @@ def audit_excel(file_path):
         patients_submitted=patients_submitted,
         eligible_patients=eligible_patients,
         sample_size=sample_size,
+        sid_prefix=sid_prefix,
         emails=emails,
         mailings=mailings,
         total_em=total_em,
@@ -168,6 +180,7 @@ def audit_excel(file_path):
         mrn_col=mrn_col,  # optional
         sid_col=sid_col,  # SID column
         sid_row_issues=sid_row_issues,  # SID validation issues
+        inel_row_issues=inel_row_issues,  # INEL validation issues
     )
 
     return file_path, report_lines
