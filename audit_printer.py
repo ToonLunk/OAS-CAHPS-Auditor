@@ -658,7 +658,7 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None):
     header_lines.append(
         "<div style='display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;'>"
     )
-    client_display = f"{base_before_hash}, {sid_prefix}" if sid_prefix else base_before_hash
+    client_display = f"{base_before_hash} ({sid_prefix})" if sid_prefix else base_before_hash
     header_lines.append(f"<div><strong>Client:</strong> {client_display}</div>")
     if audit_id is None:
         header_lines.append("<div><strong>Audit ID:</strong> N/A (audit failed)</div>")

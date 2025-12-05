@@ -86,47 +86,39 @@ def audit_excel(file_path):
     first_row = next(sheet.iter_rows(min_row=1, max_row=1))
     headers = {cell.value: idx for idx, cell in enumerate(first_row, start=1)}
 
-    missing_req_headers = []
-    try:
-        mapping = check_req_headers(headers)
-    except Exception as e:
-        # e.args[0] is the missing_req_headers list we raised
-        missing_req_headers = e.args[0] if e.args else []
-        save_report(
-            file_path,
-            "FAILED - missing required columns!",
-            failure_reason=str(missing_req_headers),
-            version=version,
-        )
-        raise Exception(f"Missing required columns: {missing_req_headers}")
+    # Check for required headers (returns mapping and list of any missing)
+    mapping, missing_req_headers = check_req_headers(headers)
 
-    sid_col = mapping["SID"]
-    pat_col = mapping["PATIENT NAME"]
-    addr1_col = mapping["ADDRESS1"]
-    city_col = mapping["CITY"]
-    state_col = mapping["STATE"]
-    zip_col = mapping["ZIP"]
-    tel_col = mapping["TELEPHONE"]
-    svc_col = mapping["SERVICE DATE"]
-    gender_col = mapping["GENDER"]
-    age_col = mapping["AGE"]
-    mrn_col = mapping["MRN"]
-    surg_cat_col = mapping["SURGICAL CATEGORY"]
-    att_col = mapping["ATT"]
-    lag_col = mapping["LAG"]
-    id_col = mapping["ID"]
-    fd_col = mapping["FD"]
-    lg_col = mapping["LG"]
-    em_col = mapping["E/M"]
-    email_col = mapping["EMAIL ADDRESS"]
-    cms_col = mapping["CMS INDICATOR"]
-    lang_col = mapping["SURVEY LANGUAGE"]
+    sid_col = mapping.get("SID")
+    pat_col = mapping.get("PATIENT NAME")
+    addr1_col = mapping.get("ADDRESS1")
+    city_col = mapping.get("CITY")
+    state_col = mapping.get("STATE")
+    zip_col = mapping.get("ZIP")
+    tel_col = mapping.get("TELEPHONE")
+    svc_col = mapping.get("SERVICE DATE")
+    gender_col = mapping.get("GENDER")
+    age_col = mapping.get("AGE")
+    mrn_col = mapping.get("MRN")
+    surg_cat_col = mapping.get("SURGICAL CATEGORY")
+    att_col = mapping.get("ATT")
+    lag_col = mapping.get("LAG")
+    id_col = mapping.get("ID")
+    fd_col = mapping.get("FD")
+    lg_col = mapping.get("LG")
+    em_col = mapping.get("E/M")
+    email_col = mapping.get("EMAIL ADDRESS")
+    cms_col = mapping.get("CMS INDICATOR")
+    lang_col = mapping.get("SURVEY LANGUAGE")
 
     issues = []
 
-    # Validate SID sequence (only for rows with CMS=1)
-    sid_issues, sid_row_issues = validate_sid_sequence(sheet, sid_col, cms_col, header_sid)
-    issues.extend(sid_issues)
+    # Validate SID sequence (only for rows with CMS=1) if columns exist
+    sid_issues = []
+    sid_row_issues = []
+    if sid_col and cms_col:
+        sid_issues, sid_row_issues = validate_sid_sequence(sheet, sid_col, cms_col, header_sid)  # type: ignore
+        issues.extend(sid_issues)
 
     # Validate INEL tab REPEAT entries
     inel_issues = []
@@ -136,18 +128,20 @@ def audit_excel(file_path):
         inel_issues, inel_row_issues = validate_inel_repeat_rows(inel_sheet)
         issues.extend(inel_issues)
 
-    try:
-        total_em, emails, mailings, non_reported, cms1_count = calc_e_m_total(
-            sheet, cms_col, em_col
-        )  # type: ignore
-    except:
-        save_report(
-            file_path,
-            "FAILED while calculating E/M!",
-            failure_reason="no E/M counts",
-            version=version,
-        )
-        raise Exception("No E/M counts found")
+    # Calculate E/M totals if columns exist
+    total_em = None
+    emails = None
+    mailings = None
+    non_reported = None
+    cms1_count = None
+    
+    if cms_col and em_col:
+        try:
+            total_em, emails, mailings, non_reported, cms1_count = calc_e_m_total(
+                sheet, cms_col, em_col
+            )  # type: ignore
+        except Exception as e:
+            issues.append(f"Error calculating E/M totals: {str(e)}")
 
     report_lines, issues = build_report(
         wb=wb,

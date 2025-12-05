@@ -476,18 +476,8 @@ def check_req_headers(headers):
         if mapping[name] is None:
             missing_req_headers.append(name)
 
-    if "E/M" in missing_req_headers or "CMS INDICATOR" in missing_req_headers:
-        print("  ! AUDIT FAILED: CMS INDICATOR or E/M COLUMN MISSING!")
-    if "SURVEY LANGUAGE" in missing_req_headers:
-        print("  ! AUDIT FAILED: SURVEY LANGUAGE MISSING!")
-    if "SID" in missing_req_headers:
-        print("  ! AUDIT FAILED: SID COLUMN MISSING!")
-
-    if missing_req_headers:
-        # raise a simple exception containing the missing list
-        raise ValueError(f"Missing required headers: {missing_req_headers}")
-
-    return mapping
+    # Return mapping and list of missing headers without raising exception
+    return mapping, missing_req_headers
 
 
 def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
@@ -498,12 +488,16 @@ def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
     
     Args:
         sheet: The worksheet to validate
-        sid_col: Column index for SID (1-based)
-        cms_col: Column index for CMS INDICATOR (1-based)
+        sid_col: Column index for SID (1-based), or None if column missing
+        cms_col: Column index for CMS INDICATOR (1-based), or None if column missing
         header_sid: The SID from the header (should be first SID - 1)
     """
     issues = []
     row_issues = []
+    
+    # Return empty results if required columns are missing
+    if sid_col is None or cms_col is None:
+        return issues, row_issues
     
     sid_pattern = re.compile(r'^([A-Z]{3})(\d+)$')
     
