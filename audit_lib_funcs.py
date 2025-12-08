@@ -3,8 +3,64 @@ import datetime
 import json
 import os
 import sys
+import csv
 from openpyxl.worksheet.worksheet import Worksheet
 import phonenumbers
+
+
+# --- SID Registry lookup ---
+def _get_sids_csv_path():
+    """Get the path to SIDs.csv from the installation directory."""
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller bundle - use installation directory
+        exe_dir = os.path.dirname(sys.executable)
+        return os.path.join(exe_dir, 'SIDs.csv')
+    else:
+        # Running as script
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base_path, 'SIDs.csv')
+
+
+def lookup_sid_client_name(sid_prefix, show_missing_warning=False):
+    """Look up client name from SIDs.csv by 3-letter SID code.
+    
+    Args:
+        sid_prefix: 3-letter SID code (e.g., 'ANM', 'AGM')
+        show_missing_warning: If True, print warning when SIDs.csv is missing
+        
+    Returns:
+        Client name string if found, None if not found or error
+    """
+    if not sid_prefix or len(sid_prefix) != 3:
+        return None
+        
+    csv_path = _get_sids_csv_path()
+    
+    # Check if file exists
+    if not os.path.exists(csv_path):
+        if show_missing_warning:
+            print("\n" + "="*60)
+            print("NOTE: SIDs.csv not found")
+            print("="*60)
+            print("The SID registry file (SIDs.csv) is not present in the")
+            print("installation directory. SID validation will be skipped.")
+            print("")
+            print("To enable SID registry checking, contact your IT department")
+            print("or system administrator to obtain the SIDs.csv file.")
+            print("="*60 + "\n")
+        return None
+    
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if len(row) >= 2 and row[0].strip().upper() == sid_prefix.upper():
+                    return row[1].strip()
+    except Exception as e:
+        # Fail silently if CSV can't be read (but exists)
+        pass
+    
+    return None
 
 
 # --- CPT ineligibility rules (loaded from JSON)

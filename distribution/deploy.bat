@@ -66,6 +66,12 @@ echo Invalid input. Please enter Y or N.
 goto :ask_overwrite
 :cpt_done
 
+REM Copy SIDs.csv if it exists (optional file)
+if exist "%SCRIPT_DIR%SIDs.csv" (
+    echo Installing SIDs.csv...
+    copy /Y "%SCRIPT_DIR%SIDs.csv" "%INSTALL_DIR%\SIDs.csv" >nul
+)
+
 echo Adding %INSTALL_DIR% to system PATH...
 
 REM Get current system PATH

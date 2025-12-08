@@ -38,3 +38,4 @@ Thumbs.db
 *.exe
 distribution/audit.exe
 distribution/audit.exe
+SIDs.csv

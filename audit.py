@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.62"
+__version__ = "0.63"
 version = __version__
 
 
@@ -73,6 +73,12 @@ def audit_excel(file_path):
     
     # Extract SID prefix (3-letter code) for display
     sid_prefix = header_sid[:3] if header_sid and len(header_sid) >= 3 else None
+    
+    # Look up client name from SID registry
+    sid_registry_name = None
+    if sid_prefix:
+        from audit_lib_funcs import lookup_sid_client_name
+        sid_registry_name = lookup_sid_client_name(sid_prefix, show_missing_warning=True)
 
     # convert letters to alphabet positions (A=1, B=2) and append to UUID
     nums = "".join(str(ord(c) - 64) for c in two_letter_code)
@@ -156,6 +162,7 @@ def audit_excel(file_path):
         eligible_patients=eligible_patients,
         sample_size=sample_size,
         sid_prefix=sid_prefix,
+        sid_registry_name=sid_registry_name,
         emails=emails,
         mailings=mailings,
         total_em=total_em,

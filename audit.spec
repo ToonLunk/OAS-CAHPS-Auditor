@@ -1,7 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
+import os
 
 datas = [('audit_report.css', '.'), ('cpt_codes.json', '.')]
+
+# Include SIDs.csv if it exists (optional)
+if os.path.exists('SIDs.csv'):
+    datas.append(('SIDs.csv', '.'))
+
 datas += collect_data_files('i18naddress')
 
 

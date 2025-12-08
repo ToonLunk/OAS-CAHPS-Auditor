@@ -101,6 +101,7 @@ See `PACKAGING_README.md` for build details.
 ## TODO
 
 High Priority:
+- Add list of all hospitals' SIDs to check against when validating SIDs in the UPLOAD tab. This will help catch typos or incorrect SIDs.
 - Add option "--6month" to check the 6month repeat file and make sure all data is there and in the right place.
   -- When this option is used, the program should ask the user to input the directory where the 6month files are located. Then it should be saved in the .env file for future use.
 - Add summary report showing expected vs actual SID range at the top of the validation section for better visibility

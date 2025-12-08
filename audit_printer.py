@@ -39,6 +39,7 @@ def build_report(
     sid_row_issues=None,
     inel_row_issues=None,
     sid_prefix=None,
+    sid_registry_name=None,
 ):
     """
     Build the HTML audit report for saving as .html
@@ -273,6 +274,14 @@ def build_report(
     report_lines.append(f"<td>{sample_size}</td>")
     report_lines.append("</tr>")
     report_lines.append("</table>")
+    
+    # Add SID client name comparison if available
+    if sid_prefix and sid_registry_name:
+        report_lines.append("<p style='margin-top: 10px; font-size: 0.9em;'>")
+        report_lines.append(f"<strong>SID Registry Check:</strong> ")
+        report_lines.append(f"<span style='color: #7f8c8d;'>File name: <em>{base_before_hash}</em> | ")
+        report_lines.append(f"SID <strong>{sid_prefix}</strong> registry: <em>{sid_registry_name}</em></span>")
+        report_lines.append("</p>")
 
     # DATA QUALITY VALIDATION SECTION
     from audit_lib_funcs import column_validations

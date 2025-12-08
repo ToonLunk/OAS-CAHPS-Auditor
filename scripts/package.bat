@@ -38,7 +38,13 @@ copy /Y "scripts\register_context_menu.ps1" "distribution\" >nul
 copy /Y "scripts\unregister_context_menu.ps1" "distribution\" >nul
 copy /Y "scripts\deploy.bat" "distribution\" >nul
 
-echo Distribution folder updated.
+REM Copy SIDs.csv if it exists (optional file)
+if exist "SIDs.csv" (
+    copy /Y "SIDs.csv" "distribution\" >nul
+    echo Distribution folder updated (with SIDs.csv^).
+) else (
+    echo Distribution folder updated (SIDs.csv not found - skipping^).
+)
 
 REM Step 3: Create ZIP file
 echo.
@@ -69,6 +75,7 @@ if exist "%ZIPNAME%" (
     echo   - Installation Instructions.txt
     echo   - LICENSE
     echo   - cpt_codes.json
+    if exist "distribution\SIDs.csv" echo   - SIDs.csv
     echo.
     echo Ready to share!
     echo ========================================
