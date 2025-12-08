@@ -264,7 +264,9 @@ def build_report(
     report_lines.append("</tr>")
     report_lines.append("<tr>")
     report_lines.append(f"<td>{sid_prefix if sid_prefix else 'N/A'}</td>")
-    report_lines.append(f"<td>{base_before_hash}</td>")
+    # Use registry name if available, otherwise fall back to file name
+    client_name_display = sid_registry_name if sid_registry_name else base_before_hash
+    report_lines.append(f"<td>{client_name_display}</td>")
     report_lines.append(f"<td>{non_reported}</td>")
     report_lines.append(f"<td>{emails}</td>")
     report_lines.append(f"<td>{mailings}</td>")
@@ -277,11 +279,19 @@ def build_report(
     
     # Add SID client name comparison if available
     if sid_prefix and sid_registry_name:
-        report_lines.append("<p style='margin-top: 10px; font-size: 0.9em;'>")
-        report_lines.append(f"<strong>SID Registry Check:</strong> ")
-        report_lines.append(f"<span style='color: #7f8c8d;'>File name: <em>{base_before_hash}</em> | ")
-        report_lines.append(f"SID <strong>{sid_prefix}</strong> registry: <em>{sid_registry_name}</em></span>")
-        report_lines.append("</p>")
+        report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check</h3>")
+        report_lines.append("<table class='excel-style' style='font-size: 0.9em;'>")
+        report_lines.append("<tr>")
+        report_lines.append("<th>SID</th>")
+        report_lines.append("<th>Client Name (from file)</th>")
+        report_lines.append("<th>Client Name (from registry)</th>")
+        report_lines.append("</tr>")
+        report_lines.append("<tr>")
+        report_lines.append(f"<td>{sid_prefix}</td>")
+        report_lines.append(f"<td>{base_before_hash}</td>")
+        report_lines.append(f"<td>{sid_registry_name}</td>")
+        report_lines.append("</tr>")
+        report_lines.append("</table>")
 
     # DATA QUALITY VALIDATION SECTION
     from audit_lib_funcs import column_validations
