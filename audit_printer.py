@@ -672,8 +672,8 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
     header_lines.append("<div class='report-container'>")
 
     # Updated header presentation
-    header_lines.append("<div style='padding-bottom: 15px; margin-bottom: 20px; border-bottom: 2px solid #27ae60;'>")
-    header_lines.append("<div style='display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;'>")
+    header_lines.append("<div style='padding-bottom: 15px; '>")
+    header_lines.append("<div style='display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; border-bottom: 2px solid #27ae60; padding-bottom: 5px;'>")
     header_lines.append(f"<h1 style='margin: 0; border: none; padding: 0;'>OAS-CAHPS Audit Report</h1>")
     if service_date_range:
         header_lines.append(f"<div style='font-size: 1.2em; color: #34495e; font-weight: 500;'>{service_date_range}</div>")
