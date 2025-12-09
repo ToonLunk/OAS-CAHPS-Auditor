@@ -40,6 +40,8 @@ def build_report(
     inel_row_issues=None,
     sid_prefix=None,
     sid_registry_name=None,
+    service_date_range=None,
+    blank_date_row_issues=None,
 ):
     """
     Build the HTML audit report for saving as .html
@@ -49,7 +51,7 @@ def build_report(
     base_before_hash = basefname.split("#", 1)[0]
 
     # Start HTML document with helper function
-    report_lines = _build_html_header(file_path, version, audit_id, sid_prefix)
+    report_lines = _build_html_header(file_path, version, audit_id, sid_prefix, service_date_range)
 
     # Track row-based issues separately for table display
     row_issues = []  # List of dicts: {row, mrn, cms, issue_type, description}
@@ -61,6 +63,10 @@ def build_report(
     # Add INEL row issues if provided
     if inel_row_issues:
         row_issues.extend(inel_row_issues)
+    
+    # Add blank date row issues if provided
+    if blank_date_row_issues:
+        row_issues.extend(blank_date_row_issues)
 
     # missing required headers -> issues
     if missing_req_headers:
@@ -624,7 +630,7 @@ def build_report(
     return report_lines, issues
 
 
-def _build_html_header(file_path, version, audit_id=None, sid_prefix=None):
+def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, service_date_range=None):
     """
     Build the HTML header section (reusable for both success and failure reports)
     """
@@ -667,7 +673,11 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None):
 
     # Updated header presentation
     header_lines.append("<div style='padding-bottom: 15px; margin-bottom: 20px;'>")
+    header_lines.append("<div style='display: flex; justify-content: space-between; align-items: baseline;'>")
     header_lines.append(f"<h1 style='margin: 0 0 5px 0;'>OAS-CAHPS Audit Report</h1>")
+    if service_date_range:
+        header_lines.append(f"<div style='font-size: 1.2em; color: #34495e; font-weight: 500;'>{service_date_range}</div>")
+    header_lines.append("</div>")
     header_lines.append(
         f"<p style='margin: 0; color: #bdc3c7; font-size: 0.85em;'><a href='https://tylercbrock.com' style='color: inherit; text-decoration: none;'>Auditor</a> v{version}</p>"
     )

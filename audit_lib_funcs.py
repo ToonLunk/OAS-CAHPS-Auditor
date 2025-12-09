@@ -985,6 +985,67 @@ def check_pop_upload_email_consistency(
     return mismatches
 
 
+def extract_service_date_range(sheet, svc_col, mrn_col=None, cms_col=None):
+    """
+    Extract the earliest and latest service dates from the SERVICE DATE column.
+    Also validates that no SERVICE DATE fields are blank.
+    
+    Returns: (date_range_str, blank_date_issues, blank_date_row_issues)
+        - date_range_str: "MM/DD/YYYY - MM/DD/YYYY" or None if no valid dates
+        - blank_date_issues: List of general issue strings
+        - blank_date_row_issues: List of dicts with row-level blank date issues
+    """
+    blank_date_issues = []
+    blank_date_row_issues = []
+    
+    if svc_col is None:
+        return None, blank_date_issues, blank_date_row_issues
+    
+    valid_dates = []
+    
+    for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        if is_blank_row(row):
+            continue
+        
+        mrn_val = row[mrn_col - 1] if mrn_col and mrn_col <= len(row) else None
+        cms_val = row[cms_col - 1] if cms_col and cms_col <= len(row) else None
+        svc_val = row[svc_col - 1] if svc_col <= len(row) else None
+        
+        # Check for blank SERVICE DATE
+        if svc_val is None or str(svc_val).strip() == "":
+            blank_date_row_issues.append({
+                'row': r,
+                'mrn': mrn_val,
+                'cms': cms_val,
+                'issue_type': 'Blank Service Date',
+                'description': f"SERVICE DATE is blank or empty"
+            })
+            blank_date_issues.append(f"OASCAPHS Row {r}: SERVICE DATE is blank")
+            continue
+        
+        # Try to parse the date
+        try:
+            if isinstance(svc_val, datetime.datetime):
+                valid_dates.append(svc_val)
+            else:
+                svc_str = str(svc_val).strip()
+                # Try to parse MM/DD/YYYY format
+                date_obj = datetime.datetime.strptime(svc_str, "%m/%d/%Y")
+                valid_dates.append(date_obj)
+        except (ValueError, AttributeError):
+            # Invalid date format - this will be caught by column_validations
+            pass
+    
+    # Return date range if we have valid dates
+    if valid_dates:
+        earliest = min(valid_dates)
+        latest = max(valid_dates)
+        date_range_str = f"{earliest.strftime('%m/%d/%Y')} - {latest.strftime('%m/%d/%Y')}"
+        return date_range_str, blank_date_issues, blank_date_row_issues
+    
+    return None, blank_date_issues, blank_date_row_issues
+
+
 def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_issues):
     """
     Perform data quality validation checks on OASCAPHS sheet columns.

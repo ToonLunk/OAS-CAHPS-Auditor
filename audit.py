@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.63"
+__version__ = "0.63.1"
 version = __version__
 
 
@@ -136,6 +136,15 @@ def audit_excel(file_path):
         inel_issues, inel_row_issues = validate_inel_repeat_rows(inel_sheet)
         issues.extend(inel_issues)
 
+    # Extract service date range and validate blank dates
+    service_date_range = None
+    blank_date_row_issues = []
+    if svc_col:
+        service_date_range, blank_date_issues, blank_date_row_issues = extract_service_date_range(
+            sheet, svc_col, mrn_col=mrn_col, cms_col=cms_col
+        )
+        issues.extend(blank_date_issues)
+
     # Calculate E/M totals if columns exist
     total_em = None
     emails = None
@@ -184,6 +193,8 @@ def audit_excel(file_path):
         sid_col=sid_col,  # SID column
         sid_row_issues=sid_row_issues,  # SID validation issues
         inel_row_issues=inel_row_issues,  # INEL validation issues
+        service_date_range=service_date_range,  # Service date range
+        blank_date_row_issues=blank_date_row_issues,  # Blank date issues
     )
 
     return file_path, report_lines
