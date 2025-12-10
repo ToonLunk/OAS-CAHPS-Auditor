@@ -4,12 +4,13 @@ import os
 import re
 import sys
 import uuid
+import webbrowser
 from tqdm import tqdm
 from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.63.1"
+__version__ = "0.63.2"
 version = __version__
 
 
@@ -270,6 +271,17 @@ if __name__ == "__main__":
     try:
         file_path, report_lines = audit_excel(file_path)
         final_file = save_report(file_path, report_lines, version=version)
+        
+        # Open the report in the default browser
+        try:
+            webbrowser.open('file:///' + os.path.abspath(final_file).replace('\\', '/'))
+            print(f"Opening report in your default browser...")
+        except Exception as e:
+            print(f"Could not automatically open browser: {e}")
+        
+        # Print clickable link for easy access
+        print(f"\nReport link: file:///{os.path.abspath(final_file).replace(chr(92), '/')}")
+        
     except Exception as e:
         # For single file mode, exit with error
         sys.exit(1)
