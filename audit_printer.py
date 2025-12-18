@@ -80,14 +80,32 @@ def build_report(
         report_lines.append(
             f"<tr><td>Patients Submitted (from header)</td><td>{patients_submitted}</td></tr>"
         )
+    else:
+        report_lines.append(
+            f"<tr><td>Patients Submitted (from header)</td><td style='color: orange;'>NOT FOUND</td></tr>"
+        )
+        issues.append("<strong>WARNING:</strong> SUBMITTED value not found in header")
+    
     if eligible_patients is not None:
         report_lines.append(
             f"<tr><td>Eligible Patients (from footer)</td><td>{eligible_patients}</td></tr>"
         )
+    else:
+        report_lines.append(
+            f"<tr><td>Eligible Patients (from footer)</td><td style='color: orange;'>NOT FOUND</td></tr>"
+        )
+        issues.append("<strong>WARNING:</strong> EL value not found in footer")
+    
     if sample_size is not None:
         report_lines.append(
             f"<tr><td>Sample Size (from footer)</td><td>{sample_size}</td></tr>"
         )
+    else:
+        report_lines.append(
+            f"<tr><td>Sample Size (from footer)</td><td style='color: orange;'>NOT FOUND</td></tr>"
+        )
+        issues.append("<strong>WARNING:</strong> SS value not found in footer")
+    
     report_lines.append("</table>")
 
     # OASCAPHS tab analysis
@@ -212,7 +230,10 @@ def build_report(
         )
         issues.append(issue_msg)
 
-    estimated_percentage = math.ceil((sample_size / eligible_patients) * 100)
+    # Calculate estimated percentage if both values are available
+    estimated_percentage = None
+    if sample_size is not None and eligible_patients is not None and eligible_patients > 0:
+        estimated_percentage = math.ceil((sample_size / eligible_patients) * 100)
 
     # Check 5: SID validation
     if sid_row_issues is not None:
@@ -273,13 +294,13 @@ def build_report(
     # Use registry name if available, otherwise fall back to file name
     client_name_display = sid_registry_name if sid_registry_name else base_before_hash
     report_lines.append(f"<td>{client_name_display}</td>")
-    report_lines.append(f"<td>{non_reported}</td>")
-    report_lines.append(f"<td>{emails}</td>")
-    report_lines.append(f"<td>{mailings}</td>")
-    report_lines.append(f"<td>~{estimated_percentage}%</td>")
-    report_lines.append(f"<td>{patients_submitted}</td>")
-    report_lines.append(f"<td>{eligible_patients}</td>")
-    report_lines.append(f"<td>{sample_size}</td>")
+    report_lines.append(f"<td>{non_reported if non_reported is not None else 'N/A'}</td>")
+    report_lines.append(f"<td>{emails if emails is not None else 'N/A'}</td>")
+    report_lines.append(f"<td>{mailings if mailings is not None else 'N/A'}</td>")
+    report_lines.append(f"<td>~{estimated_percentage}%</td>" if estimated_percentage is not None else "<td>N/A</td>")
+    report_lines.append(f"<td>{patients_submitted if patients_submitted is not None else 'N/A'}</td>")
+    report_lines.append(f"<td>{eligible_patients if eligible_patients is not None else 'N/A'}</td>")
+    report_lines.append(f"<td>{sample_size if sample_size is not None else 'N/A'}</td>")
     report_lines.append("</tr>")
     report_lines.append("</table>")
     
