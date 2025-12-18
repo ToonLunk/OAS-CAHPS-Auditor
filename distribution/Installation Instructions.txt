@@ -4,36 +4,41 @@
 
 INSTALLATION:
 
-  1. Find deploy.bat in this folder
-  2. Right-click it and choose "Run as administrator"
-  3. When prompted, choose "Y" to install context menu (recommended!)
-  4. Wait for it to finish (takes a few seconds)
-  5. Close this window and open a new Command Prompt or PowerShell
-  6. Test it by typing: audit --help
+  1. Run deploy.bat as administrator
+  2. When prompted, select "Y" to install the context menu (recommended)
+  3. Wait for installation to complete
+  4. Open a new Command Prompt or PowerShell window
+  5. Verify installation by running: audit --help
 
 ================================================================================
 
 HOW TO USE:
 
-EASIEST WAY (If you installed context menu):
-  1. Open File Explorer and go to the folder with your OAS Excel files
-  2. Right-click on empty space inside the folder:
-     - Windows 10: Right-click
-     - Windows 11: SHIFT + Right-click (opens extended menu)
-     - Windows 11 (Alternative): Right click, then click "Show more options"
-  3. Click "Audit All OAS Files"
-  4. Done! The audit runs automatically.
+AUDITING A SINGLE FILE:
 
-COMMAND LINE WAY:
-Go to the folder with your Excel files, then right-click inside the folder, 
-choose "Open in Terminal", and run one of these commands:
+  Context Menu Method:
+    1. Navigate to your Excel file in File Explorer
+    2. Hold SHIFT and right-click the file, then select "Audit this OAS file"
+    3. The audit report will automatically open in your default browser
 
-  audit filename.xlsx      Check a single file
-  audit --all              Check all Excel files in the folder
+  Command Line Method:
+    audit filename.xlsx
 
-The tool creates a report showing any issues it found. Reports are saved in
-a folder called "audits". Files that couldn't be checked go in 
-"audits/unable_to_audit".
+AUDITING MULTIPLE FILES:
+
+  Context Menu Method:
+    1. Navigate to the folder containing your Excel files
+    2. Hold SHIFT and right-click on empty space in the folder
+    3. Select "Audit All OAS Files" from the menu
+    
+    Note: The SHIFT key is required to access the extended context menu.
+
+  Command Line Method:
+    Navigate to the folder, then run:
+    audit --all
+
+All audit reports are saved in an "audits" subfolder. Files that cannot be 
+processed are logged in "audits/unable_to_run_audit".
 
 ================================================================================
 
@@ -54,29 +59,20 @@ You can install manually:
 
 COMMON ISSUES:
 
-  "Windows protected your PC" message:
-    This is normal. Click "More info" then "Run anyway".
+  "Windows protected your PC" message appears:
+    This is expected for new executables. Click "More info", then "Run anyway".
 
-  Antivirus blocks audit.exe:
-    The file is safe. Add it as an exception in your antivirus
+  "audit" command not recognized:
+    Close and reopen your terminal window after installation. The PATH 
+    environment variable needs to be refreshed.
 
-  "audit" command not found:
-    You need to restart your terminal after installing. If that doesn't help,
-    check that the folder with audit.exe is in your system PATH variable.
+  Context menu options not appearing:
+    Remember to hold SHIFT while right-clicking to access the extended menu.
+    If still missing, run scripts\register_context_menu.ps1 as administrator.
 
-  Don't see "Audit All OAS Files" when right-clicking:
-    - Windows 11: Make sure you're holding SHIFT while right-clicking!
-      (Windows 11 hides this in the extended menu)
-    - Windows 10: Should appear with regular right-click
-    - If still missing: You might have skipped context menu installation.
-      Run scripts\register_context_menu.ps1 as administrator to add it.
+  To remove the context menu integration:
+    Run scripts\unregister_context_menu.ps1 as administrator.
 
-  Want to remove the context menu:
-    Run scripts\unregister_context_menu.ps1 as administrator. 
-
-  If the program still doesn't work after trying these steps, please contact
-  support (Tyler Brock) for help.
-
-  No warranty is provided. For full license details,
-  please see the LICENSE file included with this software.
+  For additional support, contact Tyler Brock.
+  No warranty is provided. See the LICENSE file for complete terms.
 ================================================================================
