@@ -80,6 +80,10 @@ def audit_excel(file_path):
     if sid_prefix:
         from audit_lib_funcs import lookup_sid_client_name
         sid_registry_name = lookup_sid_client_name(sid_prefix, show_missing_warning=True)
+    
+    # Get base filename for comparison
+    basefname = os.path.basename(file_path)
+    base_before_hash = basefname.split("#", 1)[0]
 
     # convert letters to alphabet positions (A=1, B=2) and append to UUID
     nums = "".join(str(ord(c) - 64) for c in two_letter_code)
@@ -197,8 +201,21 @@ def audit_excel(file_path):
         service_date_range=service_date_range,  # Service date range
         blank_date_row_issues=blank_date_row_issues,  # Blank date issues
     )
+    
+    # Calculate name match status for batch reporting
+    name_match_info = None
+    if sid_prefix and sid_registry_name:
+        # Normalize both names for comparison (same logic as in audit_printer)
+        normalized_registry = re.sub(r'\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip()
+        normalized_filename = base_before_hash.strip()
+        names_match = (normalized_registry == normalized_filename)
+        name_match_info = {
+            'filename': base_before_hash,
+            'registry_name': sid_registry_name,
+            'match': names_match
+        }
 
-    return file_path, report_lines, service_date_range
+    return file_path, report_lines, service_date_range, name_match_info
 
 
 if __name__ == "__main__":
@@ -230,21 +247,46 @@ if __name__ == "__main__":
             sys.exit(0)
 
         files_processed = 0
+        name_mismatch_files = []  # Track files with name mismatches
         print(f"Found {len(excel_files)} Excel file(s) to process.\n")
 
         # Process with progress bar
         for filename in tqdm(excel_files, desc="Processing files", unit="file"):
             try:
-                file_path, report_lines, service_date_range = audit_excel(filename)
+                file_path, report_lines, service_date_range, name_match_info = audit_excel(filename)
                 final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range)
                 tqdm.write(f"✓ {filename} -> {final_file}")
                 files_processed += 1
+                
+                # Track name mismatch if applicable
+                if name_match_info and not name_match_info['match']:
+                    name_mismatch_files.append({
+                        'filename': filename,
+                        'file_name': name_match_info['filename'],
+                        'registry_name': name_match_info['registry_name']
+                    })
             except Exception as e:
                 tqdm.write(f"✗ {filename}: {e}")
 
         print(
             f"\nCompleted: {files_processed}/{len(excel_files)} file(s) processed successfully."
         )
+        
+        # Print name matching summary
+        print("\n" + "="*60)
+        print("CLIENT NAME MATCHING SUMMARY")
+        print("="*60)
+        if name_mismatch_files:
+            print(f"\n⚠️  {len(name_mismatch_files)} file(s) with CLIENT NAME MISMATCH:\n")
+            for item in name_mismatch_files:
+                print(f"  File: {item['filename']}")
+                print(f"    - Filename:      {item['file_name']}")
+                print(f"    - Registry Name: {item['registry_name']}")
+                print()
+        else:
+            print("\n✓ All files have matching client names (or no registry data)\n")
+        print("="*60 + "\n")
+        
         sys.exit(0)
 
     if arg == "--help" or arg == "-h":
@@ -269,7 +311,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
-        file_path, report_lines, service_date_range = audit_excel(file_path)
+        file_path, report_lines, service_date_range, name_match_info = audit_excel(file_path)
         final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range)
         
         # Open the report in the default browser
