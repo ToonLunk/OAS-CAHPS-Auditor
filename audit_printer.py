@@ -723,7 +723,7 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
     return header_lines
 
 
-def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha"):
+def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha", service_date_range=None):
     """
     Write report to .html file in audits directory
     """
@@ -738,10 +738,33 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha")
         audits_dir = os.path.join(audits_dir, "unable_to_run_audit")
     os.makedirs(audits_dir, exist_ok=True)
 
+    # Extract month name(s) from service date range
+    month_str = ""
+    if service_date_range:
+        try:
+            # Parse dates from format "MM/DD/YYYY - MM/DD/YYYY"
+            date_parts = service_date_range.split(" - ")
+            if len(date_parts) == 2:
+                start_date = datetime.datetime.strptime(date_parts[0].strip(), "%m/%d/%Y")
+                end_date = datetime.datetime.strptime(date_parts[1].strip(), "%m/%d/%Y")
+                
+                # Get month names
+                start_month = start_date.strftime("%b")  # Short month name (e.g., "Jan")
+                end_month = end_date.strftime("%b")
+                
+                # Format: if same month, show once; if different, show range
+                if start_month == end_month:
+                    month_str = f"_{start_month}"
+                else:
+                    month_str = f"_{start_month}-{end_month}"
+        except (ValueError, AttributeError):
+            # If parsing fails, just don't add month to filename
+            pass
+
     # timestamp and final filename
     name, ext = os.path.splitext(os.path.basename(report_file))
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    final_report_file = os.path.join(audits_dir, f"{name}_{timestamp}{ext}")
+    final_report_file = os.path.join(audits_dir, f"{name}{month_str}_{timestamp}{ext}")
 
     # prevent accidental overwrite (very unlikely because of timestamp, but safe)
     if os.path.isfile(final_report_file):

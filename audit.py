@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.63.4"
+__version__ = "0.63.5"
 version = __version__
 
 
@@ -198,7 +198,7 @@ def audit_excel(file_path):
         blank_date_row_issues=blank_date_row_issues,  # Blank date issues
     )
 
-    return file_path, report_lines
+    return file_path, report_lines, service_date_range
 
 
 if __name__ == "__main__":
@@ -235,8 +235,8 @@ if __name__ == "__main__":
         # Process with progress bar
         for filename in tqdm(excel_files, desc="Processing files", unit="file"):
             try:
-                file_path, report_lines = audit_excel(filename)
-                final_file = save_report(file_path, report_lines, version=version)
+                file_path, report_lines, service_date_range = audit_excel(filename)
+                final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range)
                 tqdm.write(f"✓ {filename} -> {final_file}")
                 files_processed += 1
             except Exception as e:
@@ -269,8 +269,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
-        file_path, report_lines = audit_excel(file_path)
-        final_file = save_report(file_path, report_lines, version=version)
+        file_path, report_lines, service_date_range = audit_excel(file_path)
+        final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range)
         
         # Open the report in the default browser
         try:
