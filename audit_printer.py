@@ -315,8 +315,18 @@ def build_report(
         report_lines.append("</tr>")
         report_lines.append("<tr>")
         report_lines.append(f"<td>{sid_prefix}</td>")
-        report_lines.append(f"<td>{base_before_hash}</td>")
-        report_lines.append(f"<td>{sid_registry_name}</td>")
+        
+        # Normalize both names for comparison
+        import re
+        # Remove date patterns like "1/1", "12/1", "6/1" from the end and trim whitespace
+        normalized_registry = re.sub(r'\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip()
+        normalized_filename = base_before_hash.strip()
+        
+        # Compare normalized names and set color
+        match_color = "#27ae60" if normalized_registry == normalized_filename else "#e74c3c"  # Green if match, red if not
+        
+        report_lines.append(f"<td style='color: {match_color}; font-weight: 600;'>{base_before_hash}</td>")
+        report_lines.append(f"<td style='color: {match_color}; font-weight: 600;'>{sid_registry_name}</td>")
         report_lines.append("</tr>")
         report_lines.append("</table>")
 
@@ -697,7 +707,32 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
     header_lines.append("<div style='display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; border-bottom: 2px solid #27ae60; padding-bottom: 5px;'>")
     header_lines.append(f"<h1 style='margin: 0; border: none; padding: 0;'>OAS-CAHPS Audit Report</h1>")
     if service_date_range:
-        header_lines.append(f"<div style='font-size: 1.2em; color: #34495e; font-weight: 500;'>{service_date_range}</div>")
+        # Convert date range to long format (e.g., "November 16th, 2025 - November 30th, 2025")
+        try:
+            date_parts = service_date_range.split(" - ")
+            if len(date_parts) == 2:
+                start_date = datetime.datetime.strptime(date_parts[0].strip(), "%m/%d/%Y")
+                end_date = datetime.datetime.strptime(date_parts[1].strip(), "%m/%d/%Y")
+                
+                # Helper function to add ordinal suffix
+                def ordinal(day):
+                    if 10 <= day % 100 <= 20:
+                        suffix = 'th'
+                    else:
+                        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+                    return f"{day}{suffix}"
+                
+                start_long = f"{start_date.strftime('%B')} {ordinal(start_date.day)}, {start_date.year}"
+                end_long = f"{end_date.strftime('%B')} {ordinal(end_date.day)}, {end_date.year}"
+                long_date_range = f"{start_long} - {end_long}"
+                
+                header_lines.append(f"<div style='font-size: 1.2em; color: #34495e; font-weight: 500;'>{long_date_range}</div>")
+            else:
+                # Fallback to original if parsing fails
+                header_lines.append(f"<div style='font-size: 1.2em; color: #34495e; font-weight: 500;'>{service_date_range}</div>")
+        except (ValueError, AttributeError):
+            # Fallback to original if parsing fails
+            header_lines.append(f"<div style='font-size: 1.2em; color: #34495e; font-weight: 500;'>{service_date_range}</div>")
     header_lines.append("</div>")
     header_lines.append(
         f"<p style='margin: 0 0 5px 0; color: #bdc3c7; font-size: 0.85em;'><a href='https://tylercbrock.com' style='color: inherit; text-decoration: none;'>Auditor</a> v{version}</p>"
