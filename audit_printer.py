@@ -276,17 +276,37 @@ def build_report(
 
     report_lines.append("</table>")
 
+    # Determine QTR header color based on month (November=orange, December=green, etc.)
+    qtr_header_color = "#27ae60"  # Default green
+    if service_date_range:
+        try:
+            date_parts = service_date_range.split(" - ")
+            if len(date_parts) == 2:
+                start_date = datetime.datetime.strptime(date_parts[0].strip(), "%m/%d/%Y")
+                # November (11) is orange, December (12) is green, January (1) is orange, etc.
+                # November is month 11, which is odd, so odd months are orange
+                month = start_date.month
+                if month % 2 == 1:  # Odd months: Jan(1), Mar(3), May(5), Jul(7), Sep(9), Nov(11)
+                    qtr_header_color = "#ff8c00"  # Orange
+                # Even months stay green
+        except (ValueError, AttributeError):
+            pass  # Keep default green
+    
     report_lines.append("<h2>ESTIMATED QTR SHEET LINE</h2>")
-    report_lines.append("<table class='excel-style'>")
+    report_lines.append(f"<table class='excel-style' style='--header-color: {qtr_header_color};'>")
     report_lines.append("<tr>")
     report_lines.append(
-        "<th>SID</th>" "<th>Client</th>" "<th>Non-Reported</th>" "<th>Emails</th>" "<th>Mailings</th>"
+        f"<th style='background-color: {qtr_header_color};'>SID</th>" 
+        f"<th style='background-color: {qtr_header_color};'>Client</th>" 
+        f"<th style='background-color: {qtr_header_color};'>Non-Reported</th>" 
+        f"<th style='background-color: {qtr_header_color};'>Emails</th>" 
+        f"<th style='background-color: {qtr_header_color};'>Mailings</th>"
     )
     report_lines.append(
-        "<th>Selection %</th>"
-        "<th>Submitted</th>"
-        "<th>Eligible</th>"
-        "<th>Sample Size</th>"
+        f"<th style='background-color: {qtr_header_color};'>Selection %</th>"
+        f"<th style='background-color: {qtr_header_color};'>Submitted</th>"
+        f"<th style='background-color: {qtr_header_color};'>Eligible</th>"
+        f"<th style='background-color: {qtr_header_color};'>Sample Size</th>"
     )
     report_lines.append("</tr>")
     report_lines.append("<tr>")
@@ -318,11 +338,12 @@ def build_report(
         
         # Normalize both names for comparison
         import re
-        # Remove date patterns like "1/1", "12/1", "6/1" from the end and trim whitespace
-        normalized_registry = re.sub(r'\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip()
-        normalized_filename = base_before_hash.strip()
+        # Remove date patterns like "1/1", "12/1", "6/1" and everything after dash before date
+        # Handles: "Sample Client 1/1", "Sample Client - 12/1"
+        normalized_registry = re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip().lower()
+        normalized_filename = base_before_hash.strip().lower()
         
-        # Compare normalized names and set color
+        # Compare normalized names (case-insensitive) and set color
         match_color = "#27ae60" if normalized_registry == normalized_filename else "#e74c3c"  # Green if match, red if not
         
         report_lines.append(f"<td style='color: {match_color}; font-weight: 600;'>{base_before_hash}</td>")

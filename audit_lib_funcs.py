@@ -695,14 +695,16 @@ def validate_inel_repeat_rows(inel_sheet):
         if not any(cell.value is not None and str(cell.value).strip() != "" for cell in row):
             continue
         
-        # Check if "REPEAT" exists in the rightmost column
+        # Check if "REPEAT" or "LISTED MORE THAN ONCE ON FILE" exists in the rightmost column
         has_repeat = False
         repeat_cell = None
         rightmost_cell = inel_sheet.cell(row_num, max_col)
         
-        if rightmost_cell.value and str(rightmost_cell.value).strip().upper() == "REPEAT":
-            has_repeat = True
-            repeat_cell = rightmost_cell
+        if rightmost_cell.value:
+            cell_text = str(rightmost_cell.value).strip().upper()
+            if cell_text == "REPEAT" or cell_text == "LISTED MORE THAN ONCE ON FILE":
+                has_repeat = True
+                repeat_cell = rightmost_cell
         
         # Check for yellow highlighting (background fill) in non-REPEAT cells
         cells_with_yellow_bg = []

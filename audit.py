@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.63.5"
+__version__ = "0.63.6"
 version = __version__
 
 
@@ -206,8 +206,9 @@ def audit_excel(file_path):
     name_match_info = None
     if sid_prefix and sid_registry_name:
         # Normalize both names for comparison (same logic as in audit_printer)
-        normalized_registry = re.sub(r'\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip()
-        normalized_filename = base_before_hash.strip()
+        # Make case-insensitive and handle dashes before dates
+        normalized_registry = re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip().lower()
+        normalized_filename = base_before_hash.strip().lower()
         names_match = (normalized_registry == normalized_filename)
         name_match_info = {
             'filename': base_before_hash,
