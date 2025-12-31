@@ -206,7 +206,7 @@ def audit_excel(file_path):
     name_match_info = None
     if sid_prefix and sid_registry_name:
         # Normalize both names for comparison (same logic as in audit_printer)
-        # Make case-insensitive and handle dashes before dates
+        # Make case-insensitive and remove date pattern (with optional dash) from end
         normalized_registry = re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip().lower()
         normalized_filename = base_before_hash.strip().lower()
         names_match = (normalized_registry == normalized_filename)
