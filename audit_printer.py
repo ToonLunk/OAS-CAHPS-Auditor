@@ -324,8 +324,18 @@ def build_report(
     report_lines.append("</tr>")
     report_lines.append("</table>")
     
-    # Add SID client name comparison if available (compact inline version)
+    # Add SID client name comparison if available
     if sid_prefix and sid_registry_name:
+        report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check</h3>")
+        report_lines.append("<table class='excel-style' style='font-size: 0.9em; background-color: #000;'>")
+        report_lines.append("<tr>")
+        report_lines.append("<th style='background-color: #000; color: #fff;'>SID</th>")
+        report_lines.append("<th style='background-color: #000; color: #fff;'>Client Name (from file)</th>")
+        report_lines.append("<th style='background-color: #000; color: #fff;'>Client Name (from registry)</th>")
+        report_lines.append("</tr>")
+        report_lines.append("<tr>")
+        report_lines.append(f"<td style='background-color: #000; color: #fff;'>{sid_prefix}</td>")
+        
         # Normalize both names for comparison
         import re
         # Remove date patterns like "1/1", "12/1", "6/1" and everything after dash before date
@@ -333,12 +343,13 @@ def build_report(
         normalized_registry = re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip().lower()
         normalized_filename = base_before_hash.strip().lower()
         
-        # Compare normalized names (case-insensitive) and set color/icon
-        names_match = normalized_registry == normalized_filename
-        match_icon = "✓" if names_match else "✗"
-        match_text = "match" if names_match else "mismatch"
+        # Compare normalized names (case-insensitive) and set color
+        match_color = "#27ae60" if normalized_registry == normalized_filename else "#e74c3c"  # Green if match, red if not
         
-        report_lines.append(f"<p style='margin: 10px 0 5px 0; padding: 8px 12px; font-size: 0.85em; background-color: #000; color: #fff;'><strong>Registry Check:</strong> File: <em>{base_before_hash}</em> | Registry: <em>{sid_registry_name}</em> | <span style='color: {qtr_header_color}; font-weight: 600;'>{match_icon} {match_text}</span></p>")
+        report_lines.append(f"<td style='background-color: #000; color: {match_color}; font-weight: 600;'>{base_before_hash}</td>")
+        report_lines.append(f"<td style='background-color: #000; color: {match_color}; font-weight: 600;'>{sid_registry_name}</td>")
+        report_lines.append("</tr>")
+        report_lines.append("</table>")
 
     # DATA QUALITY VALIDATION SECTION
     from audit_lib_funcs import column_validations
