@@ -22,16 +22,16 @@ def _get_sids_csv_path():
 
 
 def lookup_sid_client_name(sid_prefix, show_missing_warning=False):
-    """Look up client name from SIDs.csv by 3-letter SID code.
+    """Look up client name from SIDs.csv by 2-3 letter SID code.
     
     Args:
-        sid_prefix: 3-letter SID code (e.g., 'ANM', 'AGM')
+        sid_prefix: 2-3 letter SID code (e.g., 'ANM', 'AGM', 'AC')
         show_missing_warning: If True, print warning when SIDs.csv is missing
         
     Returns:
         Client name string if found, None if not found or error
     """
-    if not sid_prefix or len(sid_prefix) != 3:
+    if not sid_prefix or len(sid_prefix) < 2 or len(sid_prefix) > 3:
         return None
         
     csv_path = _get_sids_csv_path()
@@ -555,7 +555,7 @@ def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
     if sid_col is None or cms_col is None:
         return issues, row_issues
     
-    sid_pattern = re.compile(r'^([A-Z]{3})(\d+)$')
+    sid_pattern = re.compile(r'^([A-Z]{2,3})(\d+)$')
     
     sids_found = []
     expected_prefix = None
@@ -643,25 +643,26 @@ def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
                 'issue_type': 'SID Duplicate',
                 'description': f"Row {row_num}: Duplicate SID '{sid_str}'"
             })
-            sids_found.append(sid_str)
-            
-            if expected_start_num is not None:
-                expected_num = expected_start_num + (cms1_rows_processed - 1)
-                if number != expected_num:
-                    row_issues.append({
-                        'row': row_num,
-                        'mrn': mrn_value,
-                        'cms': cms_value,
-                        'issue_type': 'SID Sequence',
-                        'description': f"Row {row_num}: Expected SID '{expected_prefix}{expected_num:05d}', found '{sid_str}'"
-                    })
-            
-            row_num += 1
         
-        if row_issues:
-            issues.append(f"Found {len(row_issues)} SID validation issues")
+        sids_found.append(sid_str)
         
-        return issues, row_issues
+        if expected_start_num is not None:
+            expected_num = expected_start_num + (cms1_rows_processed - 1)
+            if number != expected_num:
+                row_issues.append({
+                    'row': row_num,
+                    'mrn': mrn_value,
+                    'cms': cms_value,
+                    'issue_type': 'SID Sequence',
+                    'description': f"Row {row_num}: Expected SID '{expected_prefix}{expected_num:05d}', found '{sid_str}'"
+                })
+        
+        row_num += 1
+    
+    if row_issues:
+        issues.append(f"Found {len(row_issues)} SID validation issues")
+    
+    return issues, row_issues
 
 
 def validate_inel_repeat_rows(inel_sheet):

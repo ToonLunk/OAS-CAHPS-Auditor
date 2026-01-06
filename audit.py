@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.63.6"
+__version__ = "0.63.7"
 version = __version__
 
 
@@ -69,11 +69,15 @@ def audit_excel(file_path):
     two_letter_code = m.group(1) if m else ""
 
     # Extract SID from header (should be first SID in sequence)
-    sid_match = re.search(r"([A-Z]{3}\d+)", header_clean)
+    sid_match = re.search(r"([A-Z]{2,3}\d+)", header_clean)
     header_sid = sid_match.group(1) if sid_match else None
     
-    # Extract SID prefix (3-letter code) for display
-    sid_prefix = header_sid[:3] if header_sid and len(header_sid) >= 3 else None
+    # Extract SID prefix (2-3 letter code) for display
+    if header_sid:
+        prefix_match = re.match(r"([A-Z]{2,3})", header_sid)
+        sid_prefix = prefix_match.group(1) if prefix_match else None
+    else:
+        sid_prefix = None
     
     # Look up client name from SID registry
     sid_registry_name = None
@@ -326,5 +330,8 @@ if __name__ == "__main__":
         print(f"\nReport link: file:///{os.path.abspath(final_file).replace(chr(92), '/')}")
         
     except Exception as e:
-        # For single file mode, exit with error
+        # For single file mode, print error and exit
+        print(f"\nError processing file: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
