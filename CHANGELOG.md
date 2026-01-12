@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 0.64
+
+- Added parallel processing to batch audits for improved performance
+
 ## Version 0.58rc1
 
 - Added ability to run script on individual files via context menu
