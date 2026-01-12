@@ -5,7 +5,7 @@ import re
 import sys
 import uuid
 import webbrowser
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, freeze_support
 from tqdm import tqdm
 from dotenv import load_dotenv
 from audit_printer import save_report, build_report
@@ -224,18 +224,19 @@ def audit_excel(file_path):
     return file_path, report_lines, service_date_range, name_match_info
 
 
-def process_file_wrapper(filename):
+def process_file_wrapper(args):
     """Wrapper function for multiprocessing to process a single Excel file.
     
     Args:
-        filename: Name of Excel file to process
+        args: Tuple of (filename, version_str)
         
     Returns:
         dict with status, filename, result_file, name_match_info, and error (if any)
     """
+    filename, version_str = args
     try:
         file_path, report_lines, service_date_range, name_match_info = audit_excel(filename)
-        final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range)
+        final_file = save_report(file_path, report_lines, version=version_str, service_date_range=service_date_range)
         return {
             'status': 'success',
             'filename': filename,
@@ -254,6 +255,9 @@ def process_file_wrapper(filename):
 
 
 if __name__ == "__main__":
+    # Required for PyInstaller multiprocessing support on Windows
+    freeze_support()
+    
     check_for_updates()
     
     if len(sys.argv) != 2:
@@ -287,10 +291,13 @@ if __name__ == "__main__":
         print(f"Found {len(excel_files)} Excel file(s) to process.")
         print(f"Using {num_processes} processor(s) for parallel processing.\n")
 
+        # Prepare arguments for worker function (filename, version)
+        worker_args = [(f, version) for f in excel_files]
+
         # Process files in parallel with progress bar
         with Pool(processes=num_processes) as pool:
             results = list(tqdm(
-                pool.imap(process_file_wrapper, excel_files),
+                pool.imap(process_file_wrapper, worker_args),
                 total=len(excel_files),
                 desc="Processing files",
                 unit="file"
@@ -322,7 +329,7 @@ if __name__ == "__main__":
         print("CLIENT NAME MATCHING SUMMARY")
         print("="*60)
         if name_mismatch_files:
-            print(f"\n⚠️  {len(name_mismatch_files)} file(s) with CLIENT NAME MISMATCH:\n")
+            print(f"\n !!!  {len(name_mismatch_files)} file(s) with CLIENT NAME MISMATCH:\n")
             for item in name_mismatch_files:
                 print(f"  File: {item['filename']}")
                 print(f"    - Filename:      {item['file_name']}")
