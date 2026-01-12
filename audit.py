@@ -5,12 +5,13 @@ import re
 import sys
 import uuid
 import webbrowser
+from multiprocessing import Pool, cpu_count
 from tqdm import tqdm
 from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.63.7"
+__version__ = "0.64"
 version = __version__
 
 
@@ -223,6 +224,35 @@ def audit_excel(file_path):
     return file_path, report_lines, service_date_range, name_match_info
 
 
+def process_file_wrapper(filename):
+    """Wrapper function for multiprocessing to process a single Excel file.
+    
+    Args:
+        filename: Name of Excel file to process
+        
+    Returns:
+        dict with status, filename, result_file, name_match_info, and error (if any)
+    """
+    try:
+        file_path, report_lines, service_date_range, name_match_info = audit_excel(filename)
+        final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range)
+        return {
+            'status': 'success',
+            'filename': filename,
+            'result_file': final_file,
+            'name_match_info': name_match_info,
+            'error': None
+        }
+    except Exception as e:
+        return {
+            'status': 'error',
+            'filename': filename,
+            'result_file': None,
+            'name_match_info': None,
+            'error': str(e)
+        }
+
+
 if __name__ == "__main__":
     check_for_updates()
     
@@ -253,25 +283,35 @@ if __name__ == "__main__":
 
         files_processed = 0
         name_mismatch_files = []  # Track files with name mismatches
-        print(f"Found {len(excel_files)} Excel file(s) to process.\n")
+        num_processes = min(cpu_count(), len(excel_files))
+        print(f"Found {len(excel_files)} Excel file(s) to process.")
+        print(f"Using {num_processes} processor(s) for parallel processing.\n")
 
-        # Process with progress bar
-        for filename in tqdm(excel_files, desc="Processing files", unit="file"):
-            try:
-                file_path, report_lines, service_date_range, name_match_info = audit_excel(filename)
-                final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range)
-                tqdm.write(f"✓ {filename} -> {final_file}")
+        # Process files in parallel with progress bar
+        with Pool(processes=num_processes) as pool:
+            results = list(tqdm(
+                pool.imap(process_file_wrapper, excel_files),
+                total=len(excel_files),
+                desc="Processing files",
+                unit="file"
+            ))
+        
+        # Process results
+        for result in results:
+            if result['status'] == 'success':
+                print(f"✓ {result['filename']} -> {result['result_file']}")
                 files_processed += 1
                 
                 # Track name mismatch if applicable
+                name_match_info = result['name_match_info']
                 if name_match_info and not name_match_info['match']:
                     name_mismatch_files.append({
-                        'filename': filename,
+                        'filename': result['filename'],
                         'file_name': name_match_info['filename'],
                         'registry_name': name_match_info['registry_name']
                     })
-            except Exception as e:
-                tqdm.write(f"✗ {filename}: {e}")
+            else:
+                print(f"✗ {result['filename']}: {result['error']}")
 
         print(
             f"\nCompleted: {files_processed}/{len(excel_files)} file(s) processed successfully."
