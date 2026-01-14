@@ -665,7 +665,7 @@ def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
     return issues, row_issues
 
 
-def validate_inel_repeat_rows(inel_sheet):
+def validate_inel_repeat_rows(inel_sheet, show_progress=False):
     """
     Validate INEL tab REPEAT entries.
     
@@ -686,74 +686,82 @@ def validate_inel_repeat_rows(inel_sheet):
     if inel_sheet is None:
         return issues, row_issues
     
+    # Helper function to extract RGB color efficiently
+    def get_rgb_str(color_obj):
+        if color_obj and color_obj.rgb:
+            rgb = color_obj.rgb
+            if isinstance(rgb, str) and len(rgb) >= 6:
+                return (rgb[-6:] if len(rgb) == 8 else rgb).upper()
+        return None
+    
     # Get the maximum column used in the sheet
     max_col = inel_sheet.max_column
+    total_rows = inel_sheet.max_row
     
-    for row_num in range(2, inel_sheet.max_row + 1):
-        row = list(inel_sheet[row_num])
+    if show_progress and total_rows > 100:
+        print(f"  Checking {total_rows} rows in INEL tab...")
+    
+    for row_num in range(2, total_rows + 1):
+        # Show progress for large sheets
+        if show_progress and total_rows > 100 and row_num % 100 == 0:
+            print(f"  Progress: {row_num}/{total_rows} rows checked...", end='\r')
         
-        # Skip completely empty rows
-        if not any(cell.value is not None and str(cell.value).strip() != "" for cell in row):
+        # Quick check if row is completely empty before doing expensive style checks
+        has_data = False
+        for col_num in range(1, max_col + 1):
+            cell = inel_sheet.cell(row_num, col_num)
+            if cell.value is not None and str(cell.value).strip() != "":
+                has_data = True
+                break
+        
+        if not has_data:
             continue
         
         # Check if "REPEAT" or "LISTED MORE THAN ONCE ON FILE" exists in the rightmost column
         has_repeat = False
-        repeat_cell = None
-        rightmost_cell = inel_sheet.cell(row_num, max_col)
+        repeat_cell = inel_sheet.cell(row_num, max_col)
         
-        if rightmost_cell.value:
-            cell_text = str(rightmost_cell.value).strip().upper()
+        if repeat_cell.value:
+            cell_text = str(repeat_cell.value).strip().upper()
             if cell_text == "REPEAT" or cell_text == "LISTED MORE THAN ONCE ON FILE":
                 has_repeat = True
-                repeat_cell = rightmost_cell
         
-        # Check for yellow highlighting (background fill) in non-REPEAT cells
+        # Check for yellow highlighting (background fill) and red font in non-REPEAT cells
         cells_with_yellow_bg = []
         cells_with_red_font = []
         
-        for col_num, cell in enumerate(row[:max_col-1], start=1):  # Exclude rightmost column
-            if cell.value is not None and str(cell.value).strip() != "":
-                # Check for yellow background fill
-                if cell.fill and cell.fill.fgColor and cell.fill.fgColor.rgb:
-                    rgb = cell.fill.fgColor.rgb
-                    # Yellow is typically FFFFFF00 or variations
-                    if isinstance(rgb, str) and len(rgb) >= 6:
-                        # Extract RGB values (ignoring alpha channel if present)
-                        rgb_str = rgb[-6:] if len(rgb) == 8 else rgb
-                        if rgb_str.upper() in ['FFFF00', 'FFFFE0', 'FFFFCC']:  # Common yellow shades
-                            cells_with_yellow_bg.append((row_num, col_num))
-                
-                # Check for red font
-                if cell.font and cell.font.color and cell.font.color.rgb:
-                    rgb = cell.font.color.rgb
-                    if isinstance(rgb, str) and len(rgb) >= 6:
-                        rgb_str = rgb[-6:] if len(rgb) == 8 else rgb
-                        if rgb_str.upper() == 'FF0000':  # Red font
-                            cells_with_red_font.append((row_num, col_num))
+        for col_num in range(1, max_col):  # Exclude rightmost column
+            cell = inel_sheet.cell(row_num, col_num)
+            if cell.value is None or str(cell.value).strip() == "":
+                continue
+            
+            # Check for yellow background fill
+            bg_rgb = get_rgb_str(cell.fill.fgColor if cell.fill else None)
+            if bg_rgb in ['FFFF00', 'FFFFE0', 'FFFFCC']:  # Common yellow shades
+                cells_with_yellow_bg.append((row_num, col_num))
+            
+            # Check for red font
+            font_rgb = get_rgb_str(cell.font.color if cell.font else None)
+            if font_rgb == 'FF0000':  # Red font
+                cells_with_red_font.append((row_num, col_num))
         
         # Validate REPEAT rows
-        if has_repeat and repeat_cell is not None:
-            # Check REPEAT cell formatting
+        if has_repeat:
+            # Check REPEAT cell formatting (cached access)
             repeat_font_ok = False
             repeat_bg_ok = False
             repeat_bold_ok = False
             
             if repeat_cell.font is not None:
-                if repeat_cell.font.color and repeat_cell.font.color.rgb:
-                    rgb = repeat_cell.font.color.rgb
-                    if isinstance(rgb, str) and len(rgb) >= 6:
-                        rgb_str = rgb[-6:] if len(rgb) == 8 else rgb
-                        if rgb_str.upper() == 'FF0000':
-                            repeat_font_ok = True
+                font_rgb = get_rgb_str(repeat_cell.font.color)
+                if font_rgb == 'FF0000':
+                    repeat_font_ok = True
                 if repeat_cell.font.bold:
                     repeat_bold_ok = True
             
-            if repeat_cell.fill is not None and repeat_cell.fill.fgColor and repeat_cell.fill.fgColor.rgb:
-                rgb = repeat_cell.fill.fgColor.rgb
-                if isinstance(rgb, str) and len(rgb) >= 6:
-                    rgb_str = rgb[-6:] if len(rgb) == 8 else rgb
-                    if rgb_str.upper() in ['FFFF00', 'FFFFE0', 'FFFFCC']:
-                        repeat_bg_ok = True
+            bg_rgb = get_rgb_str(repeat_cell.fill.fgColor if repeat_cell.fill else None)
+            if bg_rgb in ['FFFF00', 'FFFFE0', 'FFFFCC']:
+                repeat_bg_ok = True
             
             # Check if there are other highlighted cells (conflicting indicators)
             if cells_with_yellow_bg:
@@ -764,8 +772,13 @@ def validate_inel_repeat_rows(inel_sheet):
                 })
                 issues.append(f"INEL Row {row_num}: REPEAT marker conflicts with other cell highlighting")
             
-            # Check if all cells have red font
-            expected_red_cells = len([c for c in row[:max_col-1] if c.value is not None and str(c.value).strip() != ""])
+            # Check if all cells have red font (count non-empty cells efficiently)
+            expected_red_cells = 0
+            for col_num in range(1, max_col):
+                cell = inel_sheet.cell(row_num, col_num)
+                if cell.value is not None and str(cell.value).strip() != "":
+                    expected_red_cells += 1
+            
             actual_red_cells = len(cells_with_red_font)
             
             if actual_red_cells < expected_red_cells:
@@ -802,6 +815,9 @@ def validate_inel_repeat_rows(inel_sheet):
                 'description': f"Row {row_num}: No highlighted cells and no REPEAT marker - no indication of why row is in INEL"
             })
             issues.append(f"INEL Row {row_num}: Missing INEL reason indicator (no highlighting or REPEAT marker)")
+    
+    if show_progress and total_rows > 100:
+        print()  # New line after progress updates
     
     return issues, row_issues
         

@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.64.1"
+__version__ = "0.64.2"
 version = __version__
 
 
@@ -40,9 +40,13 @@ def check_for_updates():
         pass
 
 
-def audit_excel(file_path):
+def audit_excel(file_path, show_progress=False):
     try:
+        if show_progress:
+            print(f"Loading workbook: {os.path.basename(file_path)}...")
         wb = openpyxl.load_workbook(file_path, data_only=True)
+        if show_progress:
+            print("[OK] Workbook loaded")
     except:
         print(
             f"--- Critical Error opening {file_path}! Are you sure it's an Excel file?"
@@ -135,25 +139,37 @@ def audit_excel(file_path):
     sid_issues = []
     sid_row_issues = []
     if sid_col and cms_col:
+        if show_progress:
+            print("Validating SID sequence...")
         sid_issues, sid_row_issues = validate_sid_sequence(sheet, sid_col, cms_col, header_sid)  # type: ignore
         issues.extend(sid_issues)
+        if show_progress:
+            print(f"[OK] SID validation complete ({len(sid_issues)} issues found)")
 
     # Validate INEL tab REPEAT entries
     inel_issues = []
     inel_row_issues = []
     if "INEL" in wb.sheetnames:
+        if show_progress:
+            print("Validating INEL tab...")
         inel_sheet = wb["INEL"]
-        inel_issues, inel_row_issues = validate_inel_repeat_rows(inel_sheet)
+        inel_issues, inel_row_issues = validate_inel_repeat_rows(inel_sheet, show_progress=show_progress)
         issues.extend(inel_issues)
+        if show_progress:
+            print(f"[OK] INEL validation complete ({len(inel_issues)} issues found)")
 
     # Extract service date range and validate blank dates
     service_date_range = None
     blank_date_row_issues = []
     if svc_col:
+        if show_progress:
+            print("Extracting service dates...")
         service_date_range, blank_date_issues, blank_date_row_issues = extract_service_date_range(
             sheet, svc_col, mrn_col=mrn_col, cms_col=cms_col
         )
         issues.extend(blank_date_issues)
+        if show_progress:
+            print(f"[OK] Service date extraction complete")
 
     # Calculate E/M totals if columns exist
     total_em = None
@@ -163,13 +179,19 @@ def audit_excel(file_path):
     cms1_count = None
     
     if cms_col and em_col:
+        if show_progress:
+            print("Calculating E/M totals...")
         try:
             total_em, emails, mailings, non_reported, cms1_count = calc_e_m_total(
                 sheet, cms_col, em_col
             )  # type: ignore
+            if show_progress:
+                print(f"[OK] E/M calculation complete")
         except Exception as e:
             issues.append(f"Error calculating E/M totals: {str(e)}")
 
+    if show_progress:
+        print("Building report...")
     report_lines, issues = build_report(
         wb=wb,
         sheet=sheet,
@@ -206,6 +228,9 @@ def audit_excel(file_path):
         service_date_range=service_date_range,  # Service date range
         blank_date_row_issues=blank_date_row_issues,  # Blank date issues
     )
+    
+    if show_progress:
+        print("[OK] Report built successfully")
     
     # Calculate name match status for batch reporting
     name_match_info = None
@@ -295,18 +320,20 @@ if __name__ == "__main__":
         worker_args = [(f, version) for f in excel_files]
 
         # Process files in parallel with progress bar
+        # Using imap_unordered with chunksize=1 for immediate feedback
         with Pool(processes=num_processes) as pool:
             results = list(tqdm(
-                pool.imap(process_file_wrapper, worker_args),
+                pool.imap_unordered(process_file_wrapper, worker_args, chunksize=1),
                 total=len(excel_files),
                 desc="Processing files",
-                unit="file"
+                unit="file",
+                smoothing=0  # Disable smoothing for immediate updates
             ))
         
         # Process results
         for result in results:
             if result['status'] == 'success':
-                print(f"✓ {result['filename']} -> {result['result_file']}")
+                print(f"[OK] {result['filename']} -> {result['result_file']}")
                 files_processed += 1
                 
                 # Track name mismatch if applicable
@@ -318,7 +345,7 @@ if __name__ == "__main__":
                         'registry_name': name_match_info['registry_name']
                     })
             else:
-                print(f"✗ {result['filename']}: {result['error']}")
+                print(f"[ERROR] {result['filename']}: {result['error']}")
 
         print(
             f"\nCompleted: {files_processed}/{len(excel_files)} file(s) processed successfully."
@@ -336,7 +363,7 @@ if __name__ == "__main__":
                 print(f"    - Registry Name: {item['registry_name']}")
                 print()
         else:
-            print("\n✓ All files have matching client names (or no registry data)\n")
+            print("\n[OK] All files have matching client names (or no registry data)\n")
         print("="*60 + "\n")
         
         sys.exit(0)
@@ -363,8 +390,14 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
-        file_path, report_lines, service_date_range, name_match_info = audit_excel(file_path)
+        print(f"\nProcessing: {os.path.basename(file_path)}")
+        print("-" * 60)
+        file_path, report_lines, service_date_range, name_match_info = audit_excel(file_path, show_progress=True)
+        print("-" * 60)
+        print("Saving report...")
         final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range)
+        print(f"[OK] Report saved: {final_file}")
+        print()
         
         # Open the report in the default browser
         try:

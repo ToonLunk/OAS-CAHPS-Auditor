@@ -2,6 +2,7 @@ import os
 import sys
 import datetime
 import math
+from tqdm import tqdm
 
 from requests import head
 from audit_lib_funcs import check_address, check_pop_upload_email_consistency
@@ -133,10 +134,16 @@ def build_report(
         start_row = header_row + 1 if header_row else 2
         
         # Count rows, but skip ones with highlighted service dates
+        # Optimized: Load all rows at once instead of per-row iter_rows calls
         inel_count = 0
-        for row_idx in range(start_row, inel_sheet.max_row + 1):
+        all_rows = list(inel_sheet.iter_rows(min_row=start_row, max_row=inel_sheet.max_row, values_only=False))
+        
+        for row_offset, row_cells in enumerate(tqdm(all_rows, desc="Processing INEL rows", disable=len(all_rows) < 1000)):
+            row_idx = start_row + row_offset
+            # Get row values
+            row = [cell.value for cell in row_cells]
+            
             # Check if row has any data
-            row = list(inel_sheet.iter_rows(min_row=row_idx, max_row=row_idx, values_only=True))[0]
             if not any(cell is not None and str(cell).strip() != "" for cell in row):
                 continue
             
@@ -144,7 +151,7 @@ def build_report(
             skip_row = False
             if service_date_col:
                 try:
-                    cell = inel_sheet.cell(row=row_idx, column=service_date_col)
+                    cell = row_cells[service_date_col - 1]  # service_date_col is 1-indexed
                     # Check if cell has a fill color (is highlighted)
                     if cell.fill and cell.fill.start_color:
                         color_index = cell.fill.start_color.index
@@ -395,8 +402,9 @@ def build_report(
     cat_col = headers.get("SURGICAL CATEGORY")
     if cpt_col and cat_col:
         from audit_lib_funcs import is_blank_row
-
-        for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        
+        all_validation_rows = list(sheet.iter_rows(min_row=2, values_only=True))
+        for r, row in enumerate(tqdm(all_validation_rows, desc="Validating surgical categories", disable=len(all_validation_rows) < 1000), start=2):
             if is_blank_row(row):
                 continue
             cpt_val = row[cpt_col - 1]
