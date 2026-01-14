@@ -438,15 +438,24 @@ def build_report(
             set(up_headers.keys()).intersection(oas_headers.keys()) - ignore_cols
         )
 
+        # Optimized: Use iter_rows for batch access (much faster than cell-by-cell)
+        max_rows = min(
+            count_nonempty_rows(upload_sheet) + 1, count_nonempty_rows(sheet) + 1
+        )
+        
+        # Get all rows at once using iter_rows (much faster than cell-by-cell access)
+        upload_rows = list(upload_sheet.iter_rows(min_row=2, max_row=max_rows, values_only=True))
+        oas_rows = list(sheet.iter_rows(min_row=2, max_row=max_rows, values_only=True))
+        
         for col in common_cols:
             up_idx = up_headers[col] - 1
             oas_idx = oas_headers[col] - 1
-            max_rows = min(
-                count_nonempty_rows(upload_sheet) + 1, count_nonempty_rows(sheet) + 1
-            )
-            for r in range(2, max_rows + 1):
-                up_val = upload_sheet.cell(r, up_idx + 1).value
-                oas_val = sheet.cell(r, oas_idx + 1).value
+            
+            for r_offset, (up_row, oas_row) in enumerate(zip(upload_rows, oas_rows)):
+                r = r_offset + 2  # Adjust for Excel row number (starts at 2)
+                up_val = up_row[up_idx] if up_idx < len(up_row) else None
+                oas_val = oas_row[oas_idx] if oas_idx < len(oas_row) else None
+                
                 if up_val != oas_val:
                     issues.append(
                         f"UPLOAD Row {r}, Column {col}: UPLOAD={up_val} vs OASCAPHS={oas_val}"
