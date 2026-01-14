@@ -125,7 +125,36 @@ def build_report(
     inel_count = None
     if "INEL" in wb.sheetnames:
         inel_sheet = wb["INEL"]
-        inel_count = count_nonempty_rows(inel_sheet)
+        # Import SERVICE_DATE_ALIASES and find_column_by_aliases here
+        from audit_lib_funcs import SERVICE_DATE_ALIASES, find_column_by_aliases
+        
+        # Find service date column
+        service_date_col, header_row = find_column_by_aliases(inel_sheet, SERVICE_DATE_ALIASES)
+        start_row = header_row + 1 if header_row else 2
+        
+        # Count rows, but skip ones with highlighted service dates
+        inel_count = 0
+        for row_idx in range(start_row, inel_sheet.max_row + 1):
+            # Check if row has any data
+            row = list(inel_sheet.iter_rows(min_row=row_idx, max_row=row_idx, values_only=True))[0]
+            if not any(cell is not None and str(cell).strip() != "" for cell in row):
+                continue
+            
+            # If we found a service date column, check if it's highlighted
+            skip_row = False
+            if service_date_col:
+                try:
+                    cell = inel_sheet.cell(row=row_idx, column=service_date_col)
+                    # Check if cell has a fill color (is highlighted)
+                    if cell.fill and cell.fill.start_color:
+                        color_index = cell.fill.start_color.index
+                        if color_index and color_index != '00000000' and color_index != 'FFFFFFFF':
+                            skip_row = True
+                except (AttributeError, IndexError):
+                    pass
+            
+            if not skip_row:
+                inel_count += 1
 
     frame_inel_count = None
     if "FRAME" in wb.sheetnames and find_frame_inel_count is not None:
@@ -191,8 +220,10 @@ def build_report(
         TOL = 4
         if abs(patients_submitted - pop_rows) > TOL:
             issue_msg = f"Submitted mismatch: header says {patients_submitted}, POP tab has {pop_rows} rows. (if this is within ~4, this is expected due to various client header sizes)"
+            tooltip_text = "This might not be a real problem. If the POP tab has blank rows at the top before the headers start, the count will be off. This is normal for some files."
+            issue_msg_with_tooltip = f"{issue_msg} <span class='info-icon'>i<span class='tooltip'>{tooltip_text}</span></span>"
             report_lines.append(
-                f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
+                f"<tr><td>{issue_msg_with_tooltip}</td><td style='color: red;'>✗</td></tr>"
             )
             issues.append(f"<strong>WARNING:</strong> {issue_msg}")
         else:

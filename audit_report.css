@@ -170,3 +170,58 @@ details summary:hover {
 details[open] summary {
   border-left-color: #e8e8e8;
 }
+
+/* Tooltip styles */
+.info-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 50%;
+  background-color: #3498db;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: help;
+  margin-left: 5px;
+  position: relative;
+  vertical-align: middle;
+}
+
+.info-icon .tooltip {
+  visibility: hidden;
+  width: 300px;
+  background-color: #34495e;
+  color: #fff;
+  text-align: left;
+  border-radius: 6px;
+  padding: 10px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -150px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.4;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.info-icon .tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #34495e transparent transparent transparent;
+}
+
+.info-icon:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
+}

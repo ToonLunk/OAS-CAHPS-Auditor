@@ -105,7 +105,7 @@ High Priority:
   -- When this option is used, the program should ask the user to input the directory where the 6month files are located. Then it should be saved in the .env file for future use.
 - Fix the bug where if there are more than 2 columns next to each other in the FRAME inel (like if you have to make a temporary column or something), the program doesn't read the columns correctly and thinks there are zero FRAME inel rows.
 - Add the ability to look for header columns even if they aren't in the first row (for files where there is a title or extra info at the top), and when checking for the differences between the POP and UPLOAD tabs.
-- Add a check to see if service dates are highlighted in INEL, and if so, update the expected POP size accordingly. Service dates in INEL should not count towards the POP size, so when they are highlighted, the program should subtract those rows from the expected POP size/expected eligible count.
+- Add a check to see if service dates are highlighted in INEL, and if so, update the expected POP size accordingly. Service dates highlighted in INEL should not count towards the POP size/eligible count, so when they are highlighted, the program should subtract those rows from the expected eligible count. This will fix the "Math error: Eligible (X) + Combined INEL (Y) = Z, but Submitted = W" warning that appears when service date rows are properly highlighted in INEL. Example: if Submitted=1132, Eligible=497, Combined INEL=635, but 571 of the INEL rows have highlighted service dates, those 571 shouldn't count in the math check since invalid service dates don't count towards submitted.
 
 
 Low Priority:
