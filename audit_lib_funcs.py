@@ -1009,7 +1009,7 @@ def find_column_by_aliases(sheet, aliases):
     Handles sheets with rows spaced apart.
     """
     # Check first few rows for headers (in case of spacing)
-    for header_row_idx in range(1, 6):  # Check first 5 rows
+    for header_row_idx in range(1, 41):  # Check first 40 rows
         try:
             row = list(
                 sheet.iter_rows(
