@@ -317,6 +317,58 @@ def count_nonempty_rows(sheet):
     return count
 
 
+def count_nonempty_rows_after_header(sheet, header_aliases=None):
+    """
+    Count rows that actually contain data, starting after the header row.
+    Finds the header row dynamically (even if not in row 1), then counts
+    non-empty rows after it.
+    
+    Args:
+        sheet: The worksheet to count rows in
+        header_aliases: List of header column names to search for (defaults to MRN_ALIASES)
+    
+    Returns:
+        int: Count of non-empty data rows after the header
+    """
+    # Use MRN_ALIASES as default if not provided
+    if header_aliases is None:
+        # Import here to avoid circular dependency issues
+        header_aliases = [
+            "chart id", "patid", "medical account number", "patient account number",
+            "patient acct no", "medical record number", "mrn", "patient id",
+            "patient mrn", "medicalrecordnumber", "medrec", "md rc", "acct#",
+            "patient account #", "account number", "patient chart number",
+            "acctnum", "mrnum", "patientid", "mrno", "per nbr", "pt.id"
+        ]
+    
+    # Find the header row by looking for common header column names
+    header_row_idx = None
+    for row_idx in range(1, 41):  # Check first 40 rows for the header
+        try:
+            row = list(sheet.iter_rows(min_row=row_idx, max_row=row_idx, values_only=True))[0]
+            for cell_value in row:
+                if cell_value:
+                    cell_str = str(cell_value).strip().lower()
+                    if any(cell_str == alias.lower() for alias in header_aliases):
+                        header_row_idx = row_idx
+                        break
+            if header_row_idx:
+                break
+        except (IndexError, AttributeError):
+            continue
+    
+    # If no header found, default to row 1
+    if header_row_idx is None:
+        header_row_idx = 1
+    
+    # Count non-empty rows after the header
+    count = 0
+    for row in sheet.iter_rows(min_row=header_row_idx + 1, values_only=True):
+        if any(cell is not None and str(cell).strip() != "" for cell in row):
+            count += 1
+    return count
+
+
 def is_blank_row(row) -> bool:
     """Return True if the row contains no meaningful (non-empty) values."""
     for cell in row:
@@ -855,6 +907,20 @@ MRN_ALIASES = [
     "pat_med_rec",
     "person mrn",
     "armrnum",
+    "med rec number",
+    "person_nbr",
+    "pt id #",
+    "armrnum-t",
+    "emr number",
+    "patient - patient - id",
+    "pt_id",
+    "mrn #",
+    "chart no.",
+    "v#",
+    "pat person nbr",
+    "med rec #",
+    "patient - id",
+    "med_rec_nbr",
 ]
 
 EMAIL_ALIASES = [

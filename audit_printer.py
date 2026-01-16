@@ -5,7 +5,7 @@ import math
 from tqdm import tqdm
 
 from requests import head
-from audit_lib_funcs import check_address, check_pop_upload_email_consistency
+from audit_lib_funcs import check_address, check_pop_upload_email_consistency, count_nonempty_rows_after_header
 
 
 def build_report(
@@ -223,11 +223,11 @@ def build_report(
     # Check 3: Submitted matches POP tab
     if "POP" in wb.sheetnames and patients_submitted is not None:
         pop_sheet = wb["POP"]
-        pop_rows = count_nonempty_rows(pop_sheet)
+        pop_rows = count_nonempty_rows_after_header(pop_sheet)
         TOL = 4
         if abs(patients_submitted - pop_rows) > TOL:
-            issue_msg = f"Submitted mismatch: header says {patients_submitted}, POP tab has {pop_rows} rows. (if this is within ~4, this is expected due to various client header sizes)"
-            tooltip_text = "This might not be a real problem. If the POP tab has blank rows at the top before the headers start, the count will be off. This is normal for some files."
+            issue_msg = f"Potential patient # mismatch: header says {patients_submitted} patients were submitted, but the POP tab has {pop_rows} rows."
+            tooltip_text = "This might not be a problem. The number of submitted patients may exclude rows with bad service dates, and some files have extra text/titles before the data starts. Please verify manually."
             issue_msg_with_tooltip = f"{issue_msg} <span class='info-icon'>i<span class='tooltip'>{tooltip_text}</span></span>"
             report_lines.append(
                 f"<tr><td>{issue_msg_with_tooltip}</td><td style='color: red;'>✗</td></tr>"
