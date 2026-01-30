@@ -410,6 +410,13 @@ def build_report(
             cpt_val = row[cpt_col - 1]
             cat_val = row[cat_col - 1]
             expected = classify_cpt(str(cpt_val) if cpt_val else "")
+            
+            # Skip validation if both CPT and surgical category are blank
+            cpt_is_blank = not cpt_val or str(cpt_val).strip() == ""
+            cat_is_blank = not cat_val or str(cat_val).strip() == ""
+            if cpt_is_blank and cat_is_blank:
+                continue
+                
             if expected != cat_val:
                 # Get MRN and CMS for this row
                 mrn_val = row[mrn_col - 1] if mrn_col else None
