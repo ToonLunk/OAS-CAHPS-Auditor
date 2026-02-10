@@ -11,8 +11,21 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.64.4"
+__version__ = "0.64.5"
 version = __version__
+
+
+def print_app_info_and_help_block():
+    print(f"OAS auditor version {version}")
+    print()
+    print(
+        "Need help? Visit https://github.com/ToonLunk/OAS-CAHPS-Auditor, or contact support."
+    )
+    print()
+    print("When an update is available, you will see a notification with the latest version and a download link after running the auditor. Make sure to check for updates regularly to get the latest features and improvements!")
+    print("Updating SIDs and CPT Codes:")
+    print("  - To update the SID registry, check 'C:\\OAS-CAHPS-Auditor\\SIDs.csv', and add any missing SID prefixes and client names following the existing format. This will help the auditor recognize client names and improve your reports!")
+    print("  - To update CPT code classifications, check 'C:\\OAS-CAHPS-Auditor\\CPT_Codes.csv', and add any missing CPT codes with their appropriate classifications. You can add single CPT Codes to the ineligible/eligible lists, or add ranges (e.g. 10000-19999) to classify entire groups of codes at once. Keeping this file updated will ensure accurate audit results!")
 
 
 def check_for_updates():
@@ -301,6 +314,8 @@ if __name__ == "__main__":
 
     # Handle --all flag to process all files in current directory
     if arg == "--all":
+        print_app_info_and_help_block()
+        print()
         # Get list of Excel files
         excel_files = [
             f for f in os.listdir(".") if f.endswith((".xlsx", ".xls", ".xlsm"))
@@ -375,9 +390,8 @@ if __name__ == "__main__":
         print("  --help,-h   Show this help message")
         print("  --version,-v Show version information")
         print("\n")
-        print(
-            "Need help? Visit https://github.com/ToonLunk/OAS-CAHPS-Auditor, or contact support."
-        )
+        print_app_info_and_help_block()
+
         sys.exit(0)
     if arg == "--version" or arg == "-v":
         print(f"OAS auditor version {version}")
@@ -390,6 +404,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
+        print_app_info_and_help_block()
+        print()
         print(f"\nProcessing: {os.path.basename(file_path)}")
         print("-" * 60)
         file_path, report_lines, service_date_range, name_match_info = audit_excel(file_path, show_progress=True)
