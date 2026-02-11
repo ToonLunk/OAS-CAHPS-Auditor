@@ -66,31 +66,36 @@ echo Invalid input. Please enter Y or N.
 goto :ask_overwrite
 :cpt_done
 
-REM Handle SIDs.csv installation (optional file)
+REM Copy SIDs.csv if it exists (optional file)
 if exist "%SCRIPT_DIR%SIDs.csv" (
     if not exist "%INSTALL_DIR%\SIDs.csv" (
-        echo Installing default SIDs.csv...
+        echo Installing SIDs.csv...
         copy /Y "%SCRIPT_DIR%SIDs.csv" "%INSTALL_DIR%\SIDs.csv" >nul
         goto :sids_done
     )
 
     echo.
-    echo Existing SIDs.csv found.
-    :ask_overwrite_sids
-    set /p "OVERWRITE_SIDS=Do you want to install the new version? (Y/N): "
-    if /i "%OVERWRITE_SIDS%"=="Y" (
-        echo Installing new SIDs.csv...
-        copy /Y "%SCRIPT_DIR%SIDs.csv" "%INSTALL_DIR%\SIDs.csv" >nul
-        goto :sids_done
-    )
-    if /i "%OVERWRITE_SIDS%"=="N" (
-        echo Keeping existing SIDs.csv...
-        goto :sids_done
-    )
-    echo Invalid input. Please enter Y or N.
-    goto :ask_overwrite_sids
-    :sids_done
+    echo Existing SIDs.csv configuration found.
+    goto :ask_sids_overwrite
 )
+
+goto :sids_done
+
+:ask_sids_overwrite
+set /p "SIDS_OVERWRITE=Do you want to install the new version? (Y/N): "
+if /i "%SIDS_OVERWRITE%"=="Y" (
+    echo Installing new SIDs.csv...
+    copy /Y "%SCRIPT_DIR%SIDs.csv" "%INSTALL_DIR%\SIDs.csv" >nul
+    goto :sids_done
+)
+if /i "%SIDS_OVERWRITE%"=="N" (
+    echo Keeping existing SIDs.csv configuration...
+    goto :sids_done
+)
+echo Invalid input. Please enter Y or N.
+goto :ask_sids_overwrite
+
+:sids_done
 
 echo Adding %INSTALL_DIR% to system PATH...
 
