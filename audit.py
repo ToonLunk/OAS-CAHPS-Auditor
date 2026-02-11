@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.64.5"
+__version__ = "0.64.6"
 version = __version__
 
 
@@ -22,10 +22,10 @@ def print_app_info_and_help_block():
         "Need help? Visit https://github.com/ToonLunk/OAS-CAHPS-Auditor, or contact support."
     )
     print()
-    print("When an update is available, you will see a notification with the latest version and a download link after running the auditor. Make sure to check for updates regularly to get the latest features and improvements!")
-    print("Updating SIDs and CPT Codes:")
-    print("  - To update the SID registry, check 'C:\\OAS-CAHPS-Auditor\\SIDs.csv', and add any missing SID prefixes and client names following the existing format. This will help the auditor recognize client names and improve your reports!")
-    print("  - To update CPT code classifications, check 'C:\\OAS-CAHPS-Auditor\\CPT_Codes.csv', and add any missing CPT codes with their appropriate classifications. You can add single CPT Codes to the ineligible/eligible lists, or add ranges (e.g. 10000-19999) to classify entire groups of codes at once. Keeping this file updated will ensure accurate audit results!")
+    print("If there's a new version of this software, you will see an update notice here.")
+    print("If you need to update SIDs or CPT code lists, you can find them below:")
+    print("  - SIDs: C:\\OAS-CAHPS-Auditor\\SIDs.csv")
+    print("  - CPT codes: C:\\OAS-CAHPS-Auditor\\CPT_Codes.csv")
 
 
 def check_for_updates():
@@ -58,8 +58,6 @@ def audit_excel(file_path, show_progress=False):
         if show_progress:
             print(f"Loading workbook: {os.path.basename(file_path)}...")
         wb = openpyxl.load_workbook(file_path, data_only=True)
-        if show_progress:
-            print("[OK] Workbook loaded")
     except:
         print(
             f"--- Critical Error opening {file_path}! Are you sure it's an Excel file?"
@@ -152,8 +150,6 @@ def audit_excel(file_path, show_progress=False):
     sid_issues = []
     sid_row_issues = []
     if sid_col and cms_col:
-        if show_progress:
-            print("Validating SID sequence...")
         sid_issues, sid_row_issues = validate_sid_sequence(sheet, sid_col, cms_col, header_sid)  # type: ignore
         issues.extend(sid_issues)
         if show_progress:
@@ -163,8 +159,6 @@ def audit_excel(file_path, show_progress=False):
     inel_issues = []
     inel_row_issues = []
     if "INEL" in wb.sheetnames:
-        if show_progress:
-            print("Validating INEL tab...")
         inel_sheet = wb["INEL"]
         inel_issues, inel_row_issues = validate_inel_repeat_rows(inel_sheet, show_progress=show_progress)
         issues.extend(inel_issues)
@@ -175,8 +169,6 @@ def audit_excel(file_path, show_progress=False):
     service_date_range = None
     blank_date_row_issues = []
     if svc_col:
-        if show_progress:
-            print("Extracting service dates...")
         service_date_range, blank_date_issues, blank_date_row_issues = extract_service_date_range(
             sheet, svc_col, mrn_col=mrn_col, cms_col=cms_col
         )
@@ -192,14 +184,10 @@ def audit_excel(file_path, show_progress=False):
     cms1_count = None
     
     if cms_col and em_col:
-        if show_progress:
-            print("Calculating E/M totals...")
         try:
             total_em, emails, mailings, non_reported, cms1_count = calc_e_m_total(
                 sheet, cms_col, em_col
             )  # type: ignore
-            if show_progress:
-                print(f"[OK] E/M calculation complete")
         except Exception as e:
             issues.append(f"Error calculating E/M totals: {str(e)}")
 
@@ -406,19 +394,15 @@ if __name__ == "__main__":
     try:
         print_app_info_and_help_block()
         print()
-        print(f"\nProcessing: {os.path.basename(file_path)}")
-        print("-" * 60)
-        file_path, report_lines, service_date_range, name_match_info = audit_excel(file_path, show_progress=True)
-        print("-" * 60)
-        print("Saving report...")
+        print(f"Processing: {os.path.basename(file_path)}")
+        file_path, report_lines, service_date_range, name_match_info = audit_excel(file_path, show_progress=False)
         final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range)
-        print(f"[OK] Report saved: {final_file}")
-        print()
+        print(f"Report saved: {final_file}")
         
         # Open the report in the default browser
         try:
             webbrowser.open('file:///' + os.path.abspath(final_file).replace('\\', '/'))
-            print(f"Opening report in your default browser...")
+            print("Opening report in your default browser...")
         except Exception as e:
             print(f"Could not automatically open browser: {e}")
         

@@ -50,15 +50,48 @@ def lookup_sid_client_name(sid_prefix, show_missing_warning=False):
             print("="*60 + "\n")
         return None
     
-    try:
-        with open(csv_path, 'r', encoding='utf-8') as f:
-            reader = csv.reader(f)
-            for row in reader:
-                if len(row) >= 2 and row[0].strip().upper() == sid_prefix.upper():
-                    return row[1].strip()
-    except Exception as e:
-        # Fail silently if CSV can't be read (but exists)
-        pass
+    def parse_sid_line(raw_line):
+        line = raw_line.strip("\r\n")
+        if not line.strip():
+            return None, None
+
+        # Prefer tab-separated lines (current file format).
+        if "\t" in line:
+            parts = line.split("\t", 1)
+            code = parts[0].strip()
+            name = parts[1].strip() if len(parts) > 1 else ""
+            return code, name.strip('"')
+
+        # Fall back to CSV parsing for comma-separated values (legacy format).
+        try:
+            row = next(csv.reader([line]))
+            if len(row) >= 2:
+                return row[0].strip(), row[1].strip()
+        except Exception:
+            pass
+
+        # Final fallback: split on any whitespace.
+        parts = line.split(None, 1)
+        if len(parts) >= 2:
+            return parts[0].strip(), parts[1].strip().strip('"')
+        return None, None
+
+    # Read SIDs.csv with a resilient decode strategy so non-UTF8 copies still work.
+    encodings_to_try = ["utf-8", "utf-8-sig", "cp1252", "latin-1"]
+    for enc in encodings_to_try:
+        try:
+            with open(csv_path, 'r', encoding=enc, errors="strict") as f:
+                for raw_line in f:
+                    code, name = parse_sid_line(raw_line)
+                    if code and code.strip().upper() == sid_prefix.upper():
+                        return (name or "").strip()
+            # If we successfully parsed the file but did not match, stop.
+            return None
+        except UnicodeDecodeError:
+            continue
+        except Exception:
+            # Fail silently if CSV can't be read (but exists)
+            return None
     
     return None
 
