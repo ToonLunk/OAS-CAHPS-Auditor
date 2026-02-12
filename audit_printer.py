@@ -2,6 +2,7 @@ import os
 import sys
 import datetime
 import math
+import base64
 from tqdm import tqdm
 
 from requests import head
@@ -124,6 +125,7 @@ def build_report(
 
     # count rows in INEL and FRAME (needed for validation checks)
     inel_count = None
+    inel_highlighted_count = 0
     if "INEL" in wb.sheetnames:
         inel_sheet = wb["INEL"]
         # Import SERVICE_DATE_ALIASES and find_column_by_aliases here
@@ -162,6 +164,8 @@ def build_report(
             
             if not skip_row:
                 inel_count += 1
+            else:
+                inel_highlighted_count += 1
 
     frame_inel_count = None
     if "FRAME" in wb.sheetnames and find_frame_inel_count is not None:
@@ -178,6 +182,9 @@ def build_report(
     report_lines.append("<table class='data-table'>")
     if inel_count is not None:
         report_lines.append(f"<tr><td>INEL tab rows</td><td>{inel_count}</td></tr>")
+        report_lines.append(
+            f"<tr><td>INEL highlighted service-date rows</td><td>{inel_highlighted_count}</td></tr>"
+        )
     else:
         issues.append("INEL tab missing")
 
@@ -186,8 +193,8 @@ def build_report(
             f"<tr><td>FRAME tab 6-month repeats</td><td>{frame_inel_count}</td></tr>"
         )
 
+    total_inel_combined = (inel_count or 0) + (frame_inel_count or 0)
     if patients_submitted is not None:
-        total_inel_combined = (inel_count or 0) + (frame_inel_count or 0)
         report_lines.append(
             f"<tr><td>Combined Ineligible</td><td>{total_inel_combined}</td></tr>"
         )
@@ -225,9 +232,17 @@ def build_report(
         pop_sheet = wb["POP"]
         pop_rows = count_nonempty_rows_after_header(pop_sheet)
         TOL = 4
-        if abs(patients_submitted - pop_rows) > TOL:
-            issue_msg = f"Potential patient # mismatch: header says {patients_submitted} patients were submitted, but the POP tab has {pop_rows} rows."
-            tooltip_text = "This might not be a problem. The number of submitted patients may exclude rows with bad service dates, and some files have extra text/titles before the data starts. Please verify manually."
+        expected_submitted = pop_rows - inel_highlighted_count
+        if abs(patients_submitted - expected_submitted) > TOL:
+            issue_msg = (
+                f"Potential patient # mismatch: header says {patients_submitted} patients were submitted, "
+                f"but POP has {pop_rows} rows and INEL has {inel_highlighted_count} highlighted service-date rows."
+            )
+            tooltip_text = (
+                "This might not be a problem. The submitted count is expected to equal POP rows minus INEL rows "
+                "with highlighted service dates, and some files have extra text/titles before the data starts. "
+                "Please verify manually."
+            )
             issue_msg_with_tooltip = f"{issue_msg} <span class='info-icon'>i<span class='tooltip'>{tooltip_text}</span></span>"
             report_lines.append(
                 f"<tr><td>{issue_msg_with_tooltip}</td><td style='color: red;'>✗</td></tr>"
@@ -754,13 +769,30 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
     basefname = os.path.basename(file_path)
     base_before_hash = basefname.split("#", 1)[0]
 
+    icon_href = None
+    icon_candidates = [
+        os.path.join(os.path.dirname(__file__), "python-xxl.png"),
+        os.path.join(os.path.dirname(__file__), "distribution", "python-xxl.png"),
+    ]
+    for icon_path in icon_candidates:
+        if os.path.isfile(icon_path):
+            try:
+                with open(icon_path, "rb") as icon_file:
+                    icon_b64 = base64.b64encode(icon_file.read()).decode("ascii")
+                icon_href = f"data:image/png;base64,{icon_b64}"
+                break
+            except Exception:
+                icon_href = None
+
     header_lines = []
     header_lines.append("<!DOCTYPE html>")
     header_lines.append("<html>")
     header_lines.append("<head>")
     header_lines.append("    <meta charset='UTF-8'>")
     title_prefix = "Failed Audit" if audit_id is None else "Audit Report"
-    header_lines.append(f"    <title>{title_prefix} - {base_before_hash}</title>")
+    header_lines.append(f"    <title>{base_before_hash} - {title_prefix}</title>")
+    if icon_href:
+        header_lines.append(f"    <link rel='icon' type='image/png' href='{icon_href}'>")
     header_lines.append("    <style>")
 
     # Load CSS from external file

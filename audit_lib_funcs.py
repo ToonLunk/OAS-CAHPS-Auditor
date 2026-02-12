@@ -1005,6 +1005,7 @@ SERVICE_DATE_ALIASES = [
     "appointment date",
     "patient asc procedure date",
     "srvdate",
+    "srvday",
     "os date",
     "service_date_from",
     "patient hospital procedure ...",
