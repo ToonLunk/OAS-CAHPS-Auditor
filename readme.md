@@ -76,7 +76,7 @@ See `Installation Instructions.txt` in the package for detailed instructions and
 
 ## Updating the CPT and SID Lists
 
-The CPT and SID lists are stored in `CPT_CODES.csv` and `SIDs.csv` respectively. You can typically find these files in the default installation folder, which is `C:\OAS-CAHPS-Auditor`. You can edit these files with any text editor or spreadsheet software to add/remove valid codes and client names. The auditor will use these updated lists during validation.
+The CPT and SID lists are stored in `CPT_CODES.json` and `SIDs.csv` respectively. You can typically find these files in the default installation folder, which is `C:\OAS-CAHPS-Auditor`. You can edit these files with any text editor or spreadsheet software to add/remove valid codes and client names. The auditor will use these updated lists during validation.
 
 If you updated these lists and later download a new version of the auditor, be sure to make a backup of your custom `CPT_CODES.csv` and `SIDs.csv` files before updating, as the installer may overwrite them with the default versions. Then simply copy your custom files back into the installation directory after updating.
 
