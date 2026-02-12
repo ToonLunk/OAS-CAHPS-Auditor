@@ -1,6 +1,6 @@
 # OAS CAHPS Auditor
 
-Command-line tool for auditing OAS CAHPS Excel files. Validates headers, sample sizes, addresses, CPT codes, cross-tab consistency, and data quality. Outputs HTML reports.
+Command-line tool for auditing OAS CAHPS Excel files. Validates headers, sample sizes, addresses, CPT codes, cross-tab consistency, and data quality. Outputs HTML reports in a user-friendly format.
 
 ## Usage
 
@@ -24,8 +24,6 @@ Audit a single file:
   - **Windows 10:** Regular right-click works
   - **Windows 11:** Hold **SHIFT** while right-clicking (opens extended menu), or right-click and select **"Show more options"**
 
-No need to use the command line at all!
-
 ## Output
 
 This software generates an HTML report summarizing validation results, including errors and warnings found during the audit process.
@@ -43,19 +41,22 @@ Example Audit Report: [docs/SAMPLE_AUDIT.png](docs/SAMPLE_AUDIT.png)
 
 **Number Validation:**
 
-- Checks that Emails (E) and Mailings (M) sum to the sample size as well as the sum of rows where CMS=1
+- Checks that Emails (E) and Mailings (M) sum up to the sample size as well as the sum of rows where CMS = 1
 - Checks that eligible is the same as submitted minus all ineligible rows
 - and more!
 
 **Data Validation:**
 
 - Validates address fields (State, ZIP, City) for correct formatting
-- Validates CPT codes against a predefined list
+- Validates CPT codes against a customizable list of valid codes
 - Checks DOB and SERVICE DATE columns for valid date formats
 - Ensures no duplicate rows based on MRN
+- Validates client names against a customizable list of valid client names (SIDs.csv)
 - and more!
 
 ## Installation
+
+Download the latest release from the [Releases page](https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases).
 
 If you have the distribution package (ZIP file):
 
@@ -72,6 +73,16 @@ The tool installs to `C:\OAS-CAHPS-Auditor` and is added to your system PATH, so
 See `Installation Instructions.txt` in the package for detailed instructions and troubleshooting.
 
 **To Remove Context Menu:** Run `scripts\unregister_context_menu.ps1` as administrator.
+
+## Updating the CPT and SID Lists
+
+The CPT and SID lists are stored in `CPT_CODES.csv` and `SIDs.csv` respectively. You can typically find these files in the default installation folder, which is `C:\OAS-CAHPS-Auditor`. You can edit these files with any text editor or spreadsheet software to add/remove valid codes and client names. The auditor will use these updated lists during validation.
+
+If you updated these lists and later download a new version of the auditor, be sure to make a backup of your custom `CPT_CODES.csv` and `SIDs.csv` files before updating, as the installer may overwrite them with the default versions. Then simply copy your custom files back into the installation directory after updating.
+
+## Updating this Software
+
+When a new update is available, you will get a notification when running the auditor. You can also check for updates manually by visiting the [Releases page](https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases).
 
 ## Building from Source
 
@@ -92,36 +103,25 @@ Output: `dist/audit.exe`
 scripts\package.bat
 ```
 
-Output: `OAS-CAHPS-Auditor-v{VERSION}.zip` (ready to share; includes installer, powershell files, installation instructions, and license)
+Output: `OAS-CAHPS-Auditor-v{VERSION}.zip` (includes installer, powershell files, installation instructions, CPT and SID lists, and license)
 
 **Development:**
 
-See `PACKAGING_README.md` for build details.
-
-## TODO
-
-High Priority:
-- Add option "--6month" to check the 6month repeat file and make sure all data is there and in the right place.
-  -- When this option is used, the program should ask the user to input the directory where the 6month files are located. Then it should be saved in the .env file for future use.
-- Fix the bug where if there are more than 2 columns next to each other in the FRAME inel (like if you have to make a temporary column or something), the program doesn't read the columns correctly and thinks there are zero FRAME inel rows.
-- Add the ability to look for header columns even if they aren't in the first row (for files where there is a title or extra info at the top), and when checking for the differences between the POP and UPLOAD tabs.
-- Add a check to see if service dates are highlighted in INEL, and if so, update the expected POP size accordingly. Service dates highlighted in INEL should not count towards the POP size/eligible count, so when they are highlighted, the program should subtract those rows from the expected eligible count. This will fix the "Math error: Eligible (X) + Combined INEL (Y) = Z, but Submitted = W" warning that appears when service date rows are properly highlighted in INEL. Example: if Submitted=1132, Eligible=497, Combined INEL=635, but 571 of the INEL rows have highlighted service dates, those 571 shouldn't count in the math check since invalid service dates don't count towards submitted.
-
-
-Low Priority:
-- Add charts/graphs showing validation metrics using matplotlib or plotly
-- Add a GUI using Tkinter or PyQt for users who prefer not to use command line
-- Add place for user to put notes or comments onto the HTML report after the audit is complete
+See [docs/PACKAGING_README.md](docs/PACKAGING_README.md) for detailed instructions on how to set up a development environment, build the executable, and create distribution packages.
 
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for details on changes and updates.
 
+## ToDo
+
+See [TODO.md](TODO.md) for planned features and improvements. None of these features are guaranteed to be implemented.
+
 ## License and Credit
 
 This software is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
 
-Copyright © 2025 Tyler Brock.
+Copyright © 2026 Tyler Brock.
 
 Developed for J.L. Morgan & Associates, Inc. Code written by Tyler Brock.
 

@@ -843,7 +843,10 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
             header_lines.append(f"<div style='font-size: 1.2em; color: #34495e; font-weight: 500;'>{service_date_range}</div>")
     header_lines.append("</div>")
     header_lines.append(
-        f"<p style='margin: 0 0 5px 0; color: #bdc3c7; font-size: 0.85em;'><a href='https://tylercbrock.com' style='color: inherit; text-decoration: none;'>Auditor</a> v{version}</p>"
+        f"<div style='display: flex; justify-content: space-between; align-items: center; margin: 0 0 5px 0; color: #bdc3c7; font-size: 0.85em;'>"
+        f"<span><a href='https://tylercbrock.com' style='color: inherit; text-decoration: none;'>Auditor</a> v{version}</span>"
+        f"<span><a href='https://github.com/ToonLunk/OAS-CAHPS-Auditor' style='color: inherit; text-decoration: none;'>Need Help?</a></span>"
+        f"</div>"
     )
     header_lines.append("</div>")
 

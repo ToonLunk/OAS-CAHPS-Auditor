@@ -15,14 +15,16 @@ Version is stored in `.env` file at project root:
 VERSION=0.50-rc1
 ```
 
+As well as in audit.py as a constant.
+
 This version is used by:
 
 - The executable (shown in `audit --version`)
 - The package script (creates `OAS-CAHPS-Auditor-v{VERSION}.zip`)
 
-To update: Edit `.env` and change the `VERSION=` line.
+To update: Edit `.env` and change the `VERSION=` line, then update the `VERSION` constant in `audit.py` to match.
 
-## Build Executable
+## Build Executable (for development)
 
 ```cmd
 scripts\build_exe.bat
@@ -36,13 +38,13 @@ scripts\build_exe.bat
 
 **Build time:** 2-5 minutes (first build), ~30 seconds (subsequent builds)
 
-## Create Distribution Package
+## Create Distribution Package (for users; reccommended)
 
 ```cmd
 scripts\package.bat
 ```
 
-This automatically runs `build_exe.bat` first, then packages everything.
+This automatically runs `build_exe.bat` first, then packages everything. It's recommended to use `package.bat` instead of just `build_exe.bat` when you're ready to share the tool, as it ensures the executable is built and packaged correctly, as well as including installation instructions and other necessary files.
 
 **Output:** `OAS-CAHPS-Auditor-v{VERSION}.zip`
 
@@ -65,15 +67,9 @@ This ZIP file is ready to share. Recipients run `deploy.bat` as administrator to
 
 **Manual:**
 
-1. Place `audit.exe` in any directory
+1. Place `audit.exe` and all files in `C:\OAS-CAHPS-Auditor` (or any directory you choose)
 2. Add that directory to Windows PATH environment variable
 3. Restart terminal
-
-**Alternative (User PATH only):**
-
-- Run `install.bat` in same folder as `audit.exe`
-- No administrator rights required
-- Adds to user PATH instead of system PATH
 
 ## Development Workflow
 
@@ -83,31 +79,9 @@ This ZIP file is ready to share. Recipients run `deploy.bat` as administrator to
 4. Build: `scripts\build_exe.bat`
 5. Package: `scripts\package.bat` (when ready to distribute)
 
-## Project Structure
-
-```
-project/
-├── audit.py                    # Main source
-├── audit_lib_funcs.py          # Validation functions
-├── audit_printer.py            # Report generation
-├── audit_report.css            # Report styling
-├── .env                        # Version configuration
-├── requirements.txt            # Python dependencies
-├── readme.md                   # Main documentation
-├── scripts/                    # Build & deployment scripts
-│   ├── package.bat
-│   ├── build_exe.bat
-│   ├── deploy.bat
-│   └── install.bat
-└── docs/                       # Documentation
-    ├── PACKAGING_README.md
-    └── Installation Instructions.txt
-```
-
 ## Technical Notes
 
-- PyInstaller bundles Python interpreter and all dependencies
+- PyInstaller bundles Python interpreter and all dependencies - no need for users to install Python or libraries
 - `audit_report.css` is automatically included in the executable
 - Antivirus software may flag PyInstaller executables (false positive)
-- Users must restart terminal after installation for PATH changes
-- The executable is Windows-only (built on Windows, for Windows)
+- The executable is Windows-only. This could be built for other platforms with adjustments to the build process, but currently only Windows is supported
