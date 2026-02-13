@@ -115,7 +115,7 @@ See [CHANGELOG.md](CHANGELOG.md) for details on changes and updates.
 
 ## ToDo
 
-See [TODO.md](TODO.md) for planned features and improvements. None of these features are guaranteed to be implemented.
+See [todo.md](todo.md) for planned features and improvements. None of these features are guaranteed to be implemented.
 
 ## License and Credit
 
