@@ -411,11 +411,11 @@ def build_report(
     else:
         # Show that SID registry check couldn't be performed
         report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check</h3>")
-        report_lines.append("<p style='color: #ff8c00; font-weight: 600; margin: 5px 0;'>")
+        report_lines.append("<p style='color: #000; margin: 5px 0;'>")
         if not sid_prefix:
-            report_lines.append("Unable to perform SID registry check: SID prefix not found in file")
+            report_lines.append("⚠ Unable to perform SID registry check: SID prefix not found in file")
         else:
-            report_lines.append("Unable to perform SID registry check: Matching SID not found in registry")
+            report_lines.append("⚠ Unable to perform SID registry check: Matching SID not found in registry")
         report_lines.append("</p>")
 
     # DATA QUALITY VALIDATION SECTION
