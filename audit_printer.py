@@ -76,50 +76,53 @@ def build_report(
             issues.append(f"Missing REQUIRED Header: {header}!")
 
     # Header/Footer extracted values
-    report_lines.append("<h2>OASCAPHS TAB ANALYSIS</h2>")
-    report_lines.append("<table class='data-table'>")
+    report_lines.append("<h2>DATA SUMMARY</h2>")
+    report_lines.append("<div class='section-subheader'>OASCAPHS TAB ANALYSIS</div>")
+    report_lines.append("<div class='three-column-flex'>")
+    
+    # Column 1: Patients Submitted
+    report_lines.append("<div class='column'>")
+    report_lines.append("<div class='label'>Patients Submitted (from header)</div>")
     if patients_submitted is not None:
-        report_lines.append(
-            f"<tr><td>Patients Submitted (from header)</td><td>{patients_submitted}</td></tr>"
-        )
+        report_lines.append(f"<div class='value'>{patients_submitted}</div>")
     else:
-        report_lines.append(
-            f"<tr><td>Patients Submitted (from header)</td><td style='color: orange;'>NOT FOUND</td></tr>"
-        )
+        report_lines.append("<div class='value' style='color: orange;'>NOT FOUND</div>")
         issues.append("<strong>WARNING:</strong> SUBMITTED value not found in header")
+    report_lines.append("</div>")
     
+    # Column 2: Eligible Patients
+    report_lines.append("<div class='column'>")
+    report_lines.append("<div class='label'>Eligible Patients (from footer)</div>")
     if eligible_patients is not None:
-        report_lines.append(
-            f"<tr><td>Eligible Patients (from footer)</td><td>{eligible_patients}</td></tr>"
-        )
+        report_lines.append(f"<div class='value'>{eligible_patients}</div>")
     else:
-        report_lines.append(
-            f"<tr><td>Eligible Patients (from footer)</td><td style='color: orange;'>NOT FOUND</td></tr>"
-        )
+        report_lines.append("<div class='value' style='color: orange;'>NOT FOUND</div>")
         issues.append("<strong>WARNING:</strong> EL value not found in footer")
+    report_lines.append("</div>")
     
+    # Column 3: Sample Size
+    report_lines.append("<div class='column'>")
+    report_lines.append("<div class='label'>Sample Size (from footer)</div>")
     if sample_size is not None:
-        report_lines.append(
-            f"<tr><td>Sample Size (from footer)</td><td>{sample_size}</td></tr>"
-        )
+        report_lines.append(f"<div class='value'>{sample_size}</div>")
     else:
-        report_lines.append(
-            f"<tr><td>Sample Size (from footer)</td><td style='color: orange;'>NOT FOUND</td></tr>"
-        )
+        report_lines.append("<div class='value' style='color: orange;'>NOT FOUND</div>")
         issues.append("<strong>WARNING:</strong> SS value not found in footer")
+    report_lines.append("</div>")
     
-    report_lines.append("</table>")
+    report_lines.append("</div>")
 
     # OASCAPHS tab analysis
+    report_lines.append("<div class='section-subheader'>CONTACT INFORMATION</div>")
     report_lines.append("<table class='data-table'>")
-    report_lines.append(f"<tr><td>Emails counted</td><td>{emails}</td></tr>")
-    report_lines.append(f"<tr><td>Mailings counted</td><td>{mailings}</td></tr>")
-    report_lines.append(f"<tr><td>Total of E/M</td><td>{total_em}</td></tr>")
-    report_lines.append(
-        f"<tr><td>Non-Reported entries</td><td>{non_reported}</td></tr>"
-    )
     report_lines.append(
         f"<tr><td>Rows with CMS INDICATOR = 1</td><td>{cms1_count}</td></tr>"
+    )
+    report_lines.append(f"<tr><td>Emails counted</td><td>{emails}</td></tr>")
+    report_lines.append(f"<tr><td>Mailings counted</td><td>{mailings}</td></tr>")
+    report_lines.append(f"<tr><td>Total of Emails + Mailings</td><td>{total_em}</td></tr>")
+    report_lines.append(
+        f"<tr><td>Non-Reported entries (CMS INDICATOR = 2)</td><td>{non_reported}</td></tr>"
     )
     report_lines.append("</table>")
 
@@ -176,31 +179,33 @@ def build_report(
             frame_inel_count = None
 
     # VALIDATION CHECKS
-    report_lines.append("<h2>VALIDATION CHECKS</h2>")
+    report_lines.append("<h2>VALIDATION SUMMARY</h2>")
 
     # Tab counts in table format
+    report_lines.append("<div class='section-subheader'>INELIGIBLE PATIENTS</div>")
     report_lines.append("<table class='data-table'>")
     if inel_count is not None:
-        report_lines.append(f"<tr><td>INEL tab rows</td><td>{inel_count}</td></tr>")
+        report_lines.append(f"<tr><td>Patients in INEL tab</td><td>{inel_count}</td></tr>")
         report_lines.append(
-            f"<tr><td>INEL highlighted service-date rows</td><td>{inel_highlighted_count}</td></tr>"
+            f"<tr><td>Patients with ineligible service dates</td><td>{inel_highlighted_count}</td></tr>"
         )
     else:
         issues.append("INEL tab missing")
 
     if frame_inel_count is not None:
         report_lines.append(
-            f"<tr><td>FRAME tab 6-month repeats</td><td>{frame_inel_count}</td></tr>"
+            f"<tr><td>6-month repeats</td><td>{frame_inel_count}</td></tr>"
         )
 
     total_inel_combined = (inel_count or 0) + (frame_inel_count or 0)
     if patients_submitted is not None:
         report_lines.append(
-            f"<tr><td>Combined Ineligible</td><td>{total_inel_combined}</td></tr>"
+            f"<tr><td>Total Ineligible Patients</td><td>{total_inel_combined}</td></tr>"
         )
     report_lines.append("</table>")
 
     # Validation checks in table format
+    report_lines.append("<div class='section-subheader'>ADDITIONAL VALIDATIONS</div>")
     report_lines.append("<table class='data-table'>")
 
     # Check 1: Sample Size matches Reported
@@ -250,7 +255,7 @@ def build_report(
             issues.append(f"<strong>WARNING:</strong> {issue_msg}")
         else:
             report_lines.append(
-                "<tr><td>Submitted matches POP tab</td><td style='color: #28a745;'>✓</td></tr>"
+                "<tr><td>Submitted # matches POP tab #</td><td style='color: #28a745;'>✓</td></tr>"
             )
     else:
         issue_msg = (
@@ -403,6 +408,15 @@ def build_report(
         report_lines.append(f"<td style='color: {match_color}; font-weight: 600;'>{sid_registry_name}</td>")
         report_lines.append("</tr>")
         report_lines.append("</table>")
+    else:
+        # Show that SID registry check couldn't be performed
+        report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check</h3>")
+        report_lines.append("<p style='color: #ff8c00; font-weight: 600; margin: 5px 0;'>")
+        if not sid_prefix:
+            report_lines.append("Unable to perform SID registry check: SID prefix not found in file")
+        else:
+            report_lines.append("Unable to perform SID registry check: Matching SID not found in registry")
+        report_lines.append("</p>")
 
     # DATA QUALITY VALIDATION SECTION
     from audit_lib_funcs import column_validations

@@ -225,3 +225,43 @@ details[open] summary {
   visibility: visible;
   opacity: 1;
 }
+
+/* Section subheaders */
+.section-subheader {
+  color: #7f8c8d;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 12px 0 6px 0;
+  padding: 0;
+}
+
+/* Three column flex layout */
+.three-column-flex {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  margin: 10px 0;
+  width: 100%;
+}
+
+.three-column-flex .column {
+  flex: 1;
+  text-align: left;
+  background-color: #f9f9f9;
+  padding: 10px 12px;
+  border-left: 3px solid #e0e0e0;
+}
+
+.three-column-flex .column .label {
+  font-size: 0.9em;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.three-column-flex .column .value {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #000;
+}

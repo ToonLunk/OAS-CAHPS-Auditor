@@ -2,17 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 0.65.1
+
+- Improved the report layout
+- Added a section to show if SID registry check couldn't be performed and why
+
+## Version 0.64.9
+
+- Added help button
+
+## Version 0.64.6
+
+- Better info for adding SID registry data
+
+## Version 0.64.5
+
+- Improved documentation for SIDs.csv and CPT codes management and added info to the help message
+
+## Version 0.64.4
+
+- Skip CPT/surgical category validation when both fields are blank
+
 ## Version 0.64.3
 
-- Added more email and service date column aliases so matching works better
-- MRN validation now searches more columns and has better aliases
-- Progress reporting shows more info during audits
-- Performance improvements for larger files
+- Added more email and service date column aliases
+- MRN validation now searches more columns
+- Massive performance improvements for larger files
 - Added tooltips to warnings in the HTML report
+- INEL tab now shows highlighted row count in reports
 
 ## Version 0.64.1
 
-- Added SERVICE_DATE_ALIASES for more flexible service date column matching
+- Added service date column matching
 - Finished implementing parallel processing for batch audits
 
 ## Version 0.64
@@ -35,8 +56,6 @@ All notable changes to this project will be documented in this file.
 
 - Updated installation instructions
 - Minor fixes
-
-# Changelog (Betas and Release Candidates)
 
 ## Version 0.63.3
 
