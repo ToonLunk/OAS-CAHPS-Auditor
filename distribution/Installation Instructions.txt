@@ -37,8 +37,8 @@ AUDITING MULTIPLE FILES:
     Navigate to the folder, then run:
     audit --all
 
-All audit reports are saved in an "audits" subfolder. Files that cannot be 
-processed are logged in "audits/unable_to_run_audit".
+All audit reports are saved in an "AUDITS" subfolder. Files that cannot be 
+processed are logged in "AUDITS/unable_to_run_audit".
 
 ================================================================================
 

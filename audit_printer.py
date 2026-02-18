@@ -885,18 +885,18 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
 
 def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha", service_date_range=None):
     """
-    Write report to .html file in audits directory
+    Write report to .html file in AUDITS directory
     """
     # --- Write report to .html file ---
     base_name = os.path.splitext(file_path)[0]
     report_file = base_name + ".html"
 
-    # build audits directory next to the original path (or in cwd if no dir)
+    # build AUDITS directory next to the original path (or in cwd if no dir)
     base_dir = os.path.dirname(report_file) or "."
-    audits_dir = os.path.join(base_dir, "audits")
+    AUDITS_dir = os.path.join(base_dir, "AUDITS")
     if failure_reason:
-        audits_dir = os.path.join(audits_dir, "unable_to_run_audit")
-    os.makedirs(audits_dir, exist_ok=True)
+        AUDITS_dir = os.path.join(AUDITS_dir, "unable_to_run_audit")
+    os.makedirs(AUDITS_dir, exist_ok=True)
 
     # Extract month name(s) from service date range
     month_str = ""
@@ -924,7 +924,7 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha",
     # timestamp and final filename
     name, ext = os.path.splitext(os.path.basename(report_file))
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    final_report_file = os.path.join(audits_dir, f"{name}{month_str}_{timestamp}{ext}")
+    final_report_file = os.path.join(AUDITS_dir, f"{name}{month_str}_{timestamp}{ext}")
 
     # prevent accidental overwrite (very unlikely because of timestamp, but safe)
     if os.path.isfile(final_report_file):
