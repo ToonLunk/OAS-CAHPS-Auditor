@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.65.1"
+__version__ = "0.65.2"
 version = __version__
 
 
