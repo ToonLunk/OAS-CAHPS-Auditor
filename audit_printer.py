@@ -930,7 +930,7 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha",
                 pass
     
     # Build AUDITS directory in %LOCALAPPDATA%\OAS-CAHPS-Auditor\AUDITS\YEAR\MONTH\
-    appdata = os.getenv("LOCALAPPDATA")
+    appdata = os.getenv("LOCALAPPDATA") or os.path.expanduser("~\\AppData\\Local")
     AUDITS_base = os.path.join(appdata, "OAS-CAHPS-Auditor", "AUDITS")
     AUDITS_dir = os.path.join(AUDITS_base, year_folder, month_folder)
     
