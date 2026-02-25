@@ -885,20 +885,61 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
 
 def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha", service_date_range=None):
     """
-    Write report to .html file in AUDITS directory
+    Write report to .html file in AUDITS directory organized by year/month
+    Location: %LOCALAPPDATA%\OAS-CAHPS-Auditor\Audits\YEAR\MONTH\
     """
     # --- Write report to .html file ---
     base_name = os.path.splitext(file_path)[0]
     report_file = base_name + ".html"
-
-    # build AUDITS directory next to the original path (or in cwd if no dir)
-    base_dir = os.path.dirname(report_file) or "."
-    AUDITS_dir = os.path.join(base_dir, "AUDITS")
+    
+    # Get the filename to extract month/year information
+    filename = os.path.basename(file_path)
+    
+    # Extract month and year from filename (format: "<client name># <month> OAS <year>.xlsx")
+    month_folder = "UNKNOWN"
+    year_folder = datetime.datetime.now().strftime("%Y")
+    
+    # Parse filename for month/year after #
+    # Format: "ClientName# JANUARY OAS 2026.xlsx"
+    if "#" in filename:
+        # Get the part after # but before file extension
+        parts_after_hash = filename.split("#")[1]
+        name_part = os.path.splitext(parts_after_hash)[0].strip()  # Remove extension and trim
+        
+        # Look for " OAS " to split month and year
+        if " OAS " in name_part:
+            month_part, year_part = name_part.split(" OAS ", 1)
+            month_part = month_part.strip().upper()
+            year_part = year_part.strip()
+            
+            # Map month names to 3-letter abbreviations
+            month_map = {
+                'JANUARY': 'JAN', 'FEBRUARY': 'FEB', 'MARCH': 'MAR', 'APRIL': 'APR',
+                'MAY': 'MAY', 'JUNE': 'JUN', 'JULY': 'JUL', 'AUGUST': 'AUG',
+                'SEPTEMBER': 'SEP', 'OCTOBER': 'OCT', 'NOVEMBER': 'NOV', 'DECEMBER': 'DEC'
+            }
+            if month_part in month_map:
+                month_folder = month_map[month_part]
+            elif len(month_part) == 3:
+                month_folder = month_part
+            
+            # Extract year
+            try:
+                year_folder = str(int(year_part))
+            except ValueError:
+                pass
+    
+    # Build AUDITS directory in %LOCALAPPDATA%\OAS-CAHPS-Auditor\AUDITS\YEAR\MONTH\
+    appdata = os.getenv("LOCALAPPDATA")
+    AUDITS_base = os.path.join(appdata, "OAS-CAHPS-Auditor", "AUDITS")
+    AUDITS_dir = os.path.join(AUDITS_base, year_folder, month_folder)
+    
     if failure_reason:
         AUDITS_dir = os.path.join(AUDITS_dir, "unable_to_run_audit")
+    
     os.makedirs(AUDITS_dir, exist_ok=True)
 
-    # Extract month name(s) from service date range
+    # Extract month name(s) from service date range for filename
     month_str = ""
     if service_date_range:
         try:
