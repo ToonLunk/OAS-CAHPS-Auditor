@@ -149,13 +149,16 @@ def fuzzy_match_hospital_name(client_name):
     if not hospital_names:
         return None, 0
 
-    # Use token_sort_ratio for best results with word reordering
+    # Use token_sort_ratio for finding the best match (handles word reordering)
     result = process.extractOne(
         client_name.strip(), hospital_names, scorer=fuzz.token_sort_ratio
     )
     if result is None:
         return None, 0
-    return result[0], result[1]
+    # Return ratio score (stricter, counts punctuation differences) for display
+    best_match = result[0]
+    display_score = fuzz.ratio(client_name.strip(), best_match)
+    return best_match, display_score
 
 
 # --- CPT ineligibility rules (loaded from JSON)
