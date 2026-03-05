@@ -8,6 +8,10 @@ datas = [('audit_report.css', '.'), ('cpt_codes.json', '.')]
 if os.path.exists('SIDs.csv'):
     datas.append(('SIDs.csv', '.'))
 
+# Include hospital_names.csv if it exists (optional)
+if os.path.exists('hospital_names.csv'):
+    datas.append(('hospital_names.csv', '.'))
+
 datas += collect_data_files('i18naddress')
 
 

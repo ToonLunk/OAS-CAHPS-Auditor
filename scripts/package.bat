@@ -46,6 +46,14 @@ if exist "SIDs.csv" (
     echo Distribution folder updated (SIDs.csv not found - skipping^).
 )
 
+REM Copy hospital_names.csv if it exists (optional file)
+if exist "hospital_names.csv" (
+    copy /Y "hospital_names.csv" "distribution\" >nul
+    echo Distribution folder updated (with hospital_names.csv^).
+) else (
+    echo Distribution folder updated (hospital_names.csv not found - skipping^).
+)
+
 REM Step 3: Create ZIP file
 echo.
 echo [3/3] Creating ZIP archive...
