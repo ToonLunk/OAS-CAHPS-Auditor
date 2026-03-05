@@ -96,6 +96,68 @@ def lookup_sid_client_name(sid_prefix, show_missing_warning=False):
     return None
 
 
+# --- Hospital name fuzzy matching ---
+def _get_hospital_names_csv_path():
+    """Get the path to hospital_names.csv from the installation directory."""
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(sys.executable)
+        return os.path.join(exe_dir, 'hospital_names.csv')
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base_path, 'hospital_names.csv')
+
+
+def fuzzy_match_hospital_name(client_name):
+    """Fuzzy match a client name against hospital_names.csv.
+    
+    Args:
+        client_name: The client name string (e.g. from filename before '#')
+        
+    Returns:
+        Tuple of (best_match_name, score) if a match is found, or (None, 0) if not.
+        Score is 0-100 where 100 is a perfect match.
+    """
+    if not client_name or not client_name.strip():
+        return None, 0
+
+    csv_path = _get_hospital_names_csv_path()
+    if not os.path.exists(csv_path):
+        return None, 0
+
+    try:
+        from thefuzz import fuzz, process
+    except ImportError:
+        return None, 0
+
+    # Load hospital names from CSV
+    hospital_names = []
+    encodings_to_try = ["utf-8", "utf-8-sig", "cp1252", "latin-1"]
+    for enc in encodings_to_try:
+        try:
+            with open(csv_path, 'r', encoding=enc, errors="strict") as f:
+                reader = csv.reader(f)
+                header = next(reader, None)  # skip header row
+                for row in reader:
+                    if row and row[0].strip():
+                        hospital_names.append(row[0].strip())
+            break
+        except UnicodeDecodeError:
+            continue
+        except Exception:
+            return None, 0
+
+    if not hospital_names:
+        return None, 0
+
+    # Use token_sort_ratio for best results with word reordering
+    result = process.extractOne(
+        client_name.strip(), hospital_names, scorer=fuzz.token_sort_ratio
+    )
+    if result is None:
+        return None, 0
+    return result[0], result[1]
+
+
 # --- CPT ineligibility rules (loaded from JSON)
 def _get_cpt_config_path():
     """Get the path to cpt_codes.json from the installation directory."""

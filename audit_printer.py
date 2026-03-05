@@ -45,6 +45,8 @@ def build_report(
     sid_registry_name=None,
     service_date_range=None,
     blank_date_row_issues=None,
+    hospital_match_name=None,
+    hospital_match_score=0,
 ):
     """
     Build the HTML audit report for saving as .html
@@ -755,6 +757,19 @@ def build_report(
             )
         report_lines.append("</table>")
         report_lines.append("</details>")
+
+    # Hospital name fuzzy match - only show if close but not exact
+    if hospital_match_name and sid_registry_name:
+        import re as _re
+        cleaned_registry = _re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip()
+        # Check if cleaned SID name exactly matches a hospital name (case-insensitive)
+        if cleaned_registry.lower() != hospital_match_name.lower() and hospital_match_score >= 60:
+            report_lines.append("<hr>")
+            report_lines.append(
+                f"<p style='color: #e67e22; font-weight: 600;'>"
+                f"⚠ Potential misspelling - Solutions name: {hospital_match_name}"
+                f"</p>"
+            )
 
     report_lines.append("<hr>")
     report_lines.append(
