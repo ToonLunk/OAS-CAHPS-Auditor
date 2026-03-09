@@ -1,16 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
-import os
 
 datas = [('audit_report.css', '.'), ('cpt_codes.json', '.')]
 
-# Include SIDs.csv if it exists (optional)
-if os.path.exists('SIDs.csv'):
-    datas.append(('SIDs.csv', '.'))
-
-# Include hospital_names.csv if it exists (optional)
-if os.path.exists('hospital_names.csv'):
-    datas.append(('hospital_names.csv', '.'))
+# NOTE: SIDs.csv is NOT bundled into the executable.
+# Users download it separately from the shared OneDrive folder.
 
 datas += collect_data_files('i18naddress')
 

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 0.65.6
+
+- SIDs.csv is no longer bundled inside the executable or included in the GitHub release ZIP
+- The terminal and HTML report now include a link to the shared OneDrive folder for downloading SIDs.csv
+- Added info tooltip next to "SID Registry Check" in reports with the download link
+- Added "About SIDs.csv.txt" to the distribution package explaining where to get and install the file
+- Removed hospital_names.csv and fuzzy matching feature
+- Removed `thefuzz` dependency
+
 ## Version 0.65.1
 
 - Improved the report layout

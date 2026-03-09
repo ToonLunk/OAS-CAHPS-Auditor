@@ -45,8 +45,6 @@ def build_report(
     sid_registry_name=None,
     service_date_range=None,
     blank_date_row_issues=None,
-    hospital_match_name=None,
-    hospital_match_score=0,
 ):
     """
     Build the HTML audit report for saving as .html
@@ -387,7 +385,14 @@ def build_report(
     
     # Add SID client name comparison if available
     if sid_prefix and sid_registry_name:
-        report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check</h3>")
+        report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check"
+            " <span class='info-icon'>i<span class='tooltip'>"
+            "SIDs.csv contains the list of client names matched to SID codes. "
+            "Download the latest version from the "
+            "<a href='https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU' "
+            "style='color: #5dade2;' target='_blank'>shared OneDrive folder</a> "
+            "and place it in your installation directory (default: C:\\OAS-CAHPS-Auditor)."
+            "</span></span></h3>")
         report_lines.append("<table class='excel-style' style='font-size: 0.9em;'>")
         report_lines.append("<tr>")
         report_lines.append("<th style='background-color: #000; color: #fff;'>SID</th>")
@@ -413,7 +418,14 @@ def build_report(
         report_lines.append("</table>")
     else:
         # Show that SID registry check couldn't be performed
-        report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check</h3>")
+        report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check"
+            " <span class='info-icon'>i<span class='tooltip'>"
+            "SIDs.csv contains the list of client names matched to SID codes. "
+            "Download the latest version from the "
+            "<a href='https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU' "
+            "style='color: #5dade2;' target='_blank'>shared OneDrive folder</a> "
+            "and place it in your installation directory (default: C:\\OAS-CAHPS-Auditor)."
+            "</span></span></h3>")
         report_lines.append("<p style='color: #000; margin: 5px 0;'>")
         if not sid_prefix:
             report_lines.append("⚠ Unable to perform SID registry check: SID prefix not found in file")
@@ -757,19 +769,6 @@ def build_report(
             )
         report_lines.append("</table>")
         report_lines.append("</details>")
-
-    # Hospital name fuzzy match - only show if close but not exact
-    if hospital_match_name and sid_registry_name:
-        import re as _re
-        cleaned_registry = _re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip()
-        # Check if cleaned SID name exactly matches a hospital name (case-insensitive)
-        if cleaned_registry.lower() != hospital_match_name.lower() and hospital_match_score >= 60:
-            report_lines.append("<hr>")
-            report_lines.append(
-                f"<p style='color: #e67e22; font-weight: 600;'>"
-                f"⚠ Potential misspelling - Solutions name: {hospital_match_name}"
-                f"</p>"
-            )
 
     report_lines.append("<hr>")
     report_lines.append(

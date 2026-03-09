@@ -197,9 +197,10 @@ details[open] summary {
   text-align: left;
   border-radius: 6px;
   padding: 10px;
+  padding-bottom: 18px;
   position: absolute;
   z-index: 1;
-  bottom: 125%;
+  bottom: 100%;
   left: 50%;
   margin-left: -150px;
   opacity: 0;

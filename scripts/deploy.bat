@@ -97,14 +97,6 @@ goto :ask_sids_overwrite
 
 :sids_done
 
-REM Copy hospital_names.csv if it exists (optional file)
-if exist "%SCRIPT_DIR%hospital_names.csv" (
-    echo Installing hospital_names.csv...
-    copy /Y "%SCRIPT_DIR%hospital_names.csv" "%INSTALL_DIR%\hospital_names.csv" >nul
-) else (
-    echo hospital_names.csv not found - skipping.
-)
-
 echo Adding %INSTALL_DIR% to system PATH...
 
 REM Get current system PATH

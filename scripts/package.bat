@@ -2,6 +2,9 @@
 REM ============================================
 REM Build and Package OAS CAHPS Auditor
 REM ============================================
+REM SIDs.csv is NOT included - it lives on a shared OneDrive folder
+REM and the app reads it from there automatically at runtime.
+REM ============================================
 
 REM Change to project root directory
 cd /d "%~dp0.."
@@ -37,34 +40,20 @@ copy /Y "cpt_codes.json" "distribution\" >nul
 copy /Y "scripts\register_context_menu.ps1" "distribution\" >nul
 copy /Y "scripts\unregister_context_menu.ps1" "distribution\" >nul
 copy /Y "scripts\deploy.bat" "distribution\" >nul
+copy /Y "docs\About SIDs.csv.txt" "distribution\" >nul
 
-REM Copy SIDs.csv if it exists (optional file)
-if exist "SIDs.csv" (
-    copy /Y "SIDs.csv" "distribution\" >nul
-    echo Distribution folder updated (with SIDs.csv^).
-) else (
-    echo Distribution folder updated (SIDs.csv not found - skipping^).
-)
+REM Remove any leftover sensitive files from distribution folder
+if exist "distribution\SIDs.csv" del "distribution\SIDs.csv"
+if exist "distribution\hospital_names.csv" del "distribution\hospital_names.csv"
 
-REM Copy hospital_names.csv if it exists (optional file)
-if exist "hospital_names.csv" (
-    copy /Y "hospital_names.csv" "distribution\" >nul
-    echo Distribution folder updated (with hospital_names.csv^).
-) else (
-    echo Distribution folder updated (hospital_names.csv not found - skipping^).
-)
+echo Distribution folder updated.
 
 REM Step 3: Create ZIP file
 echo.
 echo [3/3] Creating ZIP archive...
 
-REM Create ZIP filename with version
 set ZIPNAME=OAS-CAHPS-Auditor-v%VERSION%.zip
-
-REM Delete old ZIP if it exists
 if exist "%ZIPNAME%" del "%ZIPNAME%"
-
-REM Use PowerShell to create the ZIP
 powershell -Command "Compress-Archive -Path 'distribution\*' -DestinationPath '%ZIPNAME%' -Force"
 
 if exist "%ZIPNAME%" (
@@ -83,9 +72,10 @@ if exist "%ZIPNAME%" (
     echo   - Installation Instructions.txt
     echo   - LICENSE
     echo   - cpt_codes.json
-    if exist "distribution\SIDs.csv" echo   - SIDs.csv
+    echo   - About SIDs.csv.txt
     echo.
-    echo Ready to share!
+    echo NOTE: SIDs.csv is NOT included.
+    echo The app reads it from the shared OneDrive folder automatically.
     echo ========================================
 ) else (
     echo ERROR: Failed to create ZIP file

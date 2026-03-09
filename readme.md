@@ -80,8 +80,6 @@ The CPT and SID lists are stored in `CPT_CODES.json` and `SIDs.csv` respectively
 
 If you updated these lists and later download a new version of the auditor, be sure to make a backup of your custom `CPT_CODES.csv` and `SIDs.csv` files before updating, as the installer may overwrite them with the default versions. Then simply copy your custom files back into the installation directory after updating.
 
-The `hospital_names.csv` file is optional and only needed if you want to validate client names against a list of hospital names. It comes from JLM Solutions and is not required for the auditor to function, but can improve client name validation if you have it. Ideally, `SIDs.csv` should contain all valid client names, but alas.
-
 ## Updating this Software
 
 When a new update is available, you will get a notification when running the auditor. You can also check for updates manually by visiting the [Releases page](https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases).

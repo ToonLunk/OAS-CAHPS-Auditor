@@ -48,13 +48,21 @@ This automatically runs `build_exe.bat` first, then packages everything. It's re
 
 **Output:** `OAS-CAHPS-Auditor-v{VERSION}.zip`
 
-**Contains:**
-
+Contains:
 - `audit.exe` - The executable
 - `deploy.bat` - System-wide installation script
-- `Installation Instructions.txt` - Installation instructions
+- `cpt_codes.json` - CPT code configuration
+- `register_context_menu.ps1` / `unregister_context_menu.ps1`
+- `Installation Instructions.txt`
+- `About SIDs.csv.txt` - Instructions for downloading SIDs.csv
+- `LICENSE`
 
-This ZIP file is ready to share. Recipients run `deploy.bat` as administrator to install.
+> **Note:** `SIDs.csv` is NOT included in the release ZIP. Users download it
+> separately from the [shared OneDrive folder](https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU).
+> The ZIP includes `About SIDs.csv.txt` which points users to the download link.
+> The app also shows the link in the terminal and in the HTML report's info tooltip.
+
+Recipients run `deploy.bat` as administrator to install.
 
 ## Installation Methods
 
@@ -78,6 +86,8 @@ This ZIP file is ready to share. Recipients run `deploy.bat` as administrator to
 3. Test: `python audit.py <file>`
 4. Build: `scripts\build_exe.bat`
 5. Package: `scripts\package.bat` (when ready to distribute)
+6. Upload the ZIP to GitHub Releases
+7. Update `SIDs.csv` on the shared OneDrive when clients change (monthly)
 
 ## Technical Notes
 

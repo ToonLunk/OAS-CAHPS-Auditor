@@ -9,14 +9,14 @@ import phonenumbers
 
 
 # --- SID Registry lookup ---
+SIDS_ONEDRIVE_LINK = "https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU"
+
 def _get_sids_csv_path():
     """Get the path to SIDs.csv from the installation directory."""
     if getattr(sys, 'frozen', False):
-        # Running as PyInstaller bundle - use installation directory
         exe_dir = os.path.dirname(sys.executable)
         return os.path.join(exe_dir, 'SIDs.csv')
     else:
-        # Running as script
         base_path = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(base_path, 'SIDs.csv')
 
@@ -42,11 +42,14 @@ def lookup_sid_client_name(sid_prefix, show_missing_warning=False):
             print("\n" + "="*60)
             print("NOTE: SIDs.csv not found")
             print("="*60)
-            print("The SID registry file (SIDs.csv) is not present in the")
+            print("The SID registry file (SIDs.csv) is not in the")
             print("installation directory. SID validation will be skipped.")
             print("")
-            print("To enable SID registry checking, contact your IT department")
-            print("or system administrator to obtain the SIDs.csv file.")
+            print("Download SIDs.csv from the shared OneDrive folder:")
+            print(f"  {SIDS_ONEDRIVE_LINK}")
+            print("")
+            print("Then place it in:")
+            print(f"  {os.path.dirname(csv_path)}")
             print("="*60 + "\n")
         return None
     
@@ -94,71 +97,6 @@ def lookup_sid_client_name(sid_prefix, show_missing_warning=False):
             return None
     
     return None
-
-
-# --- Hospital name fuzzy matching ---
-def _get_hospital_names_csv_path():
-    """Get the path to hospital_names.csv from the installation directory."""
-    if getattr(sys, 'frozen', False):
-        exe_dir = os.path.dirname(sys.executable)
-        return os.path.join(exe_dir, 'hospital_names.csv')
-    else:
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(base_path, 'hospital_names.csv')
-
-
-def fuzzy_match_hospital_name(client_name):
-    """Fuzzy match a client name against hospital_names.csv.
-    
-    Args:
-        client_name: The client name string (e.g. from filename before '#')
-        
-    Returns:
-        Tuple of (best_match_name, score) if a match is found, or (None, 0) if not.
-        Score is 0-100 where 100 is a perfect match.
-    """
-    if not client_name or not client_name.strip():
-        return None, 0
-
-    csv_path = _get_hospital_names_csv_path()
-    if not os.path.exists(csv_path):
-        return None, 0
-
-    try:
-        from thefuzz import fuzz, process
-    except ImportError:
-        return None, 0
-
-    # Load hospital names from CSV
-    hospital_names = []
-    encodings_to_try = ["utf-8", "utf-8-sig", "cp1252", "latin-1"]
-    for enc in encodings_to_try:
-        try:
-            with open(csv_path, 'r', encoding=enc, errors="strict") as f:
-                reader = csv.reader(f)
-                header = next(reader, None)  # skip header row
-                for row in reader:
-                    if row and row[0].strip():
-                        hospital_names.append(row[0].strip())
-            break
-        except UnicodeDecodeError:
-            continue
-        except Exception:
-            return None, 0
-
-    if not hospital_names:
-        return None, 0
-
-    # Use token_sort_ratio for finding the best match (handles word reordering)
-    result = process.extractOne(
-        client_name.strip(), hospital_names, scorer=fuzz.token_sort_ratio
-    )
-    if result is None:
-        return None, 0
-    # Return ratio score (stricter, counts punctuation differences) for display
-    best_match = result[0]
-    display_score = fuzz.ratio(client_name.strip(), best_match)
-    return best_match, display_score
 
 
 # --- CPT ineligibility rules (loaded from JSON)

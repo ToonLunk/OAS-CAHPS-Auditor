@@ -7,11 +7,10 @@ import uuid
 import webbrowser
 from multiprocessing import Pool, cpu_count, freeze_support
 from tqdm import tqdm
-from dotenv import load_dotenv
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "0.65.4"
+__version__ = "0.65.6"
 version = __version__
 
 
@@ -104,14 +103,6 @@ def audit_excel(file_path, show_progress=False):
     # Get base filename for comparison
     basefname = os.path.basename(file_path)
     base_before_hash = basefname.split("#", 1)[0]
-
-    # Fuzzy match SID registry name (date-stripped) against hospital_names.csv
-    from audit_lib_funcs import fuzzy_match_hospital_name
-    hospital_match_name, hospital_match_score = None, 0
-    if sid_registry_name:
-        # Strip trailing date pattern (e.g. "- 12/1" or "12/1") same as in audit_printer
-        cleaned_registry = re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip()
-        hospital_match_name, hospital_match_score = fuzzy_match_hospital_name(cleaned_registry)
 
     # convert letters to alphabet positions (A=1, B=2) and append to UUID
     nums = "".join(str(ord(c) - 64) for c in two_letter_code)
@@ -236,8 +227,6 @@ def audit_excel(file_path, show_progress=False):
         inel_row_issues=inel_row_issues,  # INEL validation issues
         service_date_range=service_date_range,  # Service date range
         blank_date_row_issues=blank_date_row_issues,  # Blank date issues
-        hospital_match_name=hospital_match_name,  # Fuzzy matched hospital name
-        hospital_match_score=hospital_match_score,  # Fuzzy match score
     )
     
     if show_progress:

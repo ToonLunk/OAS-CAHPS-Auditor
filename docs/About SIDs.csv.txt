@@ -1,0 +1,25 @@
+SIDs.csv is the file that maps SID codes to client names.
+The auditor uses it to verify client names in your Excel files.
+
+WHERE TO GET IT:
+Download the latest SIDs.csv from the shared OneDrive folder:
+
+  https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU
+
+WHERE TO PUT IT:
+Place SIDs.csv in the installation directory:
+
+  C:\OAS-CAHPS-Auditor\SIDs.csv
+
+(This is the same folder where audit.exe is installed.)
+
+HOW TO UPDATE IT (when new clients are added):
+- Download the latest SIDs.csv from the shared OneDrive folder (link below).
+- Copy the client names and SID codes from the QTR sheet into SIDs.csv, following the existing format.
+- Save this new updated SIDs.csv file, and upload it back to the shared OneDrive folder, replacing the old one. 
+    Windows may prompt you to overwrite the old one - this is OK.
+
+NOTES:
+- The auditor works without this file, but SID registry checks will be skipped.
+- Whenever you update SIDs.csv, please also update it here so that all users can have an updated copy.
+- If you get a new version of SIDs.csv, just replace the old one (Windows may prompt you to overwrite the old one - this is OK).
