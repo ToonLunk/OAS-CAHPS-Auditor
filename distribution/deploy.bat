@@ -42,6 +42,16 @@ copy /Y "%SCRIPT_DIR%audit.exe" "%INSTALL_DIR%\audit.exe" >nul
 echo Copying LICENSE to %INSTALL_DIR%...
 copy /Y "%SCRIPT_DIR%LICENSE" "%INSTALL_DIR%\LICENSE" >nul
 
+if exist "%SCRIPT_DIR%Installation Instructions.txt" (
+    echo Copying Installation Instructions.txt to %INSTALL_DIR%...
+    copy /Y "%SCRIPT_DIR%Installation Instructions.txt" "%INSTALL_DIR%\Installation Instructions.txt" >nul
+)
+
+if exist "%SCRIPT_DIR%About SIDs.csv.txt" (
+    echo Copying About SIDs.csv.txt to %INSTALL_DIR%...
+    copy /Y "%SCRIPT_DIR%About SIDs.csv.txt" "%INSTALL_DIR%\About SIDs.csv.txt" >nul
+)
+
 REM Handle cpt_codes.json installation
 if not exist "%INSTALL_DIR%\cpt_codes.json" (
     echo Installing default cpt_codes.json...
