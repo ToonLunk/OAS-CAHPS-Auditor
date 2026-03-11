@@ -34,8 +34,8 @@ SetCompressor /SOLID lzma
 BrandingText "${APPNAME} v${VERSION}"
 
 ; --------------- MUI Settings ---------------
-!define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\modern-install.ico"
-!define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
+!define MUI_ICON "..\assets\icon.ico"
+!define MUI_UNICON "..\assets\icon.ico"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TITLE "Welcome to ${APPNAME} Setup"
 !define MUI_WELCOMEPAGE_TEXT "This wizard will install ${APPNAME} v${VERSION} on your computer.$\r$\n$\r$\nThe auditor validates OAS CAHPS Excel files and generates HTML reports.$\r$\n$\r$\nClick Next to continue."
