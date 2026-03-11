@@ -2,18 +2,16 @@
 
 ---
 
-## 📥 Installation
+## Installation
 
-1. Download **`OAS-CAHPS-Auditor-v0.65.6.zip`** below.
-2. Unzip the file.
-3. Right-click **`deploy.bat`** → **Run as Administrator**
-4. Follow the on-screen prompts.
+1. Download **`OAS-CAHPS-Auditor-v0.65.7-Setup.exe`** below.
+2. Run the setup wizard and follow the prompts.
 
 The Auditor will be installed to `C:\OAS-CAHPS-Auditor`.
 
 ---
 
-## 🔍 How to Use
+## How to Use
 
 ### Audit a Single File
 

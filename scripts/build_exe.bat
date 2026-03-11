@@ -50,9 +50,8 @@ echo Your executable is located at:
 echo   dist\audit.exe
 echo.
 echo Next steps:
-echo   1. Copy `audit.exe` and `deploy.bat` to the same folder
-echo   2. Run deploy.bat to add it to your PATH
-echo   3. Run the auditor from anywhere!
+echo   Run scripts\package.bat to build the installer
+echo   Or copy dist\audit.exe to C:\OAS-CAHPS-Auditor manually
 echo.
 echo After installation, run:
 echo   audit --all

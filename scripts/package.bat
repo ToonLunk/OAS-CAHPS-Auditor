@@ -2,8 +2,16 @@
 REM ============================================
 REM Build and Package OAS CAHPS Auditor
 REM ============================================
-REM SIDs.csv is NOT included - it lives on a shared OneDrive folder
-REM and the app reads it from there automatically at runtime.
+REM Builds the executable with PyInstaller, then
+REM compiles the NSIS installer (Setup.exe).
+REM
+REM Prerequisites:
+REM   - Python 3.8+ with dependencies from requirements.txt
+REM   - NSIS 3.x (makensis.exe must be on PATH)
+REM   - NSIS EnVar plugin installed
+REM
+REM SIDs.csv is NOT included - users must download it from the
+REM shared OneDrive folder and place it in the install directory.
 REM ============================================
 
 REM Change to project root directory
@@ -20,7 +28,7 @@ echo ========================================
 echo.
 
 REM Step 1: Build the executable
-echo [1/3] Building executable...
+echo [1/2] Building executable...
 call scripts\build_exe.bat
 if errorlevel 1 (
     echo ERROR: Build failed!
@@ -28,57 +36,42 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Step 2: Prepare distribution folder
+REM Step 2: Build the installer
 echo.
-echo [2/3] Preparing distribution package...
+echo [2/2] Building NSIS installer...
 
-REM Update all files in distribution folder from their source of truth
-copy /Y "dist\audit.exe" "distribution\" >nul
-copy /Y "docs\Installation Instructions.txt" "distribution\" >nul
-copy /Y "LICENSE" "distribution\" >nul
-copy /Y "cpt_codes.json" "distribution\" >nul
-copy /Y "scripts\register_context_menu.ps1" "distribution\" >nul
-copy /Y "scripts\unregister_context_menu.ps1" "distribution\" >nul
-copy /Y "scripts\deploy.bat" "distribution\" >nul
-copy /Y "docs\About SIDs.csv.txt" "distribution\" >nul
+REM Check that makensis is available
+set "MAKENSIS="
+where makensis >nul 2>&1
+if not errorlevel 1 (
+    set "MAKENSIS=makensis"
+) else if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
+    set "MAKENSIS=C:\Program Files (x86)\NSIS\makensis.exe"
+) else if exist "C:\Program Files\NSIS\makensis.exe" (
+    set "MAKENSIS=C:\Program Files\NSIS\makensis.exe"
+) else (
+    echo ERROR: makensis.exe not found!
+    echo Please install NSIS from https://nsis.sourceforge.io/
+    pause
+    exit /b 1
+)
 
-REM Remove any leftover sensitive files from distribution folder
-if exist "distribution\SIDs.csv" del "distribution\SIDs.csv"
-if exist "distribution\hospital_names.csv" del "distribution\hospital_names.csv"
+set SETUP_NAME=OAS-CAHPS-Auditor-v%VERSION%-Setup.exe
+"%MAKENSIS%" /DVERSION=%VERSION% installer\audit_installer.nsi
 
-echo Distribution folder updated.
-
-REM Step 3: Create ZIP file
-echo.
-echo [3/3] Creating ZIP archive...
-
-set ZIPNAME=OAS-CAHPS-Auditor-v%VERSION%.zip
-if exist "%ZIPNAME%" del "%ZIPNAME%"
-powershell -Command "Compress-Archive -Path 'distribution\*' -DestinationPath '%ZIPNAME%' -Force"
-
-if exist "%ZIPNAME%" (
+if exist "dist\%SETUP_NAME%" (
     echo.
     echo ========================================
     echo SUCCESS!
     echo ========================================
     echo.
-    echo Package created: %ZIPNAME%
+    echo Installer created: dist\%SETUP_NAME%
     echo.
-    echo This ZIP contains:
-    echo   - audit.exe
-    echo   - deploy.bat
-    echo   - register_context_menu.ps1
-    echo   - unregister_context_menu.ps1
-    echo   - Installation Instructions.txt
-    echo   - LICENSE
-    echo   - cpt_codes.json
-    echo   - About SIDs.csv.txt
-    echo.
-    echo NOTE: SIDs.csv is NOT included.
-    echo The app reads it from the shared OneDrive folder automatically.
+    echo NOTE: SIDs.csv is NOT included in the installer.
+    echo Users must download it separately from the shared OneDrive folder.
     echo ========================================
 ) else (
-    echo ERROR: Failed to create ZIP file
+    echo ERROR: Failed to create installer!
 )
 
 echo.

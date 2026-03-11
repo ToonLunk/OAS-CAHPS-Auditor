@@ -4,9 +4,9 @@
 
 INSTALLATION:
 
-  1. Run deploy.bat as administrator
-  2. When prompted, select "Y" to install the context menu (recommended)
-  3. Wait for installation to complete
+  1. Run OAS-CAHPS-Auditor-Setup.exe
+  2. Follow the setup wizard
+  3. Choose whether to install context menu integration (recommended)
   4. Open a new Command Prompt or PowerShell window
   5. Verify installation by running: audit --help
 
@@ -42,9 +42,7 @@ processed are logged in "AUDITS/unable_to_run_audit".
 
 ================================================================================
 
-IF DEPLOY.BAT DOESN'T WORK:
-
-You can install manually:
+MANUAL INSTALLATION (if the setup wizard doesn't work):
 
   1. Put audit.exe somewhere permanent (like C:\Tools)
   2. Search Windows for "Environment Variables"
@@ -54,6 +52,15 @@ You can install manually:
   6. Click "New" and type your folder path (e.g., C:\Tools)
   7. Click OK on everything
   8. Close and reopen your terminal
+
+================================================================================
+
+UNINSTALLING:
+
+  Use Add/Remove Programs:
+    Settings > Apps > Installed Apps > OAS CAHPS Auditor > Uninstall
+
+  This removes all files, PATH entries, and context menu registrations.
 
 ================================================================================
 
@@ -68,10 +75,6 @@ COMMON ISSUES:
 
   Context menu options not appearing:
     Remember to hold SHIFT while right-clicking to access the extended menu.
-    If still missing, run scripts\register_context_menu.ps1 as administrator.
-
-  To remove the context menu integration:
-    Run scripts\unregister_context_menu.ps1 as administrator.
 
   For additional support, contact Tyler Brock.
   No warranty is provided. See the LICENSE file for complete terms.

@@ -6,6 +6,8 @@ Instructions for building the executable and creating distribution packages.
 
 - Python 3.8 or higher
 - All dependencies from `requirements.txt`
+- [NSIS 3.x](https://nsis.sourceforge.io/) with the [EnVar plugin](https://nsis.sourceforge.io/EnVar_plug-in) installed
+- `makensis.exe` must be on your system PATH
 
 ## Version Management
 
@@ -20,7 +22,7 @@ As well as in audit.py as a constant.
 This version is used by:
 
 - The executable (shown in `audit --version`)
-- The package script (creates `OAS-CAHPS-Auditor-v{VERSION}.zip`)
+- The package script (creates `OAS-CAHPS-Auditor-v{VERSION}-Setup.exe`)
 
 To update: Edit `.env` and change the `VERSION=` line, then update the `VERSION` constant in `audit.py` to match.
 
@@ -44,34 +46,32 @@ scripts\build_exe.bat
 scripts\package.bat
 ```
 
-This automatically runs `build_exe.bat` first, then packages everything. It's recommended to use `package.bat` instead of just `build_exe.bat` when you're ready to share the tool, as it ensures the executable is built and packaged correctly, as well as including installation instructions and other necessary files.
+This automatically runs `build_exe.bat` first, then compiles the NSIS installer. It's recommended to use `package.bat` instead of just `build_exe.bat` when you're ready to share the tool, as it ensures the executable is built and the installer is created correctly.
 
-**Output:** `OAS-CAHPS-Auditor-v{VERSION}.zip`
+**Output:** `dist/OAS-CAHPS-Auditor-v{VERSION}-Setup.exe`
 
-Contains:
+The installer bundles:
 - `audit.exe` - The executable
-- `deploy.bat` - System-wide installation script
 - `cpt_codes.json` - CPT code configuration
-- `register_context_menu.ps1` / `unregister_context_menu.ps1`
 - `Installation Instructions.txt`
 - `About SIDs.csv.txt` - Instructions for downloading SIDs.csv
 - `LICENSE`
 
-> **Note:** `SIDs.csv` is NOT included in the release ZIP. Users download it
+> **Note:** `SIDs.csv` is NOT included in the installer. Users download it
 > separately from the [shared OneDrive folder](https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU).
-> The ZIP includes `About SIDs.csv.txt` which points users to the download link.
-> The app also shows the link in the terminal and in the HTML report's info tooltip.
+> The app shows the download link in the terminal and in the HTML report's info tooltip.
 
-Recipients run `deploy.bat` as administrator to install.
+Recipients run the Setup.exe wizard to install.
 
 ## Installation Methods
 
-**Automated (Recommended):**
+**Setup Wizard (Recommended):**
 
-- Run `deploy.bat` as administrator
+- Run `OAS-CAHPS-Auditor-v{VERSION}-Setup.exe`
 - Installs to `C:\OAS-CAHPS-Auditor`
 - Adds installation directory to system PATH
-- Requires terminal restart to take effect
+- Optionally registers right-click context menu entries
+- Creates an uninstaller accessible via Add/Remove Programs
 
 **Manual:**
 

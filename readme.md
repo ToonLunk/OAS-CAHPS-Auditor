@@ -58,21 +58,15 @@ Example Audit Report: [docs/SAMPLE_AUDIT.png](docs/SAMPLE_AUDIT.png)
 
 Download the latest release from the [Releases page](https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases).
 
-If you have the distribution package (ZIP file):
+1. Download and run `OAS-CAHPS-Auditor-v{VERSION}-Setup.exe`
+2. Follow the setup wizard
+3. Verify installation by running: `audit --help` or right-clicking in a folder
 
-1. Extract the ZIP file
-2. Right-click `deploy.bat` and select "Run as administrator"
-3. Choose whether to install context menu integration (recommended!)
-4. Restart your terminal (if using command line)
-5. Verify installation by running: `audit --help` or right-clicking in a folder
+The setup wizard installs to `C:\OAS-CAHPS-Auditor`, adds it to your system PATH, and optionally registers right-click context menu entries for Explorer.
 
-The tool installs to `C:\OAS-CAHPS-Auditor` and is added to your system PATH, so you can run `audit` from anywhere.
+**Context Menu:** During installation, you can choose to add right-click integration. This is highly recommended for ease of use - you can audit folders without opening a terminal!
 
-**Context Menu:** During installation, you'll be asked if you want to add right-click integration. This is highly recommended for ease of use - you can audit folders without opening a terminal!
-
-See `Installation Instructions.txt` in the package for detailed instructions and troubleshooting.
-
-**To Remove Context Menu:** Run `scripts\unregister_context_menu.ps1` as administrator.
+**To Uninstall:** Use Add/Remove Programs (Settings → Apps → Installed Apps → OAS CAHPS Auditor → Uninstall). This removes all files, PATH entries, and context menu registrations.
 
 ## Updating the CPT and SID Lists
 
@@ -103,7 +97,7 @@ Output: `dist/audit.exe`
 scripts\package.bat
 ```
 
-Output: `OAS-CAHPS-Auditor-v{VERSION}.zip` (includes installer, powershell files, installation instructions, CPT and SID lists, and license)
+Output: `dist/OAS-CAHPS-Auditor-v{VERSION}-Setup.exe` (setup wizard with auditor, installation instructions, CPT codes, and license)
 
 **Development:**
 
