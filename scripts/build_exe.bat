@@ -14,6 +14,10 @@ echo.
 REM Update version in audit.py from .env file
 powershell -Command "(Get-Content audit.py) -replace '__version__ = \".*\"', '__version__ = \"%VERSION%\"' | Set-Content audit.py"
 
+REM Update version in version_info.txt from .env file
+REM Splits VERSION (e.g. 1.2.3) into filevers/prodvers tuple and string fields
+powershell -Command "$v='%VERSION%'; $parts=($v -split '\.'); $tuple=\"($($parts[0]), $($parts[1]), $($parts[2]), 0)\"; (Get-Content version_info.txt) -replace 'filevers=\(.*?\)', \"filevers=$tuple\" -replace 'prodvers=\(.*?\)', \"prodvers=$tuple\" -replace \"FileVersion', u'.*?'\", \"FileVersion', u'$v'\" -replace \"ProductVersion', u'.*?'\", \"ProductVersion', u'$v'\" | Set-Content version_info.txt"
+
 REM Check if PyInstaller is installed
 python -c "import PyInstaller" 2>NUL
 if errorlevel 1 (

@@ -28,7 +28,11 @@ def print_app_info_and_help_block():
 
 
 def check_for_updates():
-    """Check GitHub for latest version and notify if update available."""
+    """Check GitHub for latest version and notify if update available.
+    
+    Returns a dict with 'latest_version' and 'download_url' if an update is
+    available, or None otherwise.
+    """
     try:
         import urllib.request
         import json
@@ -47,9 +51,14 @@ def check_for_updates():
                 if latest_version and pkg_version.parse(latest_version) > pkg_version.parse(version):
                     print(f"\nUpdate available: v{latest_version} (current: v{version})")
                     print(f"Download: https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases/latest\n")
-    except Exception as e:
+                    return {
+                        'latest_version': latest_version,
+                        'download_url': 'https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases/latest',
+                    }
+    except Exception:
         # Silently fail if unable to check
         pass
+    return None
 
 
 def audit_excel(file_path, show_progress=False):
@@ -253,15 +262,15 @@ def process_file_wrapper(args):
     """Wrapper function for multiprocessing to process a single Excel file.
     
     Args:
-        args: Tuple of (filename, version_str)
+        args: Tuple of (filename, version_str, update_info)
         
     Returns:
         dict with status, filename, result_file, name_match_info, and error (if any)
     """
-    filename, version_str = args
+    filename, version_str, update_info = args
     try:
         file_path, report_lines, service_date_range, name_match_info = audit_excel(filename)
-        final_file = save_report(file_path, report_lines, version=version_str, service_date_range=service_date_range)
+        final_file = save_report(file_path, report_lines, version=version_str, service_date_range=service_date_range, update_info=update_info)
         return {
             'status': 'success',
             'filename': filename,
@@ -279,11 +288,14 @@ def process_file_wrapper(args):
         }
 
 
+# Module-level update info (set in __main__ before any auditing)
+_update_info = None
+
 if __name__ == "__main__":
     # Required for PyInstaller multiprocessing support on Windows
     freeze_support()
     
-    check_for_updates()
+    _update_info = check_for_updates()
     
     if len(sys.argv) != 2:
         print("Usage: audit <excel_file> or audit --all")
@@ -318,8 +330,8 @@ if __name__ == "__main__":
         print(f"Found {len(excel_files)} Excel file(s) to process.")
         print(f"Using {num_processes} processor(s) for parallel processing.\n")
 
-        # Prepare arguments for worker function (filename, version)
-        worker_args = [(f, version) for f in excel_files]
+        # Prepare arguments for worker function (filename, version, update_info)
+        worker_args = [(f, version, _update_info) for f in excel_files]
 
         # Process files in parallel with progress bar
         # Using imap_unordered with chunksize=1 for immediate feedback
@@ -395,7 +407,7 @@ if __name__ == "__main__":
         print()
         print(f"Processing: {os.path.basename(file_path)}")
         file_path, report_lines, service_date_range, name_match_info = audit_excel(file_path, show_progress=False)
-        final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range)
+        final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range, update_info=_update_info)
         print(f"Report saved: {final_file}")
         
         # Open the report in the default browser

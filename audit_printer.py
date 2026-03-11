@@ -898,7 +898,7 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
     return header_lines
 
 
-def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha", service_date_range=None):
+def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha", service_date_range=None, update_info=None):
     """
     Write report to .html file in AUDITS directory
     Location depends on ORGANIZE_AUDITS_BY_DATE setting:
@@ -1000,6 +1000,21 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha",
         input("Press enter to exit: ")
         print("\n")
         sys.exit(99)
+
+    # Inject update badge next to version text if an update is available
+    if update_info and isinstance(report_lines, list):
+        _badge = (
+            f"<a href=\"{update_info['download_url']}\" "
+            "style='margin-left:8px;background:#fffbe6;border:1px solid #ffe58f;"
+            "padding:2px 8px;border-radius:3px;color:#8a6d3b;font-size:0.9em;"
+            "text-decoration:none;font-weight:500;'>"
+            f"v{update_info['latest_version']} available"
+            "</a>"
+        )
+        for i, line in enumerate(report_lines):
+            if "Auditor</a> v" in line:
+                report_lines[i] = line.replace("</span>", f"{_badge}</span>", 1)
+                break
 
     with open(final_report_file, "w", encoding="utf-8") as f:
         if not failure_reason:
