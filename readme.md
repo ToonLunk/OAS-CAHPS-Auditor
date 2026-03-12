@@ -11,7 +11,7 @@ audit --all            # Audit all Excel files in current directory
 audit --version        # Show version number
 ```
 
-**Context Menu (Right-Click):**
+**Context Menu (Reccommended):**
 
 If you installed the context menu during setup, you can:
 Audit an entire folder:
@@ -30,7 +30,7 @@ This software generates an HTML report summarizing validation results, including
 
 Example Audit Report: [docs/SAMPLE_AUDIT.png](docs/SAMPLE_AUDIT.png)
 
-## Validation Checks
+### Validation Checks
 
 **Header Validation:**
 
@@ -113,10 +113,10 @@ See [todo.md](todo.md) for planned features and improvements. None of these feat
 
 ## License and Credit
 
-This software is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
-
-Copyright © 2026 Tyler Brock.
-
 Developed for J.L. Morgan & Associates, Inc. Code written by Tyler Brock.
 
+This software is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. Any changes or modifications to the source code must also be released under the same license. You are free to use, modify, and distribute this software, but you must provide attribution to the original author and include a copy of the GPL license with any distribution.
+
 See [LICENSE](LICENSE) file for full legal text or visit: https://www.gnu.org/licenses/gpl-3.0.en.html
+
+Copyright © 2026 Tyler Brock.
