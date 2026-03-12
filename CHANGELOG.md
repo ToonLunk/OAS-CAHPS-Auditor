@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.0
+
+ - Changed from installing via batch file to using NSIS installer for easier installation and uninstallation
+ - Added an update banner to the HTML report when a new version is available
+ - Updated documentation and installation instructions
+ - Added an icon to the executable and installer
+ - Added a check to the installer for users who don't already have the SIDs.csv file, with a link to the OneDrive folder to download it
+
 ## Version 0.65.6
 
 - SIDs.csv is no longer bundled inside the executable or included in the GitHub release ZIP
