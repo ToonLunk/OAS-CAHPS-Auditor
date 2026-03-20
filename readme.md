@@ -37,7 +37,6 @@ Example Audit Report: [docs/SAMPLE_AUDIT.png](docs/SAMPLE_AUDIT.png)
 - Ensures required headers are present and correctly named in OASCAPHS and UPLOAD tabs
 - Validates header formatting and order
 - Validates sample size and other key header values
-- Checks SIDs for correct formatting and ranges
 
 **Number Validation:**
 
@@ -52,6 +51,7 @@ Example Audit Report: [docs/SAMPLE_AUDIT.png](docs/SAMPLE_AUDIT.png)
 - Checks DOB and SERVICE DATE columns for valid date formats
 - Ensures no duplicate rows based on MRN
 - Validates client names against a customizable list of valid client names (SIDs.csv)
+- Checks SIDs for correct formatting and ranges
 - and more!
 
 ## Installation
@@ -70,9 +70,9 @@ The setup wizard installs to `C:\OAS-CAHPS-Auditor`, adds it to your system PATH
 
 ## Updating the CPT and SID Lists
 
-The CPT and SID lists are stored in `CPT_CODES.json` and `SIDs.csv` respectively. You can typically find these files in the default installation folder, which is `C:\OAS-CAHPS-Auditor`. You can edit these files with any text editor or spreadsheet software to add/remove valid codes and client names. The auditor will use these updated lists during validation.
+The CPT and SID lists are stored in `CPT_CODES.json` and `SIDs.csv` respectively. You can typically find these files in the default installation folder, which is `C:\OAS-CAHPS-Auditor`. For information on SIDs.csv, see the `About SIDs.csv.txt` file included in the distribution package. For first-time users, you will need to download `SIDs.csv` from the shared OneDrive folder and place it in the installation directory to enable SID registry lookup functionality.
 
-If you updated these lists and later download a new version of the auditor, be sure to make a backup of your custom `CPT_CODES.csv` and `SIDs.csv` files before updating, as the installer may overwrite them with the default versions. Then simply copy your custom files back into the installation directory after updating.
+If you updated these lists and later download a new version of the auditor, be sure to make a backup of your custom `CPT_CODES.csv` file before installing the new version, as the installer may overwrite it with the default version. After installing the new version, you can replace the default `CPT_CODES.csv` with your backup to retain your custom codes.
 
 ## Updating this Software
 

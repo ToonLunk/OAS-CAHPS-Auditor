@@ -2,22 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
-## Version 1.0.0
+## Version 1.0.0 - The Final Release?
 
- - Changed from installing via batch file to using NSIS installer for easier installation and uninstallation
- - Added an update banner to the HTML report when a new version is available
+ - Changed from installing via batch file to using NSIS installer for a more polished installation experience
+ - Prompts user about context menu integration during installation, with an option to enable it
+ - Added an update banner to the HTML report when a new version is available because no one reads the terminal output
  - Updated documentation and installation instructions
  - Added an icon to the executable and installer
  - Added a check to the installer for users who don't already have the SIDs.csv file, with a link to the OneDrive folder to download it
 
 ## Version 0.65.6
 
-- SIDs.csv is no longer bundled inside the executable or included in the GitHub release ZIP
 - The terminal and HTML report now include a link to the shared OneDrive folder for downloading SIDs.csv
-- Added info tooltip next to "SID Registry Check" in reports with the download link
+- Added info tooltip next to "SID Registry Check" in reports. Contains info on how to get the SIDs.csv file and what to do if you don't have it
 - Added "About SIDs.csv.txt" to the distribution package explaining where to get and install the file
 - Removed hospital_names.csv and fuzzy matching feature
-- Removed `thefuzz` dependency
+- Removed `thefuzz` dependency as hospital name matching is no longer needed
 
 ## Version 0.65.1
 
