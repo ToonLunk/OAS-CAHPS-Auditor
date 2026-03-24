@@ -1,10 +1,11 @@
-**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v0.65.1...v0.65.6
+# Version 1.0.0 is here! 🎉
 
----
+**Full Changelog, from the beta to now**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v0.58-beta...v1.0.0
 
 ## Installation
+Installation is now way easier. Just download the file and install the program! Please read the instructions carefully.
 
-1. Download **`OAS-CAHPS-Auditor-v0.65.7-Setup.exe`** below.
+1. Download **`OAS-CAHPS-Auditor-v1.0.0-Setup.exe`** below.
 2. Run the setup wizard and follow the prompts.
 
 The Auditor will be installed to `C:\OAS-CAHPS-Auditor`.
