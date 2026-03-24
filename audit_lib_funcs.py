@@ -924,6 +924,7 @@ MRN_ALIASES = [
     "patient account number",
     "patient acct no",
     "medical record number",
+    "medical_record_number",
     "mrn",
     "patient id",
     "patient mrn",
@@ -1061,12 +1062,33 @@ SERVICE_DATE_ALIASES = [
 ]
 
 
+def _expand_alias_variants(alias):
+    """Generate matching variants of an alias: original, underscores-to-spaces,
+    spaces-to-underscores, and all spaces/underscores removed. All lowercase."""
+    low = alias.strip().lower()
+    variants = {low}
+    variants.add(low.replace("_", " "))
+    variants.add(low.replace(" ", "_"))
+    variants.add(low.replace(" ", "").replace("_", ""))
+    return variants
+
+
+def _expand_aliases(aliases):
+    """Expand a list of aliases into a set including all space/underscore variants."""
+    expanded = set()
+    for alias in aliases:
+        expanded.update(_expand_alias_variants(alias))
+    return expanded
+
+
 def find_column_by_aliases(sheet, aliases):
     """
     Find a column in the sheet by checking against a list of aliases.
     Returns the 1-based column index if found, None otherwise.
     Handles sheets with rows spaced apart.
+    Also checks underscore/space/removed variants of each alias.
     """
+    expanded = _expand_aliases(aliases)
     # Check first few rows for headers (in case of spacing)
     for header_row_idx in range(1, 41):  # Check first 40 rows
         try:
@@ -1078,10 +1100,8 @@ def find_column_by_aliases(sheet, aliases):
             for col_idx, cell_value in enumerate(row, start=1):
                 if cell_value:
                     cell_str = str(cell_value).strip().lower()
-                    # Check against all aliases
-                    for alias in aliases:
-                        if cell_str == alias.lower():
-                            return col_idx, header_row_idx
+                    if cell_str in expanded:
+                        return col_idx, header_row_idx
         except (IndexError, AttributeError):
             continue
     return None, None

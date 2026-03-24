@@ -63,7 +63,7 @@ table.excel-style {
 }
 
 table.excel-style th {
-  border: 1px solid black;
+  border: 1px solid #555;
   padding: 8px 12px;
   background-color: #27ae60;
   color: white;

@@ -319,7 +319,7 @@ def build_report(
     # Calculate estimated percentage if both values are available
     estimated_percentage = None
     if sample_size is not None and eligible_patients is not None and eligible_patients > 0:
-        estimated_percentage = math.ceil((sample_size / eligible_patients) * 100)
+        estimated_percentage = int(round((sample_size / eligible_patients) * 100, 0))
 
     # Check 5: SID validation
     if sid_row_issues is not None:
@@ -378,35 +378,47 @@ def build_report(
         except (ValueError, AttributeError):
             pass  # Keep default green
     
-    report_lines.append("<h2>ESTIMATED QTR SHEET LINE</h2>")
+    report_lines.append("<h2>ESTIMATED LOG SHEET LINE"
+        " <span class='info-icon'>i<span class='tooltip'>"
+        "<b>Data sources:</b><br>"
+        "SID — from header<br>"
+        "Client — SID registry (SIDs.csv) or filename<br>"
+        "Non-Reported — CMS INDICATOR = 2 count<br>"
+        "Emails / Mailings — E/M column (CMS=1 rows)<br>"
+        "Selection % — Sample Size ÷ Eligible<br>"
+        "Submitted — from header<br>"
+        "Eligible — from footer (EL)<br>"
+        "Sample Size — from footer (SS)"
+        "</span></span></h2>")
+    c = 'text-align: center;'
     report_lines.append(f"<table class='excel-style' style='--header-color: {qtr_header_color};'>")
     report_lines.append("<tr>")
     report_lines.append(
-        f"<th style='background-color: {qtr_header_color};'>SID</th>" 
-        f"<th style='background-color: {qtr_header_color};'>Client</th>" 
-        f"<th style='background-color: {qtr_header_color};'>Non-Reported</th>" 
-        f"<th style='background-color: {qtr_header_color};'>Emails</th>" 
-        f"<th style='background-color: {qtr_header_color};'>Mailings</th>"
+        f"<th style='background-color: {qtr_header_color}; {c}'>SID</th>" 
+        f"<th style='background-color: {qtr_header_color}; width: 30%;'>CLIENT NAME</th>" 
+        f"<th style='background-color: {qtr_header_color}; {c}'>NON REPORTED</th>" 
+        f"<th style='background-color: {qtr_header_color}; {c}'>REPORTED EMAILS</th>" 
+        f"<th style='background-color: {qtr_header_color}; {c}'>MAILINGS TOTAL</th>"
     )
     report_lines.append(
-        f"<th style='background-color: {qtr_header_color};'>Selection %</th>"
-        f"<th style='background-color: {qtr_header_color};'>Submitted</th>"
-        f"<th style='background-color: {qtr_header_color};'>Eligible</th>"
-        f"<th style='background-color: {qtr_header_color};'>Sample Size</th>"
+        f"<th style='background-color: {qtr_header_color}; {c}'>%</th>"
+        f"<th style='background-color: {qtr_header_color}; {c}'># PATIENTS SUBMITTED</th>"
+        f"<th style='background-color: {qtr_header_color}; {c}'>ELIGIBLE PATIENTS</th>"
+        f"<th style='background-color: {qtr_header_color}; {c}'>SAMPLE SIZE</th>"
     )
     report_lines.append("</tr>")
     report_lines.append("<tr>")
-    report_lines.append(f"<td>{sid_prefix if sid_prefix else 'N/A'}</td>")
+    report_lines.append(f"<td style='{c}'>{sid_prefix if sid_prefix else 'N/A'}</td>")
     # Use registry name if available, otherwise fall back to file name
     client_name_display = sid_registry_name if sid_registry_name else base_before_hash
     report_lines.append(f"<td>{client_name_display}</td>")
-    report_lines.append(f"<td>{non_reported if non_reported is not None else 'N/A'}</td>")
-    report_lines.append(f"<td>{emails if emails is not None else 'N/A'}</td>")
-    report_lines.append(f"<td>{mailings if mailings is not None else 'N/A'}</td>")
-    report_lines.append(f"<td>~{estimated_percentage}%</td>" if estimated_percentage is not None else "<td>N/A</td>")
-    report_lines.append(f"<td>{patients_submitted if patients_submitted is not None else 'N/A'}</td>")
-    report_lines.append(f"<td>{eligible_patients if eligible_patients is not None else 'N/A'}</td>")
-    report_lines.append(f"<td>{sample_size if sample_size is not None else 'N/A'}</td>")
+    report_lines.append(f"<td style='{c}'>{non_reported if non_reported is not None else 'N/A'}</td>")
+    report_lines.append(f"<td style='{c}'>{emails if emails is not None else 'N/A'}</td>")
+    report_lines.append(f"<td style='{c}'>{mailings if mailings is not None else 'N/A'}</td>")
+    report_lines.append(f"<td style='{c}'>~{estimated_percentage}%</td>" if estimated_percentage is not None else f"<td style='{c}'>N/A</td>")
+    report_lines.append(f"<td style='{c}'>{patients_submitted if patients_submitted is not None else 'N/A'}</td>")
+    report_lines.append(f"<td style='{c}'>{eligible_patients if eligible_patients is not None else 'N/A'}</td>")
+    report_lines.append(f"<td style='{c}'>{sample_size if sample_size is not None else 'N/A'}</td>")
     report_lines.append("</tr>")
     report_lines.append("</table>")
     
