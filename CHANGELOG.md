@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.0.1 - Post-Release Fixes
+- Fixed a bug where the auditor wouldn't run if the address column was missing/not named correctly
+- Added a comparison of the OASCAPHS and UPLOAD tabs to check for mismatches between the two, with a warning in the report if any are found
+
 ## Version 1.0.0 - The Final Release?
 
  - Changed from installing via batch file to using NSIS installer for a more polished installation experience

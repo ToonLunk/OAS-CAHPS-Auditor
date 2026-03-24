@@ -209,6 +209,10 @@ def check_address(
     invalid_addresses = []
     noted_addresses = []
 
+    # If any required address column is missing, we can't validate addresses
+    if not all([street_address_1_col, city_col, state_col, postal_code_col]):
+        return invalid_addresses, noted_addresses
+
     for row_number, row in enumerate(
         sheet.iter_rows(min_row=2, values_only=True), start=2
     ):

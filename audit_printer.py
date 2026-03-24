@@ -289,6 +289,33 @@ def build_report(
         )
         issues.append(issue_msg)
 
+    # Check 5: UPLOAD tab has the correct columns (OASCAPHS minus ATT, LAG, ID, FD, LG, E/M)
+    upload_only_cols = {"ATT", "LAG", "ID", "FD", "LG", "E/M"}
+    if "UPLOAD" in wb.sheetnames:
+        upload_sheet = wb["UPLOAD"]
+        up_header_set = {
+            cell.value for cell in next(upload_sheet.iter_rows(min_row=1, max_row=1))
+            if cell.value is not None
+        }
+        expected_upload_cols = set(headers.keys()) - upload_only_cols - {None}
+        missing_in_upload = expected_upload_cols - up_header_set
+        extra_in_upload = up_header_set - expected_upload_cols
+        if not missing_in_upload and not extra_in_upload:
+            report_lines.append(
+                "<tr><td>UPLOAD tab has correct columns</td><td style='color: #28a745;'>✓</td></tr>"
+            )
+        else:
+            parts = []
+            if missing_in_upload:
+                parts.append(f"missing: {', '.join(sorted(missing_in_upload))}")
+            if extra_in_upload:
+                parts.append(f"extra: {', '.join(sorted(extra_in_upload))}")
+            issue_msg = f"<strong>WARNING:</strong> UPLOAD tab column mismatch ({'; '.join(parts)})"
+            report_lines.append(
+                f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
+            )
+            issues.append(issue_msg)
+
     # Calculate estimated percentage if both values are available
     estimated_percentage = None
     if sample_size is not None and eligible_patients is not None and eligible_patients > 0:
@@ -492,7 +519,7 @@ def build_report(
             )
         }
         oas_headers = headers
-        ignore_cols = {"LG", "FD", "ID", "ATT", "LAG"}
+        ignore_cols = {"LG", "FD", "ID", "ATT", "LAG", "E/M"}
         common_cols = (
             set(up_headers.keys()).intersection(oas_headers.keys()) - ignore_cols
         )
