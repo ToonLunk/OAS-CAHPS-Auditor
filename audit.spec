@@ -7,6 +7,7 @@ datas = [('audit_report.css', '.'), ('cpt_codes.json', '.')]
 # Users download it separately from the shared OneDrive folder.
 
 datas += collect_data_files('i18naddress')
+datas += collect_data_files('usaddress')
 
 
 a = Analysis(

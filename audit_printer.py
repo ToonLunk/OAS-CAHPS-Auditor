@@ -31,6 +31,7 @@ def build_report(
     classify_cpt,
     cpt_is_ineligible,
     addr1_col,
+    addr2_col,
     city_col,
     state_col,
     zip_col,
@@ -709,9 +710,8 @@ def build_report(
         report_lines.append("</details>")
 
     # INVALID ADDRESSES section
-    # audit addresses using google's package
     invalid_addresses, noted_addresses = check_address(
-        sheet, addr1_col, city_col, state_col, zip_col, mrn_col, cms_col, em_col
+        sheet, addr1_col, city_col, state_col, zip_col, mrn_col, cms_col, em_col, addr2_col
     )
     if invalid_addresses:
         report_lines.append("<h2>INVALID ADDRESSES FOUND</h2>")
