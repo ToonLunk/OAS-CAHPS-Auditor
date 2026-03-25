@@ -285,7 +285,7 @@ def check_address(
         # --- Experimental checks (results go into noted_addresses) ---
         note_issues = []
 
-        # 1. Facility / prison / placeholder keyword check on ADDRESS1 and ADDRESS2
+        # 1. Facility / prison keyword check — runs on ALL rows (prisoners should be removed)
         street_lower = street_str.lower()
         street2_lower = street2_str.lower()
         for keyword in _FACILITY_KEYWORDS:
@@ -297,30 +297,34 @@ def check_address(
                 note_issues.append(f"Possible facility/institution in {field}: '{keyword}'")
                 break  # one match is enough
 
-        for placeholder in _PLACEHOLDER_ADDRESSES:
-            pattern = rf"^{re.escape(placeholder)}$"
-            match1 = re.match(pattern, street_lower)
-            match2 = re.match(pattern, street2_lower) if street2_lower else None
-            if match1 or match2:
-                field = "ADDRESS1" if match1 else "ADDRESS2"
-                note_issues.append(f"Non-address placeholder in {field}: '{street_str if field == 'ADDRESS1' else street2_str}'")
-                break
+        # 2-3 only run on mailing rows (E/M = "M")
+        is_mailing = str(em).strip().upper() == "M" if em else False
 
-        # 2. usaddress structural check — does ADDRESS1 parse as a real street address?
-        try:
-            tagged, addr_type = usaddress.tag(street_str)
-            has_number = "AddressNumber" in tagged
-            has_street_name = "StreetName" in tagged or "StreetNamePostType" in tagged
-            is_po_box = "USPSBoxType" in tagged
+        if is_mailing:
+            for placeholder in _PLACEHOLDER_ADDRESSES:
+                pattern = rf"^{re.escape(placeholder)}$"
+                match1 = re.match(pattern, street_lower)
+                match2 = re.match(pattern, street2_lower) if street2_lower else None
+                if match1 or match2:
+                    field = "ADDRESS1" if match1 else "ADDRESS2"
+                    note_issues.append(f"Non-address placeholder in {field}: '{street_str if field == 'ADDRESS1' else street2_str}'")
+                    break
 
-            if addr_type == "Ambiguous":
-                note_issues.append("ADDRESS1 could not be parsed as a street address (ambiguous)")
-            elif not is_po_box and not has_number:
-                note_issues.append("ADDRESS1 has no street number")
-            elif not is_po_box and not has_street_name:
-                note_issues.append("ADDRESS1 has no street name")
-        except usaddress.RepeatedLabelError:  # type: ignore[attr-defined]
-            note_issues.append("ADDRESS1 has unusual/repeated address components")
+            # 3. usaddress structural check — does ADDRESS1 parse as a real street address?
+            try:
+                tagged, addr_type = usaddress.tag(street_str)
+                has_number = "AddressNumber" in tagged
+                has_street_name = "StreetName" in tagged or "StreetNamePostType" in tagged
+                is_po_box = "USPSBoxType" in tagged
+
+                if addr_type == "Ambiguous":
+                    note_issues.append("ADDRESS1 could not be parsed as a street address (ambiguous)")
+                elif not is_po_box and not has_number:
+                    note_issues.append("ADDRESS1 has no street number")
+                elif not is_po_box and not has_street_name:
+                    note_issues.append("ADDRESS1 has no street name")
+            except usaddress.RepeatedLabelError:  # type: ignore[attr-defined]
+                note_issues.append("ADDRESS1 has unusual/repeated address components")
 
         if note_issues:
             noted_addresses.append(
