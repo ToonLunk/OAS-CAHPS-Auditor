@@ -109,6 +109,16 @@ def audit_excel(file_path, show_progress=False):
         from audit_lib_funcs import lookup_sid_client_name
         sid_registry_name = lookup_sid_client_name(sid_prefix, show_missing_warning=True)
     
+    # Look up facility/location names from FRAME tab (if it exists)
+    # Look up facility/location names from POP tab only
+    facility_matches = []
+    from audit_lib_funcs import FACILITY_NAME_ALIASES, find_all_columns_in_sheet
+    if 'POP' in wb.sheetnames:
+        tab_matches = find_all_columns_in_sheet(wb['POP'], FACILITY_NAME_ALIASES)
+        for m in tab_matches:
+            m['tab'] = 'POP'
+        facility_matches.extend(tab_matches)
+
     # Get base filename for comparison
     basefname = os.path.basename(file_path)
     base_before_hash = basefname.split("#", 1)[0]
@@ -238,6 +248,7 @@ def audit_excel(file_path, show_progress=False):
         inel_row_issues=inel_row_issues,  # INEL validation issues
         service_date_range=service_date_range,  # Service date range
         blank_date_row_issues=blank_date_row_issues,  # Blank date issues
+        facility_matches=facility_matches,  # Facility/location columns from FRAME and POP tabs
     )
     
     if show_progress:

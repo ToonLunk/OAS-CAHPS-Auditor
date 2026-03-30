@@ -1134,6 +1134,76 @@ SERVICE_DATE_ALIASES = [
     "case dos",
 ]
 
+FACILITY_NAME_ALIASES = [
+    "facility name",
+    "facility",
+    "facility_name",
+    "facilityname",
+    "fac name",
+    "fac_name",
+    "facname",
+    "facility nm",
+    "facility_nm",
+    "fac nm",
+    "site name",
+    "site_name",
+    "sitename",
+    "site",
+    "location name",
+    "location_name",
+    "locationname",
+    "location",
+    "clinic name",
+    "clinic_name",
+    "clinicname",
+    "clinic",
+    "hospital name",
+    "hospital_name",
+    "hospitalname",
+    "hospital",
+    "center name",
+    "center_name",
+    "centername",
+    "practice name",
+    "practice_name",
+    "practicename",
+    "practice",
+    "asc name",
+    "asc_name",
+    "ascname",
+    "surgery center",
+    "surgery_center",
+    "surgerycenter",
+    "surgical center",
+    "surgical_center",
+    "surgicalcenter",
+    "vendor name",
+    "vendor_name",
+    "vendorname",
+    "vendor",
+    "provider name",
+    "provider_name",
+    "providername",
+    "org name",
+    "org_name",
+    "orgname",
+    "organization name",
+    "organization_name",
+    "organizationname",
+    "organization",
+    "client name",
+    "client_name",
+    "clientname",
+    "client",
+    "entity name",
+    "entity_name",
+    "entityname",
+    "fac",
+    "loc",
+    "loc name",
+    "loc_name",
+]
+
 
 def _expand_alias_variants(alias):
     """Generate matching variants of an alias: original, underscores-to-spaces,
@@ -1152,6 +1222,105 @@ def _expand_aliases(aliases):
     for alias in aliases:
         expanded.update(_expand_alias_variants(alias))
     return expanded
+
+
+def _detect_sheet_delimiter(sheet, check_rows=15):
+    """
+    Detect if a sheet has data packed into a single column using | or , as a delimiter.
+    This handles POP tabs where all columns are joined into one cell per row.
+
+    Returns (delimiter, header_row_idx, header_parts) or (None, None, None) if normal.
+    Pipe (|) is checked before comma to avoid false positives on data cells that
+    legitimately contain commas (e.g. CPT code strings like "43239,FAC").
+    """
+    for row_idx in range(1, check_rows + 1):
+        try:
+            row = list(sheet.iter_rows(min_row=row_idx, max_row=row_idx, values_only=True))[0]
+        except (IndexError, AttributeError):
+            continue
+
+        non_empty = [c for c in row if c is not None and str(c).strip()]
+        if not non_empty:
+            continue
+
+        # Only attempt detection when very few real columns are populated (1-3)
+        if len(non_empty) <= 3:
+            cell_str = str(non_empty[0]).strip()
+            for delim in ['|', ',']:
+                if delim in cell_str:
+                    parts = [p.strip() for p in cell_str.split(delim)]
+                    # Require at least 4 parts so we don't misfire on simple data cells
+                    if len(parts) >= 4:
+                        return delim, row_idx, parts
+
+    return None, None, None
+
+
+def find_column_in_sheet(sheet, aliases):
+    """
+    Like find_column_by_aliases but also handles pipe/comma delimited single-column sheets.
+    Returns a dict with column info, or None if not found:
+      {
+        'col_idx':    int  — 1-based for normal sheets; 0-based position within the split for delimited
+        'header_row': int  — row index where the header was found
+        'delimiter':  str or None
+        'is_delimited': bool
+        'header_name': str
+      }
+    """
+    # Try normal column layout first
+    col_idx, hdr_row = find_column_by_aliases(sheet, aliases)
+    if col_idx is not None:
+        try:
+            hdr_cells = list(sheet.iter_rows(min_row=hdr_row, max_row=hdr_row, values_only=True))[0]
+            hdr_name = str(hdr_cells[col_idx - 1]).strip()
+        except Exception:
+            hdr_name = ''
+        return {
+            'col_idx': col_idx,
+            'header_row': hdr_row,
+            'delimiter': None,
+            'is_delimited': False,
+            'header_name': hdr_name,
+        }
+
+    # Fall back to delimited detection
+    delimiter, hdr_row, parts = _detect_sheet_delimiter(sheet)
+    if delimiter is None:
+        return None
+
+    expanded = _expand_aliases(aliases)
+    for pos, part in enumerate(parts):
+        cell_str = re.sub(r'\s+', ' ', part).strip().strip('"\'').strip().lower()
+        if cell_str in expanded:
+            return {
+                'col_idx': pos,   # 0-based position within the split
+                'header_row': hdr_row,
+                'delimiter': delimiter,
+                'is_delimited': True,
+                'header_name': part,
+            }
+
+    return None
+
+
+def get_row_value(row, col_info):
+    """
+    Extract the value for a column from a data row, handling delimited sheets.
+    col_info: dict returned by find_column_in_sheet.
+    """
+    if col_info is None:
+        return None
+    if col_info['is_delimited']:
+        cell = row[0] if row else None
+        if cell is None:
+            return None
+        parts = str(cell).split(col_info['delimiter'])
+        idx = col_info['col_idx']
+        return parts[idx].strip() if idx < len(parts) else None
+    else:
+        idx = col_info['col_idx'] - 1
+        return row[idx] if idx < len(row) else None
 
 
 def find_column_by_aliases(sheet, aliases):
@@ -1180,6 +1349,95 @@ def find_column_by_aliases(sheet, aliases):
     return None, None
 
 
+def find_all_columns_by_aliases(sheet, aliases):
+    """
+    Find ALL columns in the sheet that match any alias in the list.
+    Returns a list of dicts: [{'col': 1-based col index, 'header_row': row index,
+                               'header_name': original header text, 'values': list of unique non-empty values}]
+    """
+    expanded = _expand_aliases(aliases)
+    found = []
+    seen_cols = set()
+    for header_row_idx in range(1, 41):  # Check first 40 rows
+        try:
+            row = list(
+                sheet.iter_rows(
+                    min_row=header_row_idx, max_row=header_row_idx, values_only=True
+                )
+            )[0]
+            for col_idx, cell_value in enumerate(row, start=1):
+                if cell_value and col_idx not in seen_cols:
+                    # Normalize: collapse all whitespace, strip quotes, lowercase
+                    cell_str = re.sub(r'\s+', ' ', str(cell_value)).strip().strip('"\'').strip().lower()
+                    if cell_str in expanded:
+                        # Collect all unique non-empty values from this column
+                        unique_vals = []
+                        seen_vals = set()
+                        for data_row in sheet.iter_rows(min_row=header_row_idx + 1, values_only=True):
+                            val = data_row[col_idx - 1] if len(data_row) >= col_idx else None
+                            if val is not None and str(val).strip():
+                                val_str = str(val).strip()
+                                val_lower = val_str.lower()
+                                if val_lower not in seen_vals:
+                                    seen_vals.add(val_lower)
+                                    unique_vals.append(val_str)
+                        found.append({
+                            'col': col_idx,
+                            'header_row': header_row_idx,
+                            'header_name': str(cell_value).strip(),
+                            'values': unique_vals,
+                        })
+                        seen_cols.add(col_idx)
+        except (IndexError, AttributeError):
+            continue
+    return found
+
+
+def find_all_columns_in_sheet(sheet, aliases):
+    """
+    Like find_all_columns_by_aliases but also handles pipe/comma delimited single-column sheets.
+    Returns a list of match dicts (header_name, values, col_idx, header_row, is_delimited, delimiter).
+    Tries normal layout first; if nothing found, falls back to delimiter detection.
+    """
+    results = find_all_columns_by_aliases(sheet, aliases)
+    if results:
+        for r in results:
+            r['is_delimited'] = False
+            r['delimiter'] = None
+        return results
+
+    # Fall back to delimiter detection
+    delimiter, hdr_row, parts = _detect_sheet_delimiter(sheet)
+    if delimiter is None:
+        return []
+
+    expanded = _expand_aliases(aliases)
+    found = []
+    for pos, part in enumerate(parts):
+        cell_str = re.sub(r'\s+', ' ', part).strip().strip('"\'').strip().lower()
+        if cell_str in expanded:
+            unique_vals = []
+            seen_vals = set()
+            for data_row in sheet.iter_rows(min_row=hdr_row + 1, values_only=True):
+                raw = data_row[0] if data_row else None
+                if raw is None:
+                    continue
+                row_parts = str(raw).split(delimiter)
+                val = row_parts[pos].strip() if pos < len(row_parts) else ''
+                if val and val.lower() not in seen_vals:
+                    seen_vals.add(val.lower())
+                    unique_vals.append(val)
+            found.append({
+                'col_idx': pos,
+                'header_row': hdr_row,
+                'header_name': part,
+                'values': unique_vals,
+                'is_delimited': True,
+                'delimiter': delimiter,
+            })
+    return found
+
+
 def normalize_email(email_val):
     """Normalize email for comparison (lowercase, stripped)."""
     if email_val is None:
@@ -1205,19 +1463,18 @@ def check_pop_upload_email_consistency(
 
     pop_sheet = wb["POP"]
 
-    # Find MRN and Email columns in POP using aliases
-    mrn_col_pop, mrn_header_row = find_column_by_aliases(pop_sheet, MRN_ALIASES)
-    email_col_pop, email_header_row = find_column_by_aliases(pop_sheet, EMAIL_ALIASES)
+    # Find MRN and Email columns in POP using aliases — handles both normal and delimited sheets
+    mrn_info = find_column_in_sheet(pop_sheet, MRN_ALIASES)
+    email_info = find_column_in_sheet(pop_sheet, EMAIL_ALIASES)
 
-    if mrn_col_pop is None:
+    if mrn_info is None:
         return [("N/A", "N/A", "N/A", "Could not locate MRN column in POP tab")]
 
-    if email_col_pop is None:
+    if email_info is None:
         return [("N/A", "N/A", "N/A", "Could not locate Email column in POP tab")]
 
     # Build a dictionary of MRN -> Email from POP tab
-    # Use the header row with the most columns as the reference
-    pop_data_start_row = max(mrn_header_row or 1, email_header_row or 1) + 1
+    pop_data_start_row = mrn_info['header_row'] + 1
 
     pop_mrn_to_email = {}
     for row in pop_sheet.iter_rows(min_row=pop_data_start_row, values_only=True):
@@ -1225,10 +1482,10 @@ def check_pop_upload_email_consistency(
         if not any(cell is not None and str(cell).strip() != "" for cell in row):
             continue
 
-        # Get MRN and Email from this row
+        # Get MRN and Email from this row (works for both normal and delimited sheets)
         try:
-            mrn_val = row[mrn_col_pop - 1] if mrn_col_pop <= len(row) else None
-            email_val = row[email_col_pop - 1] if email_col_pop <= len(row) else None
+            mrn_val = get_row_value(row, mrn_info)
+            email_val = get_row_value(row, email_info)
 
             if mrn_val:
                 mrn_str = str(mrn_val).strip()

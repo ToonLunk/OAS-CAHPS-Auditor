@@ -46,6 +46,7 @@ def build_report(
     sid_registry_name=None,
     service_date_range=None,
     blank_date_row_issues=None,
+    facility_matches=None,
 ):
     """
     Build the HTML audit report for saving as .html
@@ -428,6 +429,7 @@ def build_report(
         report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check"
             " <span class='info-icon'>i<span class='tooltip'>"
             "SIDs.csv contains the list of client names matched to SID codes. "
+            "If facility/site name columns are found in the POP tab, they are shown below. "
             "Download the latest version from the "
             "<a href='https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU' "
             "style='color: #5dade2;' target='_blank'>shared OneDrive folder</a> "
@@ -456,6 +458,40 @@ def build_report(
         report_lines.append(f"<td style='color: {match_color}; font-weight: 600;'>{sid_registry_name}</td>")
         report_lines.append("</tr>")
         report_lines.append("</table>")
+
+        # Show facility/location columns found in FRAME/POP tabs (collapsible)
+        fac_matches = facility_matches or []
+        if fac_matches:
+            count_label = f"{len(fac_matches)} column{'s' if len(fac_matches) != 1 else ''} found"
+            report_lines.append(
+                f"<details style='margin-top: 8px; font-size: 0.9em;'>"
+                f"<summary style='cursor: pointer; font-weight: 600;'>"
+                f"Facility / Location columns ({count_label})</summary>"
+            )
+            for match in fac_matches:
+                col_name = match.get('header_name', 'N/A')
+                tab_name = match.get('tab', 'POP')
+                is_delimited = match.get('is_delimited', False)
+                delim_note = f" <span style='color:#888; font-weight:400;'>(pipe-delimited)</span>" if is_delimited else (
+                    f" <span style='color:#888; font-weight:400;'>(comma-delimited)</span>" if match.get('delimiter') == ',' else '')
+                values = match.get('values', [])
+                val_count = len(values)
+                report_lines.append(
+                    f"<div style='margin-top: 8px; margin-bottom: 2px; font-weight: 600;'>"
+                    f"{tab_name} &rarr; <em>{col_name}</em>{delim_note} &mdash; "
+                    f"{val_count} unique value{'s' if val_count != 1 else ''}"
+                    f"</div>"
+                )
+                if values:
+                    report_lines.append("<table class='data-table' style='margin-top: 2px;'>")
+                    report_lines.append("<tr><th>#</th><th>Value</th></tr>")
+                    for i, val in enumerate(values, start=1):
+                        report_lines.append(f"<tr><td style='width: 40px; text-align: center;'>{i}</td><td>{val}</td></tr>")
+                    report_lines.append("</table>")
+                else:
+                    report_lines.append("<p style='margin: 2px 0; color: #888;'><em>No values found</em></p>")
+            report_lines.append("</details>")
+
     else:
         # Show that SID registry check couldn't be performed
         report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check"
