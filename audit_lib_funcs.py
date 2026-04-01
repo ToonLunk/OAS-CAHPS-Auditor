@@ -1633,7 +1633,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
         # GENDER - must be M, F, 0, 1, or 2
         if gender_col:
             gender_val = row[gender_col - 1]
-            valid_genders = ["M", "F", "0", "1", "2"]
+            valid_genders = ["M", "F", "0", "1", "2", "U", "O"]
             gender_str = str(gender_val).strip().upper() if gender_val else ""
             if not gender_str or gender_str not in valid_genders:
                 row_issues.append(
