@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file.
 - Tweaked the estimated log sheet line to look cleaner and added a note about how the fields are determined
 - Enchanced the alias list to catch more variations of common column names, especially for email and MRN columns
 - Made address validation more robust using the `usaddress` library, which can handle a wider variety of address formats and is more accurate
+- Patched the list of valid genders to include U and O
+- Added more tooltips
+- Added a feature to grab the facility name(s) and append them below the SID comparison
 
 ## Version 1.0.0 - The Final Release?
 
