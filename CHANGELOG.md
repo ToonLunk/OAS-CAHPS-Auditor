@@ -2,7 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## Version 1.0.1 - Post-Release Fixes
+## Version 1.0.2 - More Post-Release Fixes/Additions
+
+- Added a check to make sure the month in the filename is spelled correctly, and that the # exists in the filename
+
+## Version 1.0.1 - Post-Release Fixes/Additions
 - Fixed a bug where if the address column was missing/not named correctly, the report would throw an error instead of just skipping the address validation
 - Added a comparison of the OASCAPHS and UPLOAD tabs to check for mismatches between the two, with a warning in the report if any are found
 - Tweaked the estimated log sheet line to look cleaner and added a note about how the fields are determined

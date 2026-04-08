@@ -10,7 +10,7 @@ from tqdm import tqdm
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 version = __version__
 
 

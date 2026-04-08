@@ -52,15 +52,50 @@ def build_report(
     Build the HTML audit report for saving as .html
     """
 
+    # Track row-based issues separately for table display
+    row_issues = []  # List of dicts: {row, mrn, cms, issue_type, description}
+
     basefname = os.path.basename(file_path)
     base_before_hash = basefname.split("#", 1)[0]
 
+    try:
+        after_hash = basefname.split("#", 1)[1]
+    except IndexError:
+        row_issues.append(
+            {
+                "row": "FILE",
+                "mrn": None,
+                "cms": None,
+                "issue_type": "Filename Issue",
+                "description": "Filename is missing '#' separator",
+            }
+        )
+    else:
+        # Remove extension
+        name_part = os.path.splitext(after_hash)[0]
+
+        # Extract month name
+        month = name_part.split()[0].lower()
+
+        months = {
+            "january", "february", "march", "april", "may", "june",
+            "july", "august", "september", "october", "november", "december",
+        }
+
+        if month not in months:
+            row_issues.append(
+                {
+                    "row": "FILE",
+                    "mrn": None,
+                    "cms": None,
+                    "issue_type": "Filename Issue",
+                    "description": f"Invalid or misspelled month in filename: '{month}'",
+                }
+            )
+
     # Start HTML document with helper function
     report_lines = _build_html_header(file_path, version, audit_id, sid_prefix, service_date_range)
-
-    # Track row-based issues separately for table display
-    row_issues = []  # List of dicts: {row, mrn, cms, issue_type, description}
-    
+        
     # Add SID row issues if provided
     if sid_row_issues:
         row_issues.extend(sid_row_issues)
