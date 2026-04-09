@@ -17,7 +17,9 @@ Version is stored in `.env` file at project root:
 VERSION=0.50-rc1
 ```
 
-As well as in audit.py as a constant.
+As well as in audit.py as a constant, and version_info.txt.
+
+<!-- note: should probably figure out a way to onlu have this in one place -->
 
 This version is used by:
 
@@ -65,7 +67,7 @@ Recipients run the Setup.exe wizard to install.
 
 ## Installation Methods
 
-**Setup Wizard (Recommended):**
+**Setup Wizard:**
 
 - Run `OAS-CAHPS-Auditor-v{VERSION}-Setup.exe`
 - Installs to `C:\OAS-CAHPS-Auditor`
@@ -73,20 +75,14 @@ Recipients run the Setup.exe wizard to install.
 - Optionally registers right-click context menu entries
 - Creates an uninstaller accessible via Add/Remove Programs
 
-**Manual:**
-
-1. Place `audit.exe` and all files in `C:\OAS-CAHPS-Auditor` (or any directory you choose)
-2. Add that directory to Windows PATH environment variable
-3. Restart terminal
-
 ## Development Workflow
 
 1. Make changes to Python source files
-2. Update version in `.env` if needed
+2. Update version if needed (reserve for somewhat substantial changes/bug fixes since this will popup on everyone's audits)
 3. Test: `python audit.py <file>`
 4. Build: `scripts\build_exe.bat`
 5. Package: `scripts\package.bat` (when ready to distribute)
-6. Upload the ZIP to GitHub Releases
+6. Upload the installer to GitHub Releases
 7. Update `SIDs.csv` on the shared OneDrive when clients change (monthly)
 
 ## Technical Notes
