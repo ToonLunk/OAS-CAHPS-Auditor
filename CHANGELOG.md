@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 - Added a check to make sure the month in the filename is spelled correctly, and that the # exists in the filename
 
 ## Version 1.0.1 - Post-Release Fixes/Additions
-- Fixed a bug where if the address column was missing/not named correctly, the report would throw an error instead of just skipping the address validation
+- **IMPORTANT**: Fixed a bug where if the address column was missing/not named correctly, the report would throw an error instead of just skipping the address validation
 - Added a comparison of the OASCAPHS and UPLOAD tabs to check for mismatches between the two, with a warning in the report if any are found
 - Tweaked the estimated log sheet line to look cleaner and added a note about how the fields are determined
 - Enchanced the alias list to catch more variations of common column names, especially for email and MRN columns
@@ -18,12 +18,12 @@ All notable changes to this project will be documented in this file.
 
 ## Version 1.0.0 - The Final Release?
 
- - Changed from installing via batch file to using NSIS installer for a more polished installation experience
- - Prompts user about context menu integration during installation, with an option to enable it
- - Added an update banner to the HTML report when a new version is available because no one reads the terminal output
- - Updated documentation and installation instructions
- - Added an icon to the executable and installer
- - Added a check to the installer for users who don't already have the SIDs.csv file, with a link to the OneDrive folder to download it
+- Changed from installing via a batch file to using NSIS installer for a more polished installation experience
+- Prompts user about context menu integration during installation, with an option to enable it
+- Added an update banner to the HTML report when a new version is available because no one reads the terminal output
+- Updated documentation and installation instructions
+- Added an icon to the executable and installer
+- Added a check to the installer for users who don't already have the SIDs.csv file, with a link to the OneDrive folder to download it
 
 ## Version 0.65.6
 
