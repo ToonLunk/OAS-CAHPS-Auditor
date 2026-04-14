@@ -397,9 +397,31 @@ def build_report(
                 f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
             )
 
-    report_lines.append("</table>")
+    # Check 7: Eligible + INEL = Submitted math check
+    if patients_submitted is not None and eligible_patients is not None and inel_count is not None:
+        math_total = eligible_patients + total_inel_combined
+        if math_total != patients_submitted:
+            issue_msg = (
+                f"<strong>WARNING:</strong> Math error: "
+                f"Eligible <strong style='color: red;'>{eligible_patients}</strong> + "
+                f"INEL <strong style='color: red;'>{total_inel_combined}</strong> = "
+                f"<strong style='color: red;'>{math_total}</strong>, "
+                f"but Submitted = <strong style='color: red;'>{patients_submitted}</strong>"
+            )
+            tooltip_text = (
+                "This may be expected in some cases, like if there are multiple facilities in the file and the submitted count only includes patients from one facility. Please verify manually."
+            )
+            issue_msg_with_tooltip = f"{issue_msg} <span class='info-icon'>i<span class='tooltip'>{tooltip_text}</span></span>"
+            report_lines.append(
+                f"<tr><td style='background-color: #fff3cd;'>{issue_msg_with_tooltip}</td><td style='color: red;'>✗</td></tr>"
+            )
+            issues.append(f"<strong>WARNING:</strong> Math error: Eligible ({eligible_patients}) + Combined INEL ({total_inel_combined}) = {math_total}, but Submitted = {patients_submitted}")
+        else:
+            report_lines.append(
+                f"<tr><td>Eligible + INEL = Submitted ({eligible_patients} + {total_inel_combined} = {patients_submitted})</td><td style='color: #28a745;'>✓</td></tr>"
+            )
 
-    # Determine QTR header color based on month (November=orange, December=green, etc.)
+    report_lines.append("</table>") # based on month (November=orange, December=green, etc.)
     qtr_header_color = "#27ae60"  # Default green
     if service_date_range:
         try:
@@ -483,7 +505,7 @@ def build_report(
         import re
         # Remove date patterns like "11/1" or "- 11/1" from the end
         # Keeps location names: "Name - Location - 11/1" becomes "Name - Location"
-        normalized_registry = re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip().lower()
+        normalized_registry = re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}(?:/\d{2,4})?\s*$', '', sid_registry_name).strip().lower()
         normalized_filename = base_before_hash.strip().lower()
         
         # Compare normalized names (case-insensitive) and set color
@@ -594,44 +616,60 @@ def build_report(
         issues.append(issue_msg)
 
     # 2. UPLOAD vs OASCAPHS comparison (value-by-value)
+    # Only run if UPLOAD tab exists AND row counts match — if counts differ,
+    # Check 4 above already reported it; positional comparison would be meaningless.
     if "UPLOAD" in wb.sheetnames:
         upload_sheet = wb["UPLOAD"]
-        up_headers = {
-            cell.value: idx
-            for idx, cell in enumerate(
-                next(upload_sheet.iter_rows(min_row=1, max_row=1)), start=1
+        _up_count = count_nonempty_rows(upload_sheet)
+        _oas_count = count_nonempty_rows(sheet)
+        if _up_count > 0 and _up_count == _oas_count:
+            up_headers = {
+                cell.value: idx
+                for idx, cell in enumerate(
+                    next(upload_sheet.iter_rows(min_row=1, max_row=1)), start=1
+                )
+            }
+            oas_headers = headers
+            ignore_cols = {"LG", "FD", "ID", "ATT", "LAG", "E/M"}
+            common_cols = sorted(
+                set(up_headers.keys()).intersection(oas_headers.keys())
+                - ignore_cols
+                - {None}
             )
-        }
-        oas_headers = headers
-        ignore_cols = {"LG", "FD", "ID", "ATT", "LAG", "E/M"}
-        common_cols = (
-            set(up_headers.keys()).intersection(oas_headers.keys()) - ignore_cols
-        )
 
-        # Optimized: Use iter_rows for batch access (much faster than cell-by-cell)
-        max_rows = min(
-            count_nonempty_rows(upload_sheet) + 1, count_nonempty_rows(sheet) + 1
-        )
-        
-        # Get all rows at once using iter_rows (much faster than cell-by-cell access)
-        upload_rows = list(upload_sheet.iter_rows(min_row=2, max_row=max_rows, values_only=True))
-        oas_rows = list(sheet.iter_rows(min_row=2, max_row=max_rows, values_only=True))
-        
-        for col in common_cols:
-            up_idx = up_headers[col] - 1
-            oas_idx = oas_headers[col] - 1
-            
+            upload_rows = list(upload_sheet.iter_rows(min_row=2, values_only=True))
+            oas_rows = list(sheet.iter_rows(min_row=2, values_only=True))
+
+            def _norm(v):
+                return "" if v is None else str(v).strip()
+
             for r_offset, (up_row, oas_row) in enumerate(zip(upload_rows, oas_rows)):
-                r = r_offset + 2  # Adjust for Excel row number (starts at 2)
-                up_val = up_row[up_idx] if up_idx < len(up_row) else None
-                oas_val = oas_row[oas_idx] if oas_idx < len(oas_row) else None
-                
-                if up_val != oas_val:
-                    issues.append(
-                        f"UPLOAD Row {r}, Column {col}: UPLOAD={up_val} vs OASCAPHS={oas_val}"
+                r = r_offset + 2
+                row_mismatches = []
+                for col in common_cols:
+                    up_idx = up_headers[col] - 1
+                    oas_idx = oas_headers[col] - 1
+                    up_val = up_row[up_idx] if up_idx < len(up_row) else None
+                    oas_val = oas_row[oas_idx] if oas_idx < len(oas_row) else None
+                    if _norm(up_val) != _norm(oas_val):
+                        row_mismatches.append(
+                            f"{col}: OASCAPHS='{oas_val}' UPLOAD='{up_val}'"
+                        )
+                if row_mismatches:
+                    mrn_val = oas_row[mrn_col - 1] if mrn_col else None
+                    cms_val = oas_row[cms_col - 1] if cms_col else None
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": cms_val,
+                            "issue_type": "UPLOAD/OASCAPHS Mismatch",
+                            "description": "; ".join(row_mismatches),
+                        }
                     )
-    else:
-        issues.append("UPLOAD tab missing")
+                    issues.append(
+                        f"Row {r}: " + "; ".join(row_mismatches)
+                    )
 
     # 2b. Cross-tab consistency: POP vs UPLOAD email matching
     if "UPLOAD" in wb.sheetnames:
@@ -673,12 +711,7 @@ def build_report(
                         f"UPLOAD Row {upload_row}: Email mismatch for MRN {mrn} - UPLOAD: '{upload_email}' vs POP: '{pop_email}'"
                     )
 
-    # Check combined ineligible math (moved validation to earlier section)
-    if patients_submitted is not None and eligible_patients is not None:
-        total_inel_combined = (inel_count or 0) + (frame_inel_count or 0)
-        if eligible_patients + total_inel_combined != patients_submitted:
-            issue_msg = f"<strong>WARNING:</strong> Math error: Eligible ({eligible_patients}) + Combined INEL ({total_inel_combined}) = {eligible_patients + total_inel_combined}, but Submitted = {patients_submitted}"
-            issues.append(issue_msg)
+    # Check combined ineligible math — handled in ADDITIONAL VALIDATIONS table above
 
     # 3. CPT Ineligibility Check (only report when CMS == 1)
     cpt_ineligible_rows = []
@@ -1117,8 +1150,9 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha",
             f"<a href=\"{update_info['download_url']}\" "
             "style='margin-left:8px;background:#fffbe6;border:1px solid #ffe58f;"
             "padding:2px 8px;border-radius:3px;color:#8a6d3b;font-size:0.9em;"
-            "text-decoration:none;font-weight:500;'>"
-            f"v{update_info['latest_version']} available"
+            "text-decoration:none;font-weight:500;'"
+            f" title='A newer version was available when this audit was generated'>"
+            f"&#8595; Click here to download v{update_info['latest_version']}"
             "</a>"
         )
         for i, line in enumerate(report_lines):

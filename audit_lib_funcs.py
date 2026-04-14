@@ -241,7 +241,20 @@ def check_address(
 
         mrn = row[mrn_col - 1] if mrn_col else ""
         cms = row[cms_col - 1] if cms_col else ""
+
+        # CMS=2 patients are contacted by email only — skip address checks
+        try:
+            if int(cms) == 2:
+                continue
+        except (ValueError, TypeError):
+            pass
+
         em = row[em_col - 1] if em_col else ""
+
+        # E/M=E rows are emailed, not mailed — skip address checks
+        if str(em).strip().upper() == "E":
+            continue
+
         street_str = str(row[street_address_1_col - 1] or "").strip()
         street2_str = ""
         if street_address_2_col:
@@ -648,15 +661,14 @@ def find_frame_inel_count(
 
     end_idx = start_idx + sparse_run  # exclusive
 
-    # Count non-empty values in column B (index 1)
+    # Count rows with any non-empty value from column B onwards in the sparse block.
+    # Column A is skipped because RATSTATS random numbers may be placed there and
+    # should not be counted as INEL entries. Identifiers may be in any column >= B.
     pt_id_count = 0
     for r in range(start_idx, end_idx):
         row = rows[r]
-        # ensure row has at least two columns
-        if len(row) >= 2:
-            val = row[1]
-            if val is not None and str(val).strip() != "":
-                pt_id_count += 1
+        if any(val is not None and str(val).strip() != "" for val in row[1:]):
+            pt_id_count += 1
 
     return pt_id_count
 
@@ -749,6 +761,17 @@ def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
             cms_int = None
         
         if cms_int != 1:
+            # Check if a SID was accidentally entered on a non-CMS=1 row
+            sid_value_check = row[sid_col - 1] if sid_col <= len(row) else None
+            if sid_value_check is not None and str(sid_value_check).strip():
+                mrn_value_check = row[0] if len(row) > 0 else None
+                row_issues.append({
+                    'row': row_num,
+                    'mrn': mrn_value_check,
+                    'cms': cms_value,
+                    'issue_type': 'SID on Non-CMS=1 Row',
+                    'description': f"Row {row_num}: SID '{str(sid_value_check).strip()}' found on row with CMS={cms_value} (expected CMS=1 only)"
+                })
             row_num += 1
             continue
             
@@ -1630,12 +1653,12 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
         if mrn_val:
             mrn_tracker[mrn_val].append(r)
 
-        # GENDER - must be M, F, 0, 1, or 2
+        # GENDER - must be M, F, 0, 1, or 2 (blank is acceptable)
         if gender_col:
             gender_val = row[gender_col - 1]
             valid_genders = ["M", "F", "0", "1", "2", "U", "O"]
             gender_str = str(gender_val).strip().upper() if gender_val else ""
-            if not gender_str or gender_str not in valid_genders:
+            if gender_str and gender_str not in valid_genders:
                 row_issues.append(
                     {
                         "row": r,
@@ -1754,7 +1777,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                     )
                     issues.append(f"OASCAPHS Row {r}: DOB '{dob_val}' error: {err}")
 
-        # EMAIL ADDRESS - validate format when present
+        # EMAIL ADDRESS - validate format when present; require it for CMS=2
         if email_col:
             email_val = row[email_col - 1]
             if email_val and str(email_val).strip():
@@ -1775,6 +1798,35 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                     issues.append(
                         f"OASCAPHS Row {r}: Invalid email format '{email_str}'"
                     )
+            else:
+                # CMS=2 patients are email-only — a missing email means they can't be contacted
+                try:
+                    if cms_val is not None and int(cms_val) == 2:
+                        row_issues.append(
+                            {
+                                "row": r,
+                                "mrn": mrn_val,
+                                "cms": cms_val,
+                                "issue_type": "Missing Email for CMS=2",
+                                "description": "CMS=2 but email address is blank (email is the only contact method)",
+                            }
+                        )
+                        issues.append(f"OASCAPHS Row {r}: CMS=2 but email is blank")
+                except (ValueError, TypeError):
+                    pass
+                # E/M=E rows are sent via email — a missing email means they won't receive a survey
+                em_str = str(em_val).strip().upper() if em_val else ""
+                if em_str == "E":
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": cms_val,
+                            "issue_type": "Missing Email for E/M=E",
+                            "description": "E/M is 'E' but email address is blank",
+                        }
+                    )
+                    issues.append(f"OASCAPHS Row {r}: E/M=E but email is blank")
 
         # SURVEY LANGUAGE - must be en, es, ko, zh, or m (lowercase)
         if lang_col:
@@ -1881,6 +1933,13 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
             mrn_val = row[mrn_col - 1] if mrn_col else None
             cms_val = row[cms_col - 1] if cms_col else None
 
+            # CMS=2 patients are contacted by email only — skip phone checks
+            try:
+                if cms_val is not None and int(cms_val) == 2:
+                    continue
+            except (ValueError, TypeError):
+                pass
+
             if tel_val and str(tel_val).strip():
                 tel_str = str(tel_val).strip()
                 try:
@@ -1911,6 +1970,37 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                     issues.append(
                         f"OASCAPHS Row {r}: Telephone '{tel_str}' has invalid format"
                     )
+
+    # Check for duplicate phone numbers (possible accidental copy-paste)
+    if tel_col:
+        phone_tracker = defaultdict(list)
+        for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+            if is_blank_row(row):
+                continue
+            tel_val = row[tel_col - 1]
+            mrn_val = row[mrn_col - 1] if mrn_col else None
+            cms_val = row[cms_col - 1] if cms_col else None
+            if tel_val and str(tel_val).strip():
+                phone_tracker[str(tel_val).strip()].append((r, mrn_val, cms_val))
+        for tel_str, entries in phone_tracker.items():
+            if len(entries) > 1:
+                # Only flag if at least 2 appearances are CMS=1
+                cms1_appearances = sum(
+                    1 for _, _, cms_val in entries
+                    if cms_val is not None and str(cms_val).strip() == "1"
+                )
+                if cms1_appearances < 2:
+                    continue
+                rows_str = ", ".join(str(e[0]) for e in entries)
+                for r, mrn_val, cms_val in entries:
+                    row_issues.append({
+                        "row": r,
+                        "mrn": mrn_val,
+                        "cms": cms_val,
+                        "issue_type": "Duplicate Telephone Number",
+                        "description": f"Phone '{tel_str}' appears in rows: {rows_str}",
+                    })
+                issues.append(f"OASCAPHS: Phone '{tel_str}' appears in rows {rows_str}")
 
     # find placeholder/test names in patient name col
     if name_col:

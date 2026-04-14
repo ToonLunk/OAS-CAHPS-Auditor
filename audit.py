@@ -10,7 +10,7 @@ from tqdm import tqdm
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "1.0.2"
+__version__ = "1.1.0"
 version = __version__
 
 
@@ -259,7 +259,7 @@ def audit_excel(file_path, show_progress=False):
     if sid_prefix and sid_registry_name:
         # Normalize both names for comparison (same logic as in audit_printer)
         # Make case-insensitive and remove date pattern (with optional dash) from end
-        normalized_registry = re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}\s*$', '', sid_registry_name).strip().lower()
+        normalized_registry = re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}(?:/\d{2,4})?\s*$', '', sid_registry_name).strip().lower()
         normalized_filename = base_before_hash.strip().lower()
         names_match = (normalized_registry == normalized_filename)
         name_match_info = {

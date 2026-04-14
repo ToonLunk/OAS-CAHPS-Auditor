@@ -2,11 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.1.0 - QoL Improvements
+
+- CMS=2 rows no longer report invalid address or phone number issues, since these patients are contacted by email only
+- Added warning when a SID is found on a non-CMS=1 row (too many SIDs added by mistake)
+- Added duplicate phone number detection (flags possible copy/paste errors, noted as potentially a shared family number)
+- Math error (Eligible + INEL ≠ Submitted) is now a visible ✓/✗ row in the ADDITIONAL VALIDATIONS table with highlighted numbers and an edge-case tooltip
+- Blank gender is now accepted as valid (no longer flagged as an issue)
+- Update badge now reads "↓ Download vX.X.X" with a tooltip clarifying it reflects the version available at audit time, not a live check
+- SID registry name comparison now strips 3-part dates (e.g. 1/1/26) in addition to 2-part dates (e.g. 1/1)
+- Fixed FRAME INEL count returning 0 when the patient identifier is not in column B (e.g. when a temporary column is added) — now counts any non-empty value in columns B onwards, ignoring column A where RATSTATS numbers may be placed
+- Added warning when a CMS=2 row has a blank email address (email is the only contact method for these patients)
+- E/M=E rows no longer report invalid address issues, and are now checked for missing email instead
+- Duplicate phone detection now requires at least two CMS=1 appearances before flagging (avoids false positives when a shared number spans a CMS=1 and CMS=2 row)
+- UPLOAD/OASCAPHS value-by-value comparison now flags mismatches in the row-level issues table (previously was bugged); if row counts differ, comparison is skipped to avoid a cascade
+
 ## Version 1.0.2 - More Post-Release Fixes/Additions
 
 - Added a check to make sure the month in the filename is spelled correctly, and that the # exists in the filename
 
 ## Version 1.0.1 - Post-Release Fixes/Additions
+
 - **IMPORTANT**: Fixed a bug where if the address column was missing/not named correctly, the report would throw an error instead of just skipping the address validation
 - Added a comparison of the OASCAPHS and UPLOAD tabs to check for mismatches between the two, with a warning in the report if any are found
 - Tweaked the estimated log sheet line to look cleaner and added a note about how the fields are determined

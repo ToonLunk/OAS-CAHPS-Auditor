@@ -39,3 +39,4 @@ Thumbs.db
 distribution/audit.exe
 distribution/audit.exe
 SIDs.csv
+.env
