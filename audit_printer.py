@@ -7,7 +7,7 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 
 from requests import head
-from audit_lib_funcs import check_address, check_pop_upload_email_consistency, count_nonempty_rows_after_header
+from audit_lib_funcs import check_address, check_pop_upload_email_consistency, count_nonempty_rows_after_header, collect_lookup_candidates, build_person_search_urls
 
 
 def build_report(
@@ -913,6 +913,44 @@ def build_report(
         report_lines.append("</table>")
         report_lines.append("</details>")
 
+    # PEOPLE-SEARCH LOOKUP SECTION
+    candidates = collect_lookup_candidates(sheet, headers, mrn_col, cms_col)
+    report_lines.append("<h2>CONTACT LOOKUP</h2>")
+    if candidates:
+        th = "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>"
+        report_lines.append("<details open>")
+        report_lines.append(f"<summary>CMS=1 patients with contact issues ({len(candidates)} found)</summary>")
+        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
+        report_lines.append(
+            f"<tr>{th}ROW</th>{th}MRN</th>{th}PATIENT NAME</th>"
+            f"{th}CITY, STATE</th>{th}REASON(S)</th>{th}SEARCH LINKS</th></tr>"
+        )
+        for c in candidates:
+            mrn_disp  = c["mrn"]  if c["mrn"]  is not None else ""
+            name_disp = c["name"] or "&mdash;"
+            location  = ", ".join(x for x in [c["city"], c["state"]] if x) or "&mdash;"
+            reasons   = "; ".join(c["issues"])
+            if c["mode"] == "lookup":
+                urls = build_person_search_urls(c["name"], c["city"], c["state"])
+                links_html = " &nbsp; ".join(
+                    f"<a href='{url}' target='_blank' "
+                    f"style='color:#2980b9;text-decoration:none;white-space:nowrap;'>{label}</a>"
+                    for label, url in urls.items()
+                )
+            else:
+                links_html = "&mdash;"
+            report_lines.append(
+                f"<tr>"
+                f"<td style='padding: 3px 8px;'>{c['row']}</td>"
+                f"<td style='padding: 3px 8px;'>{mrn_disp}</td>"
+                f"<td style='padding: 3px 8px;'>{name_disp}</td>"
+                f"<td style='padding: 3px 8px;'>{location}</td>"
+                f"<td style='padding: 3px 8px;'>{reasons}</td>"
+                f"<td style='padding: 3px 8px;'>{links_html}</td>"
+                f"</tr>"
+            )
+        report_lines.append("</table>")
+        report_lines.append("</details>")
     report_lines.append("<hr>")
     report_lines.append(
         "<p style='text-align: center;'><strong>END OF REPORT</strong></p>"

@@ -2040,3 +2040,174 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         break
 
     return issues, row_issues
+
+
+# ---------------------------------------------------------------------------
+# People-search lookup helpers  (used by --lookup mode)
+# ---------------------------------------------------------------------------
+
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
+
+def collect_lookup_candidates(sheet, headers, mrn_col, cms_col):
+    """
+    Scan the OASCAPHS sheet for CMS=1 rows that need a manual people-search:
+      - Invalid (non-blank) email address
+      - No valid phone number (0 valid numbers across TELEPHONE + CELL PHONE)
+
+    Rows with at least one valid phone but a bad one are flagged as "reference"
+    (show the values, no search links). All others are "lookup" (show search links).
+
+    Returns a list of dicts:
+      {row, mrn, name, city, state, issues: [str, ...], mode, tel_value, cell_value}
+    """
+    email_col  = headers.get("EMAIL ADDRESS")
+    tel_col    = headers.get("TELEPHONE")
+    cell_col   = headers.get("CELL PHONE")
+    name_col   = headers.get("PATIENT NAME")
+    city_col   = headers.get("CITY")
+    state_col  = headers.get("STATE")
+
+    candidates = []
+
+    for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        if is_blank_row(row):
+            continue
+
+        cms_val = row[cms_col - 1] if cms_col else None
+        mrn_val = row[mrn_col - 1] if mrn_col else None
+
+        # Only flag CMS=1 patients; use int(float(...)) to handle "1.0"-style cells
+        try:
+            cms_int = int(float(str(cms_val))) if cms_val is not None and str(cms_val).strip() else None
+            if cms_int != 1:
+                continue
+        except (ValueError, TypeError):
+            continue
+
+        name_val  = str(row[name_col  - 1] or "").strip() if name_col  else ""
+        city_val  = str(row[city_col  - 1] or "").strip() if city_col  else ""
+        state_val = str(row[state_col - 1] or "").strip() if state_col else ""
+
+        row_issues = []
+        # "lookup"    → show people-search links (need to find contact info)
+        # "reference" → show both phone values only (auditor corrects them manually)
+        mode = "lookup"
+
+        # Invalid (non-blank) email always triggers a lookup
+        if email_col:
+            email_val = row[email_col - 1]
+            if email_val and str(email_val).strip():
+                email_str = str(email_val).strip()
+                if not _EMAIL_RE.match(email_str):
+                    row_issues.append(f"Invalid email: {email_str}")
+
+        # --- Phone logic ---
+        tel_val  = row[tel_col  - 1] if tel_col  else None
+        cell_val = row[cell_col - 1] if cell_col else None
+        tel_str  = str(tel_val).strip()  if tel_val  else ""
+        cell_str = str(cell_val).strip() if cell_val else ""
+
+        tel_blank  = not tel_str
+        cell_blank = not cell_str
+
+        # Validate each present number
+        def _phone_invalid(num_str):
+            try:
+                parsed = phonenumbers.parse(num_str, "US")
+                return not phonenumbers.is_valid_number(parsed)
+            except phonenumbers.NumberParseException:
+                return True
+
+        tel_invalid  = (not tel_blank)  and _phone_invalid(tel_str)
+        cell_invalid = (not cell_blank) and _phone_invalid(cell_str)
+        has_valid_phone = (not tel_blank and not tel_invalid) or (not cell_blank and not cell_invalid)
+
+        phone_issues = []
+        if not has_valid_phone:
+            # 0 valid numbers — lookup needed
+            if tel_blank and cell_blank:
+                phone_issues.append("No phone number on file")
+            else:
+                if tel_blank:
+                    phone_issues.append("No telephone on file")
+                elif tel_invalid:
+                    phone_issues.append(f"Invalid telephone: {tel_str}")
+                if cell_blank:
+                    phone_issues.append("No cell phone on file")
+                elif cell_invalid:
+                    phone_issues.append(f"Invalid cell phone: {cell_str}")
+            # mode stays "lookup"
+        else:
+            # 1+ valid number — note any bad ones for reference, no lookup needed
+            if tel_invalid:
+                phone_issues.append(f"Invalid telephone: {tel_str}")
+            if cell_invalid:
+                phone_issues.append(f"Invalid cell phone: {cell_str}")
+            if phone_issues:
+                mode = "reference"
+
+        row_issues.extend(phone_issues)
+
+        if row_issues:
+            candidates.append({
+                "row":       r,
+                "mrn":       mrn_val,
+                "name":      name_val,
+                "city":      city_val,
+                "state":     state_val,
+                "issues":    row_issues,
+                "mode":      mode,
+                "tel_value": tel_str,
+                "cell_value": cell_str,
+            })
+
+    return candidates
+
+
+def build_person_search_urls(name: str, city: str = "", state: str = "") -> dict:
+    """
+    Return a dict of {site_label: url} with pre-populated people-search URLs.
+    No network request is made here — links are lazy (only fetched on click).
+    """
+    from urllib.parse import quote, quote_plus
+
+    name  = name.strip()
+    city  = city.strip()
+    state = state.strip()
+    state_up = state.upper()
+
+    name_q     = quote_plus(name)
+    loc_q      = quote_plus(f"{city}, {state_up}".strip(", ")) if (city or state) else ""
+
+    # URL-slug form: "John Smith" -> "john-smith"
+    name_slug  = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    city_slug  = re.sub(r"[^a-z0-9]+", "-", city.lower()).strip("-")
+
+    # WhitePages slug: "Barbara Arthur" -> "Barbara-Arthur", city+state: "Aurora-CO"
+    wp_name_slug = re.sub(r"\s+", "-", name.strip())
+    wp_city_state = f"{city}-{state_up}" if (city and state_up) else (city or state_up)
+    wp_path = f"https://www.whitepages.com/name/{wp_name_slug}/{wp_city_state}" if wp_city_state else f"https://www.whitepages.com/name/{wp_name_slug}"
+    wp_searched_name = quote(name.lower(), safe="")
+    wp_searched_loc  = quote(f"{city}, {state_up}".strip(", "), safe="") if (city or state_up) else ""
+    wp_query = f"fs=1&searchedName={wp_searched_name}"
+    if wp_searched_loc:
+        wp_query += f"&searchedLocation={wp_searched_loc}"
+
+    urls = {}
+
+    # WhitePages
+    urls["WhitePages"] = f"{wp_path}?{wp_query}"
+
+    # TruePeopleSearch
+    tps_base = f"https://www.truepeoplesearch.com/results?name={name_q}"
+    urls["TruePeopleSearch"] = f"{tps_base}&citystatezip={loc_q}" if loc_q else tps_base
+
+    # FastPeopleSearch
+    fps_base = f"https://www.fastpeoplesearch.com/name/{name_slug}"
+    if city_slug and state_up:
+        urls["FastPeopleSearch"] = f"{fps_base}_{city_slug}-{state_up}"
+    else:
+        urls["FastPeopleSearch"] = fps_base
+
+    return urls

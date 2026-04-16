@@ -10,7 +10,7 @@ from tqdm import tqdm
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 version = __version__
 
 
@@ -310,7 +310,9 @@ if __name__ == "__main__":
     
     _update_info = check_for_updates()
     
-    if len(sys.argv) != 2:
+    remaining_argv = sys.argv[1:]
+
+    if len(remaining_argv) != 1:
         print("Usage: audit <excel_file> or audit --all")
         print("Options:")
         print("  --all       Process all Excel files in the current directory")
@@ -322,7 +324,7 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    arg = sys.argv[1]
+    arg = remaining_argv[0]
 
     # Handle --all flag to process all files in current directory
     if arg == "--all":
@@ -396,9 +398,10 @@ if __name__ == "__main__":
         sys.exit(0)
 
     if arg == "--help" or arg == "-h":
-        print("Usage: audit <excel_file> or audit --all")
+        print("Usage: audit <excel_file> or audit --all [--lookup]")
         print("Options:")
         print("  --all       Process all Excel files in the current directory")
+        print("  --lookup    Append a people-search section for invalid emails / missing phones")
         print("  --help,-h   Show this help message")
         print("  --version,-v Show version information")
         print("\n")

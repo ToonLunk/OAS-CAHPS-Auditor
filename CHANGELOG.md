@@ -2,7 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## Version 1.1.0 - QoL Improvements
+## Version 1.2.0 - Contact Lookup
+
+- Added a **CONTACT LOOKUP** section to the HTML report for CMS=1 patients with contact issues. Appears automatically when issues are found — no flag or extra step needed
+- Patients with no valid phone number (both fields blank, invalid, or missing) are listed with pre-built people-search links (WhitePages, TruePeopleSearch, FastPeopleSearch) that open pre-populated on click — nothing is fetched until clicked
+- Patients with an invalid email address are also included with search links
+- Patients who have at least one valid phone but an invalid entry in the other field are listed as reference rows (reason shown, no search links needed)
+- Phone validation uses the `phonenumbers` library — a number like `1234567890` that passes format checks but is not a real assignable US number will be flagged
+
 
 - CMS=2 rows no longer report invalid address or phone number issues, since these patients are contacted by email only
 - Added warning when a SID is found on a non-CMS=1 row (too many SIDs added by mistake)
