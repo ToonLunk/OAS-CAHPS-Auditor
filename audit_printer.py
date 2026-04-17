@@ -432,7 +432,7 @@ def build_report(
                 # November is month 11, which is odd, so odd months are orange
                 month = start_date.month
                 if month % 2 == 1:  # Odd months: Jan(1), Mar(3), May(5), Jul(7), Sep(9), Nov(11)
-                    qtr_header_color = "#ff9a47"  # Orange
+                    qtr_header_color = "#ec8038"  # Orange
                 # Even months stay green
         except (ValueError, AttributeError):
             pass  # Keep default green
