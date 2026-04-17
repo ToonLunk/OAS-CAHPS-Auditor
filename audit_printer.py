@@ -432,7 +432,7 @@ def build_report(
                 # November is month 11, which is odd, so odd months are orange
                 month = start_date.month
                 if month % 2 == 1:  # Odd months: Jan(1), Mar(3), May(5), Jul(7), Sep(9), Nov(11)
-                    qtr_header_color = "#fc9a59"  # Orange
+                    qtr_header_color = "#ff9a47"  # Orange
                 # Even months stay green
         except (ValueError, AttributeError):
             pass  # Keep default green
@@ -941,12 +941,13 @@ def build_report(
         report_lines.append(f"<summary>CMS=1 patients with contact issues ({len(candidates)} found)</summary>")
         report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
         report_lines.append(
-            f"<tr>{th}ROW</th>{th}MRN</th>{th}PATIENT NAME</th>"
+            f"<tr>{th}ROW</th>{th}MRN</th>{th}PATIENT NAME</th>{th}AGE</th>"
             f"{th}CITY, STATE</th>{th}REASON(S)</th>{th}SEARCH LINKS</th></tr>"
         )
         for c in candidates:
             mrn_disp  = c["mrn"]  if c["mrn"]  is not None else ""
             name_disp = c["name"] or "&mdash;"
+            age_disp  = c["age"]  if c["age"]  is not None else ""
             location  = ", ".join(x for x in [c["city"], c["state"]] if x) or "&mdash;"
             reasons   = "; ".join(c["issues"])
             if c["mode"] == "lookup":
@@ -963,6 +964,7 @@ def build_report(
                 f"<td style='padding: 3px 8px;'>{c['row']}</td>"
                 f"<td style='padding: 3px 8px;'>{mrn_disp}</td>"
                 f"<td style='padding: 3px 8px;'>{name_disp}</td>"
+                f"<td style='padding: 3px 8px;'>{age_disp}</td>"
                 f"<td style='padding: 3px 8px;'>{location}</td>"
                 f"<td style='padding: 3px 8px;'>{reasons}</td>"
                 f"<td style='padding: 3px 8px;'>{links_html}</td>"

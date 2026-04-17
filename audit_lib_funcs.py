@@ -2200,6 +2200,7 @@ def collect_lookup_candidates(sheet, headers, mrn_col, cms_col):
     name_col   = headers.get("PATIENT NAME")
     city_col   = headers.get("CITY")
     state_col  = headers.get("STATE")
+    age_col    = headers.get("AGE")
 
     candidates = []
 
@@ -2221,6 +2222,7 @@ def collect_lookup_candidates(sheet, headers, mrn_col, cms_col):
         name_val  = str(row[name_col  - 1] or "").strip() if name_col  else ""
         city_val  = str(row[city_col  - 1] or "").strip() if city_col  else ""
         state_val = str(row[state_col - 1] or "").strip() if state_col else ""
+        age_val   = row[age_col - 1] if age_col else None
 
         row_issues = []
         # "lookup"    → show people-search links (need to find contact info)
@@ -2265,18 +2267,18 @@ def collect_lookup_candidates(sheet, headers, mrn_col, cms_col):
                 if tel_blank:
                     phone_issues.append("No telephone on file")
                 elif tel_invalid:
-                    phone_issues.append(f"Invalid telephone: {tel_str}")
+                    phone_issues.append(f"Invalid telephone: '{tel_str}'")
                 if cell_blank:
                     phone_issues.append("No cell phone on file")
                 elif cell_invalid:
-                    phone_issues.append(f"Invalid cell phone: {cell_str}")
+                    phone_issues.append(f"Invalid cell phone: '{cell_str}'")
             # mode stays "lookup"
         else:
             # 1+ valid number — note any bad ones for reference, no lookup needed
             if tel_invalid:
-                phone_issues.append(f"Invalid telephone: {tel_str}")
+                phone_issues.append(f"Invalid telephone: '{tel_str}' (cell phone is valid)")
             if cell_invalid:
-                phone_issues.append(f"Invalid cell phone: {cell_str}")
+                phone_issues.append(f"Invalid cell phone: '{cell_str}' (telephone is valid)")
             if phone_issues:
                 mode = "reference"
 
@@ -2287,6 +2289,7 @@ def collect_lookup_candidates(sheet, headers, mrn_col, cms_col):
                 "row":       r,
                 "mrn":       mrn_val,
                 "name":      name_val,
+                "age":       age_val,
                 "city":      city_val,
                 "state":     state_val,
                 "issues":    row_issues,
