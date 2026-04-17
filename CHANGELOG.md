@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.3.0 - Email Quality Checks
+
+- Replaced the basic email format regex with the `email-validator` library — now catches leading/trailing dots, consecutive dots, and other RFC-violating patterns that previously slipped through
+- Added detection for potentially invalid emails: opt-out/placeholder local parts (e.g. `optout@`, `noreply@`, `declined@`, `test@`), single-character or all-numeric local parts (e.g. `0@gmail.com`), disposable/throwaway domains (e.g. `mailinator.com`), and very short addresses
+- CMS=1 rows with potentially invalid emails are flagged in the main Issues table
+- CMS=2 rows with potentially invalid emails are shown in a new collapsible section (closed by default) at the bottom of the report
+- Added `email-validator` to dependencies
+
 ## Version 1.2.0 - Contact Lookup
 
 - Added a **CONTACT LOOKUP** section to the HTML report for CMS=1 patients with contact issues. Appears automatically when issues are found — no flag or extra step needed

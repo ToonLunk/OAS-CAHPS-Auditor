@@ -6,6 +6,7 @@ import sys
 import csv
 from openpyxl.worksheet.worksheet import Worksheet
 import phonenumbers
+from email_validator import validate_email as ev_validate, EmailNotValidError
 
 
 # --- SID Registry lookup ---
@@ -1782,17 +1783,17 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
             email_val = row[email_col - 1]
             if email_val and str(email_val).strip():
                 email_str = str(email_val).strip()
-                # Basic email regex validation
-                if not re.match(
-                    r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email_str
-                ):
+                # Use email-validator for RFC-compliant syntax checking (no DNS)
+                try:
+                    ev_validate(email_str, check_deliverability=False)
+                except EmailNotValidError as e:
                     row_issues.append(
                         {
                             "row": r,
                             "mrn": mrn_val,
                             "cms": cms_val,
                             "issue_type": "Invalid Email Format",
-                            "description": f"Email '{email_str}' has invalid format",
+                            "description": f"Email '{email_str}' — {e}",
                         }
                     )
                     issues.append(
@@ -2040,6 +2041,138 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         break
 
     return issues, row_issues
+
+
+# ---------------------------------------------------------------------------
+# Email quality / suspicious-email detection
+# ---------------------------------------------------------------------------
+
+# Local-part prefixes that indicate opt-out, refusal, or placeholder emails
+_SUSPICIOUS_LOCAL_PARTS = {
+    "optout", "opt-out", "opt.out",
+    "noreply", "no-reply", "no.reply",
+    "donotcontact", "donotsend", "donotmail", "donotreply",
+    "unsubscribe", "remove",
+    "declined", "refused", "refuse",
+    "none", "na", "n/a", "null", "void",
+    "test", "testing", "tester",
+    "fake", "bogus", "junk", "spam", "trash",
+    "sample", "example", "demo", "placeholder",
+    "noemail", "no-email", "no.email", "noemailaddress",
+    "unknown", "notprovided", "notavailable",
+    "abc", "asdf", "qwerty", "xxx", "zzz",
+    "admin", "info", "noreply", "postmaster", "mailer-daemon",
+}
+
+# Well-known disposable / throwaway email domains (most common ones)
+_DISPOSABLE_DOMAINS = {
+    "mailinator.com", "guerrillamail.com", "tempmail.com", "throwaway.email",
+    "yopmail.com", "sharklasers.com", "guerrillamailblock.com", "grr.la",
+    "discard.email", "mailnesia.com", "maildrop.cc", "trashmail.com",
+    "trashmail.me", "trashmail.net", "10minutemail.com", "temp-mail.org",
+    "fakeinbox.com", "tempail.com", "tempr.email", "dispostable.com",
+    "getnada.com", "emailondeck.com", "33mail.com", "mytemp.email",
+    "mohmal.com", "burnermail.io", "inboxkitten.com",
+}
+
+
+def validate_email_quality(email_str):
+    """Check an email address for suspicious / low-quality patterns.
+
+    Returns a list of warning strings.  An empty list means the email looks OK.
+    This is intentionally separate from *format* validation — it catches emails
+    that are syntactically valid but semantically bogus.
+    """
+    warnings = []
+    if not email_str:
+        return warnings
+
+    email_lower = email_str.strip().lower()
+    local_part = email_lower.split("@")[0] if "@" in email_lower else email_lower
+    domain = email_lower.split("@")[1] if "@" in email_lower else ""
+
+    # 1. Exact-match or prefix match against suspicious local-part list
+    if local_part in _SUSPICIOUS_LOCAL_PARTS:
+        warnings.append(f"Potentially invalid local part '{local_part}' (may be opt-out / placeholder)")
+    else:
+        # Also check if local part *starts with* a suspicious prefix followed
+        # by digits or punctuation, e.g. "optout1@", "test123@"
+        for prefix in _SUSPICIOUS_LOCAL_PARTS:
+            if local_part.startswith(prefix) and len(local_part) > len(prefix):
+                remainder = local_part[len(prefix):]
+                if all(c in "0123456789._-+" for c in remainder):
+                    warnings.append(f"Potentially invalid local part '{local_part}' (resembles '{prefix}' + filler)")
+                    break
+
+    # 2. Single-character or all-numeric local part
+    if len(local_part) == 1:
+        warnings.append(f"Single-character local part '{local_part}'")
+    elif local_part.isdigit():
+        warnings.append(f"All-numeric local part '{local_part}'")
+
+    # 3. Disposable / throwaway domain
+    if domain in _DISPOSABLE_DOMAINS:
+        warnings.append(f"Potentially disposable email domain '{domain}'")
+
+    # 4. Very short overall address (e.g. "a@b.co" — 6 chars)
+    if len(email_lower) <= 6 and not warnings:
+        warnings.append(f"Potentially invalid — very short email address")
+
+    return warnings
+
+
+def check_email_quality_all_rows(sheet, email_col, mrn_col, cms_col):
+    """Scan every row for suspicious email addresses.
+
+    Returns two lists:
+        cms1_issues  – list of dicts for CMS=1 rows (high priority)
+        cms2_issues  – list of dicts for CMS=2 rows (informational)
+
+    Each dict: {row, mrn, cms, email, warnings: [str, ...]}
+    """
+    cms1_issues = []
+    cms2_issues = []
+
+    if not email_col:
+        return cms1_issues, cms2_issues
+
+    for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        if is_blank_row(row):
+            continue
+
+        email_val = row[email_col - 1]
+        if not email_val or not str(email_val).strip():
+            continue
+
+        email_str = str(email_val).strip()
+        warnings = validate_email_quality(email_str)
+        if not warnings:
+            continue
+
+        mrn_val = row[mrn_col - 1] if mrn_col else None
+        cms_val = row[cms_col - 1] if cms_col else None
+
+        entry = {
+            "row": r,
+            "mrn": mrn_val,
+            "cms": cms_val,
+            "email": email_str,
+            "warnings": warnings,
+        }
+
+        cms_int = None
+        try:
+            if cms_val is not None and str(cms_val).strip():
+                cms_int = int(float(str(cms_val).strip()))
+        except (ValueError, TypeError):
+            pass
+
+        if cms_int == 2:
+            cms2_issues.append(entry)
+        else:
+            cms1_issues.append(entry)
+
+    return cms1_issues, cms2_issues
 
 
 # ---------------------------------------------------------------------------

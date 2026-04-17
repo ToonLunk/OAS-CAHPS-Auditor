@@ -266,3 +266,82 @@ details[open] summary {
   font-weight: bold;
   color: #000;
 }
+
+/* ── Print styles ── */
+@media print {
+  body {
+    background-color: #fff;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    font-size: 11pt;
+  }
+
+  .report-container {
+    box-shadow: none;
+    padding: 0;
+  }
+
+  /* Expand all collapsible sections */
+  details,
+  details[open] {
+    display: block !important;
+  }
+
+  details > *:not(summary) {
+    display: block !important;
+  }
+
+  details summary {
+    background-color: #f0f0f0;
+    border-left-color: #999;
+  }
+
+  /* Hide interactive/non-printable elements */
+  .info-icon .tooltip,
+  .info-icon .tooltip::after,
+  a[href*="download"] {
+    display: none !important;
+  }
+
+  /* Flatten tooltip icon to just a static marker */
+  .info-icon {
+    cursor: default;
+  }
+
+  /* Keep tables from splitting across pages */
+  table, tr, td, th {
+    page-break-inside: avoid;
+  }
+
+  table.excel-style,
+  table.data-table {
+    box-shadow: none;
+  }
+
+  /* Keep sections together */
+  h2, h3, .section-subheader {
+    page-break-after: avoid;
+  }
+
+  /* Avoid widows/orphans in issue lists */
+  li {
+    page-break-inside: avoid;
+  }
+
+  /* Remove link underlines but show URL for external links */
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+
+  /* Strip background tint from alternating rows for cleaner print */
+  table.data-table tr:nth-child(even),
+  table.excel-style tr:nth-child(even) {
+    background-color: #fff;
+  }
+
+  hr {
+    border-top-color: #999;
+  }
+}

@@ -7,7 +7,7 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 
 from requests import head
-from audit_lib_funcs import check_address, check_pop_upload_email_consistency, count_nonempty_rows_after_header, collect_lookup_candidates, build_person_search_urls
+from audit_lib_funcs import check_address, check_pop_upload_email_consistency, count_nonempty_rows_after_header, collect_lookup_candidates, build_person_search_urls, check_email_quality_all_rows
 
 
 def build_report(
@@ -422,7 +422,7 @@ def build_report(
             )
 
     report_lines.append("</table>") # based on month (November=orange, December=green, etc.)
-    qtr_header_color = "#27ae60"  # Default green
+    qtr_header_color = "#2dbd69"  # Default green
     if service_date_range:
         try:
             date_parts = service_date_range.split(" - ")
@@ -432,7 +432,7 @@ def build_report(
                 # November is month 11, which is odd, so odd months are orange
                 month = start_date.month
                 if month % 2 == 1:  # Odd months: Jan(1), Mar(3), May(5), Jul(7), Sep(9), Nov(11)
-                    qtr_header_color = "#ff8c00"  # Orange
+                    qtr_header_color = "#fc9a59"  # Orange
                 # Even months stay green
         except (ValueError, AttributeError):
             pass  # Keep default green
@@ -572,6 +572,25 @@ def build_report(
     issues, row_issues = column_validations(
         sheet, headers, mrn_col, cms_col, em_col, issues, row_issues
     )
+
+    # Email quality / suspicious-email scan
+    email_col = headers.get("EMAIL ADDRESS")
+    cms1_email_quality, cms2_email_quality = check_email_quality_all_rows(
+        sheet, email_col, mrn_col, cms_col
+    )
+    # CMS=1 potentially invalid emails go into the main issues table
+    for eq in cms1_email_quality:
+        desc = "; ".join(eq["warnings"])
+        row_issues.append(
+            {
+                "row": eq["row"],
+                "mrn": eq["mrn"],
+                "cms": eq["cms"],
+                "issue_type": "Potentially Invalid Email",
+                "description": f"'{eq['email']}' — {desc}",
+            }
+        )
+        issues.append(f"OASCAPHS Row {eq['row']}: Potentially invalid email '{eq['email']}' — {desc}")
 
     # 1. Surgical Category Validation (OASCAPHS)
     report_lines.append("")
@@ -951,6 +970,39 @@ def build_report(
             )
         report_lines.append("</table>")
         report_lines.append("</details>")
+
+    # CMS=2 potentially invalid emails section (closed by default)
+    if cms2_email_quality:
+        report_lines.append("<h2>CMS=2 POTENTIALLY INVALID EMAILS</h2>")
+        report_lines.append(
+            "<p><em>These CMS=2 (non-report) rows have emails that may be opt-outs, "
+            "placeholders, or disposable addresses. Use your best judgement.</em></p>"
+        )
+        report_lines.append("<details>")
+        report_lines.append(
+            f"<summary>CMS=2 Potentially Invalid Emails ({len(cms2_email_quality)} rows)</summary>"
+        )
+        th = "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>"
+        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
+        report_lines.append(
+            f"<tr>{th}ROW</th>{th}MRN</th>{th}CMS</th>{th}EMAIL</th>{th}REASON(S)</th></tr>"
+        )
+        for eq in cms2_email_quality:
+            mrn_disp = eq["mrn"] if eq["mrn"] is not None else ""
+            cms_disp = eq["cms"] if eq["cms"] is not None else ""
+            reasons = "; ".join(eq["warnings"])
+            report_lines.append(
+                f"<tr>"
+                f"<td style='padding: 3px 8px;'>{eq['row']}</td>"
+                f"<td style='padding: 3px 8px;'>{mrn_disp}</td>"
+                f"<td style='padding: 3px 8px;'>{cms_disp}</td>"
+                f"<td style='padding: 3px 8px;'>{eq['email']}</td>"
+                f"<td style='padding: 3px 8px;'>{reasons}</td>"
+                f"</tr>"
+            )
+        report_lines.append("</table>")
+        report_lines.append("</details>")
+
     report_lines.append("<hr>")
     report_lines.append(
         "<p style='text-align: center;'><strong>END OF REPORT</strong></p>"
