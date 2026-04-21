@@ -1205,9 +1205,6 @@ FACILITY_NAME_ALIASES = [
     "vendor_name",
     "vendorname",
     "vendor",
-    "provider name",
-    "provider_name",
-    "providername",
     "org name",
     "org_name",
     "orgname",
@@ -1228,6 +1225,61 @@ FACILITY_NAME_ALIASES = [
     "loc_name",
 ]
 
+# Headers that often mark the start of patient-level data blocks in POP-like layouts.
+# If these appear while collecting facility/location values, we stop collecting.
+_DATA_BLOCK_HEADER_MARKERS = {
+    "patient first name",
+    "first name",
+    "patientfirstname",
+    "firstname",
+    "patient last name",
+    "last name",
+    "patientlastname",
+    "lastname",
+    "patient name",
+    "name",
+    "mrn",
+    "medical record number",
+    "chart id",
+    "patient id",
+    "dob",
+    "date of birth",
+    "gender",
+    "service date",
+    "email",
+    "email address",
+    "address",
+    "address1",
+    "address2",
+    "city",
+    "state",
+    "zip",
+}
+
+_DATA_HEADER_KEYWORD_HINTS = (
+    "patient",
+    "first",
+    "last",
+    "name",
+    "mrn",
+    "chart",
+    "record",
+    "account",
+    "id",
+    "dob",
+    "birth",
+    "gender",
+    "email",
+    "phone",
+    "telephone",
+    "service",
+    "date",
+    "address",
+    "city",
+    "state",
+    "zip",
+)
+
 
 def _expand_alias_variants(alias):
     """Generate matching variants of an alias: original, underscores-to-spaces,
@@ -1246,6 +1298,33 @@ def _expand_aliases(aliases):
     for alias in aliases:
         expanded.update(_expand_alias_variants(alias))
     return expanded
+
+
+def _is_likely_data_block_header(value):
+    """Return True when a value looks like a patient-data header label."""
+    if value is None:
+        return False
+    normalized = re.sub(r'\s+', ' ', str(value)).strip().strip('"\'').strip().lower()
+    compact = normalized.replace(" ", "").replace("_", "").replace("-", "")
+    if normalized in _DATA_BLOCK_HEADER_MARKERS or compact in _DATA_BLOCK_HEADER_MARKERS:
+        return True
+    return any(k in compact for k in _DATA_HEADER_KEYWORD_HINTS)
+
+
+def _row_has_data_header_signature(values, min_hits=2):
+    """Heuristic: row looks like a patient-data header if several cells are header-like."""
+    hits = 0
+    for cell in values:
+        if cell is None:
+            continue
+        txt = str(cell).strip()
+        if not txt:
+            continue
+        if _is_likely_data_block_header(txt):
+            hits += 1
+            if hits >= min_hits:
+                return True
+    return False
 
 
 def _detect_sheet_delimiter(sheet, check_rows=15):
@@ -1399,7 +1478,11 @@ def find_all_columns_by_aliases(sheet, aliases):
                         seen_vals = set()
                         for data_row in sheet.iter_rows(min_row=header_row_idx + 1, values_only=True):
                             val = data_row[col_idx - 1] if len(data_row) >= col_idx else None
+                            if unique_vals and _row_has_data_header_signature(data_row):
+                                break
                             if val is not None and str(val).strip():
+                                if unique_vals and _is_likely_data_block_header(val):
+                                    break
                                 val_str = str(val).strip()
                                 val_lower = val_str.lower()
                                 if val_lower not in seen_vals:
@@ -1447,8 +1530,14 @@ def find_all_columns_in_sheet(sheet, aliases):
                 if raw is None:
                     continue
                 row_parts = str(raw).split(delimiter)
+                if unique_vals and _row_has_data_header_signature(row_parts):
+                    break
                 val = row_parts[pos].strip() if pos < len(row_parts) else ''
-                if val and val.lower() not in seen_vals:
+                if val:
+                    if unique_vals and _is_likely_data_block_header(val):
+                        break
+                    if val.lower() in seen_vals:
+                        continue
                     seen_vals.add(val.lower())
                     unique_vals.append(val)
             found.append({
