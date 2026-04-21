@@ -1,3 +1,32 @@
+# Version 1.3.1 — Facility Recognition Fix
+
+**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v1.3.0...v1.3.1
+
+## What's New
+
+Improved facility recognition logic to ensure facility names are properly identified and matched in reports.
+
+---
+
+## Install / Update
+
+1. Download **`OAS-CAHPS-Auditor-v1.3.1-Setup.exe`** below.
+2. Run the installer — it will upgrade in place if you already have a previous version.
+
+Default install location: `C:\OAS-CAHPS-Auditor`
+
+---
+
+## How to Use
+
+**Audit a single file** — hold **Shift**, right-click the Excel file, and select **"Audit this OAS file"**.
+
+**Audit an entire folder** — hold **Shift**, right-click empty space inside the folder, and select **"Audit All OAS Files"**.
+
+Reports are saved in an **AUDITS** folder next to your files and open automatically in your browser.
+
+---
+
 # Version 1.3.0 — Email Quality Checks
 
 **Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v1.2.0...v1.3.0

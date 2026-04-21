@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.3.1 - Facility Recognition Fix
+
+- Fixed facility recognition logic to properly identify and match facility names in reports
+
 ## Version 1.3.0 - Email Quality Checks
 
 - Replaced the basic email format regex with the `email-validator` library — now catches leading/trailing dots, consecutive dots, and other RFC-violating patterns that previously slipped through
