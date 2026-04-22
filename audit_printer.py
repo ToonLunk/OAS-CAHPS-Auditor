@@ -971,7 +971,7 @@ def build_report(
                     links_html = (
                         f"{primary_links}"
                         f"<details style='margin:0;padding:0;'>"
-                        f"<summary style='cursor:pointer;font-size:0.78em;color:#aaa;list-style:none;padding:0;margin:0;'>"
+                        f"<summary style='cursor:pointer;font-size:0.9em;color:#888;list-style:none;padding:2px 4px 2px 0;margin:0;display:inline-block;'>"
                         f"&#9654; Try: {rearranged_name}</summary>"
                         f"<div style='margin:0;padding-left:6px;border-left:2px solid #ccc;'>{rev_links}</div>"
                         f"</details>"
