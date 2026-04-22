@@ -960,8 +960,9 @@ def build_report(
                 )
                 tokens = name_for_lookup.strip().split()
                 if len(tokens) > 1:
-                    reversed_name = " ".join(reversed(tokens))
-                    rev_urls = build_person_search_urls(reversed_name, c["city"], c["state"])
+                    # Assume LAST [MIDDLE...] FIRST → rearrange to FIRST [MIDDLE...] LAST
+                    rearranged_name = " ".join(tokens[1:] + [tokens[0]])
+                    rev_urls = build_person_search_urls(rearranged_name, c["city"], c["state"])
                     rev_links = " &nbsp; ".join(
                         f"<a href='{url}' target='_blank' "
                         f"style='color:#2980b9;text-decoration:none;white-space:nowrap;'>{label}</a>"
@@ -969,10 +970,10 @@ def build_report(
                     )
                     links_html = (
                         f"{primary_links}"
-                        f"<details style='margin-top:4px;'>"
-                        f"<summary style='cursor:pointer;font-size:0.85em;color:#888;list-style:none;'>"
-                        f"&#9654; Try reversed ({reversed_name})</summary>"
-                        f"<div style='margin-top:3px;'>{rev_links}</div>"
+                        f"<details style='margin:0;padding:0;'>"
+                        f"<summary style='cursor:pointer;font-size:0.78em;color:#aaa;list-style:none;padding:0;margin:0;'>"
+                        f"&#9654; Try: {rearranged_name}</summary>"
+                        f"<div style='margin:0;padding-left:6px;border-left:2px solid #ccc;'>{rev_links}</div>"
                         f"</details>"
                     )
                 else:
