@@ -1,12 +1,10 @@
 import os
 import sys
 import datetime
-import math
 import base64
 from tqdm import tqdm
 from dotenv import load_dotenv
 
-from requests import head
 from audit_lib_funcs import check_address, check_pop_upload_email_consistency, count_nonempty_rows_after_header, collect_lookup_candidates, build_person_search_urls, check_email_quality_all_rows
 
 
@@ -942,7 +940,10 @@ def build_report(
         report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
         report_lines.append(
             f"<tr>{th}ROW</th>{th}MRN</th>{th}PATIENT NAME</th>{th}AGE</th>"
-            f"{th}CITY, STATE</th>{th}REASON(S)</th>{th}SEARCH LINKS</th></tr>"
+            f"{th}CITY, STATE</th>{th}REASON(S)</th>"
+            f"<th style='background-color:#000;color:#fff;padding:4px 8px;'>SEARCH LINKS "
+            f"<span title='Names in this data are stored Last\u2192First. The links below search First\u2192Last, which is usually correct. If you get no results, use the &quot;No results? Try&quot; fallback with the name as it appears in the spreadsheet.' "
+            f"style='cursor:help;font-size:0.85em;opacity:0.8;'>&#9432;</span></th></tr>"
         )
         for c in candidates:
             mrn_disp  = c["mrn"]  if c["mrn"]  is not None else ""
@@ -968,13 +969,12 @@ def build_report(
                         f"style='color:#2980b9;text-decoration:none;white-space:nowrap;'>{label}</a>"
                         for label, url in rev_urls.items()
                     )
+                    # rearranged (First Last) is primary; raw spreadsheet name is fallback
                     links_html = (
-                        f"{primary_links}"
-                        f"<details style='margin:0;padding:0;'>"
-                        f"<summary style='cursor:pointer;font-size:0.9em;color:#888;list-style:none;padding:2px 4px 2px 0;margin:0;display:inline-block;'>"
-                        f"&#9654; Try: {rearranged_name}</summary>"
-                        f"<div style='margin:0;padding-left:6px;border-left:2px solid #ccc;'>{rev_links}</div>"
-                        f"</details>"
+                        f"{rev_links}"
+                        f"<div style='margin-top:4px;font-size:0.78em;color:#999;'>"
+                        f"No results? Try: {primary_links}"
+                        f"</div>"
                     )
                 else:
                     links_html = primary_links
