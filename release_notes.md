@@ -12,7 +12,7 @@
 ## How do I install this?
 
 1. Download **`OAS-CAHPS-Auditor-v1.3.2-Setup.exe`** below.
-2. Run the installer — it will upgrade in place if you already have a previous version.
+2. Run the installer - it will upgrade in place if you already have a previous version.
 3. You're done! You can now start using the auditor.
 
 Default install location: `C:\OAS-CAHPS-Auditor`
@@ -21,9 +21,9 @@ Default install location: `C:\OAS-CAHPS-Auditor`
 
 ## How to Use
 
-**Audit a single file** — hold **Shift**, right-click the Excel file, and select **"Audit this OAS file"**.
+**Audit a single file**: hold **Shift**, right-click the Excel file, and select **"Audit this OAS file"**.
 
-**Audit an entire folder** — hold **Shift**, right-click empty space inside the folder, and select **"Audit All OAS Files"**.
+**Audit an entire folder**: hold **Shift**, right-click empty space inside the folder, and select **"Audit All OAS Files"**.
 
 Reports are saved in an **AUDITS** folder next to your files and open automatically in your browser.
 
