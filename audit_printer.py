@@ -951,12 +951,32 @@ def build_report(
             location  = ", ".join(x for x in [c["city"], c["state"]] if x) or "&mdash;"
             reasons   = "; ".join(c["issues"])
             if c["mode"] == "lookup":
-                urls = build_person_search_urls(c["name"], c["city"], c["state"])
-                links_html = " &nbsp; ".join(
+                name_for_lookup = c["name"] or ""
+                urls = build_person_search_urls(name_for_lookup, c["city"], c["state"])
+                primary_links = " &nbsp; ".join(
                     f"<a href='{url}' target='_blank' "
                     f"style='color:#2980b9;text-decoration:none;white-space:nowrap;'>{label}</a>"
                     for label, url in urls.items()
                 )
+                tokens = name_for_lookup.strip().split()
+                if len(tokens) > 1:
+                    reversed_name = " ".join(reversed(tokens))
+                    rev_urls = build_person_search_urls(reversed_name, c["city"], c["state"])
+                    rev_links = " &nbsp; ".join(
+                        f"<a href='{url}' target='_blank' "
+                        f"style='color:#2980b9;text-decoration:none;white-space:nowrap;'>{label}</a>"
+                        for label, url in rev_urls.items()
+                    )
+                    links_html = (
+                        f"{primary_links}"
+                        f"<details style='margin-top:4px;'>"
+                        f"<summary style='cursor:pointer;font-size:0.85em;color:#888;list-style:none;'>"
+                        f"&#9654; Try reversed ({reversed_name})</summary>"
+                        f"<div style='margin-top:3px;'>{rev_links}</div>"
+                        f"</details>"
+                    )
+                else:
+                    links_html = primary_links
             else:
                 links_html = "&mdash;"
             report_lines.append(

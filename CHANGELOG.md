@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.3.2 - Reversed Name Search
+
+- Added collapsible "Try reversed name" expander to people-search links in the Contact Lookup section, covering cases where the patient name export order is ambiguous (e.g. LAST FIRST vs FIRST LAST)
+
 ## Version 1.3.1 - Facility Recognition Fix
 
 - Fixed facility recognition logic to properly identify and match facility names in reports
