@@ -460,7 +460,7 @@ def build_report(
         f"<th style='background-color: {qtr_header_color}; {c}'>MAILINGS TOTAL</th>"
     )
     report_lines.append(
-        f"<th style='background-color: {qtr_header_color}; {c}'>%</th>"
+        f"<th style='background-color: {qtr_header_color}; {c}'>EST. %</th>"
         f"<th style='background-color: {qtr_header_color}; {c}'># PATIENTS SUBMITTED</th>"
         f"<th style='background-color: {qtr_header_color}; {c}'>ELIGIBLE PATIENTS</th>"
         f"<th style='background-color: {qtr_header_color}; {c}'>SAMPLE SIZE</th>"
