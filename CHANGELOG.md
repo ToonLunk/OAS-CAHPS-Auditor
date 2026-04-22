@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## Version 1.3.2 - Reversed Name Search
 
 - Added collapsible "Try reversed name" expander to people-search links in the Contact Lookup section, covering cases where the patient name export order is ambiguous (e.g. LAST FIRST vs FIRST LAST)
+- Added "EST." to the estimated log sheet line to clarify that it's an estimate. The auditor can't read the log sheet...
 
 ## Version 1.3.1 - Facility Recognition Fix
 
