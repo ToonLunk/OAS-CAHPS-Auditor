@@ -7,6 +7,9 @@
 - The Contact Lookup section now shows a name-order picker above the table. It displays 2–3 real patient names from the file in both orderings so you can click whichever looks correct — all search links update instantly to match.
 
 - Removed FastPeopleSearch links. Links are now WhitePages and TruePeopleSearch only.
+
+- The auditor now checks to make sure the year in the filename matches the year(s) found in the patient data.
+
 ---
 
 ## How do I install this?
