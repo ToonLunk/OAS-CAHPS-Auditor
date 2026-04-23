@@ -959,7 +959,6 @@ def validate_inel_repeat_rows(inel_sheet, show_progress=False):
                     'issue_type': 'INEL REPEAT Conflict',
                     'description': f"Row {row_num}: Has 'REPEAT' marker but also has {len(cells_with_yellow_bg)} other highlighted cell(s) - conflicting INEL reasons"
                 })
-                issues.append(f"INEL Row {row_num}: REPEAT marker conflicts with other cell highlighting")
             
             # Check if all cells have red font (count non-empty cells efficiently)
             expected_red_cells = 0
@@ -976,7 +975,6 @@ def validate_inel_repeat_rows(inel_sheet, show_progress=False):
                     'issue_type': 'INEL REPEAT Formatting',
                     'description': f"Row {row_num}: REPEAT row should have red font on ALL cells ({actual_red_cells}/{expected_red_cells} cells have red font)"
                 })
-                issues.append(f"INEL Row {row_num}: REPEAT row doesn't have red font on all cells")
             
             # Check REPEAT cell formatting
             formatting_issues = []
@@ -993,7 +991,6 @@ def validate_inel_repeat_rows(inel_sheet, show_progress=False):
                     'issue_type': 'INEL REPEAT Cell Format',
                     'description': f"Row {row_num}: REPEAT cell missing {', '.join(formatting_issues)}"
                 })
-                issues.append(f"INEL Row {row_num}: REPEAT cell missing {', '.join(formatting_issues)}")
         
         # Check rows with no highlighting - they should have REPEAT
         elif not cells_with_yellow_bg:
@@ -1003,7 +1000,6 @@ def validate_inel_repeat_rows(inel_sheet, show_progress=False):
                 'issue_type': 'INEL Missing Reason',
                 'description': f"Row {row_num}: No highlighted cells and no REPEAT marker - no indication of why row is in INEL"
             })
-            issues.append(f"INEL Row {row_num}: Missing INEL reason indicator (no highlighting or REPEAT marker)")
     
     if show_progress and total_rows > 100:
         print()  # New line after progress updates
@@ -1758,7 +1754,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         "description": f"Gender '{gender_val}' not in {valid_genders}",
                     }
                 )
-                issues.append(f"OASCAPHS Row {r}: Invalid gender '{gender_val}'")
 
         # SERVICE DATE - validate format and collect all dates for month validation
         if svc_col:
@@ -1784,9 +1779,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                             "description": f"Service Date '{svc_str}' must be MM/DD/YYYY format",
                         }
                     )
-                    issues.append(
-                        f"OASCAPHS Row {r}: Service Date '{svc_str}' must be MM/DD/YYYY format"
-                    )
                     continue
 
                 # Check if date is in the future
@@ -1802,9 +1794,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                                 "description": f"Service Date '{svc_str}' is in the future",
                             }
                         )
-                        issues.append(
-                            f"OASCAPHS Row {r}: Service Date '{svc_str}' is in the future"
-                        )
                     else:
                         # Only add valid dates for month validation
                         service_dates.append((r, mrn_val, svc_date))
@@ -1817,9 +1806,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                             "issue_type": "Invalid Service Date",
                             "description": f"Service Date '{svc_str}' is not a valid date",
                         }
-                    )
-                    issues.append(
-                        f"OASCAPHS Row {r}: Service Date '{svc_str}' is not a valid date"
                     )
 
         # AGE - must be 18 or older (only matters when CMS=1)
@@ -1843,9 +1829,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                             "description": f"Age {age_int} is below 18 (CMS=1)",
                         }
                     )
-                    issues.append(
-                        f"OASCAPHS Row {r}: Age {age_int} is below 18 (CMS=1)"
-                    )
             except (ValueError, TypeError):
                 pass
 
@@ -1865,7 +1848,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                             "description": f"DOB '{dob_val}' error: {err}",
                         }
                     )
-                    issues.append(f"OASCAPHS Row {r}: DOB '{dob_val}' error: {err}")
 
         # EMAIL ADDRESS - validate format when present; require it for CMS=2
         if email_col:
@@ -1885,9 +1867,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                             "description": f"Email '{email_str}' — {e}",
                         }
                     )
-                    issues.append(
-                        f"OASCAPHS Row {r}: Invalid email format '{email_str}'"
-                    )
             else:
                 # CMS=2 patients are email-only — a missing email means they can't be contacted
                 try:
@@ -1901,7 +1880,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                                 "description": "CMS=2 but email address is blank (email is the only contact method)",
                             }
                         )
-                        issues.append(f"OASCAPHS Row {r}: CMS=2 but email is blank")
                 except (ValueError, TypeError):
                     pass
                 # E/M=E rows are sent via email — a missing email means they won't receive a survey
@@ -1916,7 +1894,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                             "description": "E/M is 'E' but email address is blank",
                         }
                     )
-                    issues.append(f"OASCAPHS Row {r}: E/M=E but email is blank")
 
         # SURVEY LANGUAGE - must be en, es, ko, zh, or m (lowercase)
         if lang_col:
@@ -1933,7 +1910,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         "description": f"Language '{lang_str}' not in {valid_langs}",
                     }
                 )
-                issues.append(f"OASCAPHS Row {r}: Invalid language code '{lang_str}'")
 
         # E/M and CMS INDICATOR logic
         # - If CMS=1, E/M must be 'E' or 'M'
@@ -1958,7 +1934,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                                 "description": f"CMS=1 but E/M is '{em_val}' (expected 'E' or 'M')",
                             }
                         )
-                        issues.append(f"OASCAPHS Row {r}: CMS=1 but E/M is '{em_val}'")
                 elif cms_int == 2:
                     if em_str in ["E", "M"]:
                         row_issues.append(
@@ -1969,9 +1944,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                                 "issue_type": "Unexpected E/M for CMS=2",
                                 "description": f"CMS=2 but E/M is '{em_val}' (should be blank)",
                             }
-                        )
-                        issues.append(
-                            f"OASCAPHS Row {r}: CMS=2 but E/M has value '{em_val}'"
                         )
             except (ValueError, TypeError):
                 pass
@@ -1993,9 +1965,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         "issue_type": "Service Date Wrong Month",
                         "description": f"Date {svc_date.strftime('%Y-%m-%d')} not in {expected_year}-{expected_month:02d}",
                     }
-                )
-                issues.append(
-                    f"OASCAPHS Row {r}: Service date {svc_date.strftime('%Y-%m-%d')} not in expected month {expected_year}-{expected_month:02d}"
                 )
 
     # Check for duplicate MRNs
@@ -2044,9 +2013,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                                 "description": f"Telephone '{tel_str}' is not a valid number",
                             }
                         )
-                        issues.append(
-                            f"OASCAPHS Row {r}: Invalid telephone number '{tel_str}'"
-                        )
                 except phonenumbers.NumberParseException:
                     row_issues.append(
                         {
@@ -2056,9 +2022,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                             "issue_type": "Invalid Telephone Number Format",
                             "description": f"Telephone '{tel_str}' has invalid format",
                         }
-                    )
-                    issues.append(
-                        f"OASCAPHS Row {r}: Telephone '{tel_str}' has invalid format"
                     )
 
     # Check for duplicate phone numbers (possible accidental copy-paste)
@@ -2123,9 +2086,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                                 "issue_type": "Placeholder Name",
                                 "description": f"Patient Name '{name_val}' contains placeholder/test name",
                             }
-                        )
-                        issues.append(
-                            f"OASCAPHS Row {r}: Patient Name '{name_val}' contains placeholder/test name"
                         )
                         break
 

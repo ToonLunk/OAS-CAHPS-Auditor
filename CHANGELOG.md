@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - Contact Lookup section now shows a name-order picker above the table — displays real patient names from the file in both orderings (as stored vs. first/last swapped) so the user can select whichever is correct; all search links update to match
 - Removed FastPeopleSearch links; Contact Lookup now shows WhitePages and TruePeopleSearch only
+- Minor internal fixes, including some tweaks to where certain issues get printed
 
 ## Version 1.3.3
 
