@@ -349,21 +349,29 @@ details[open] summary {
 /* ── Contact lookup: name-order picker ───────────────────────────── */
 .lookup-radio { display: none; }
 
+.lookup-picker-label {
+  font-size: 0.85em;
+  color: #555;
+  margin: 8px 0 4px;
+  font-style: italic;
+}
+
 .lookup-order-picker {
   display: flex;
-  gap: 10px;
-  margin: 10px 0;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 10px;
 }
 
 .lookup-order-picker label {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 14px;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 12px;
   border: 2px solid #ccc;
   border-radius: 6px;
   cursor: pointer;
-  min-width: 160px;
   background: #fafafa;
   transition: border-color 0.12s, background 0.12s;
 }
@@ -379,13 +387,15 @@ details[open] summary {
   letter-spacing: 0.04em;
   color: #999;
   font-weight: 600;
+  white-space: nowrap;
+  min-width: 56px;
+  text-align: center;
 }
 
 .lookup-order-picker .pick-sample {
   font-family: Calibri, sans-serif;
   font-size: 0.9em;
   color: #333;
-  line-height: 1.6;
 }
 
 #lo-raw:checked ~ .lookup-order-picker label[for="lo-raw"],

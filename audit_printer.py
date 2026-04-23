@@ -998,18 +998,20 @@ def build_report(
             flip_names = [
                 " ".join(n.split()[1:] + [n.split()[0]]) for n in sample_names
             ]
-            raw_html  = "<br>".join(sample_names)
-            flip_html = "<br>".join(flip_names)
+            sep = " &nbsp;&middot;&nbsp; "
+            raw_html  = sep.join(sample_names)
+            flip_html = sep.join(flip_names)
             report_lines.append("<input type='radio' name='lookup-order' id='lo-raw' class='lookup-radio' checked>")
             report_lines.append("<input type='radio' name='lookup-order' id='lo-flip' class='lookup-radio'>")
+            report_lines.append("<p class='lookup-picker-label'>Choose whichever option shows names in the correct order (from first name to last name):</p>")
             report_lines.append(
                 "<div class='lookup-order-picker'>"
                 f"<label for='lo-raw'>"
-                f"<span class='pick-hint'>as stored</span>"
+                f"<span class='pick-hint'>Option 1</span>"
                 f"<span class='pick-sample'>{raw_html}</span>"
                 f"</label>"
                 f"<label for='lo-flip'>"
-                f"<span class='pick-hint'>first &amp; last swapped</span>"
+                f"<span class='pick-hint'>Option 2</span>"
                 f"<span class='pick-sample'>{flip_html}</span>"
                 f"</label>"
                 f"</div>"
