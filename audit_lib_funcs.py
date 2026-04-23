@@ -1706,7 +1706,7 @@ def extract_service_date_range(sheet, svc_col, mrn_col=None, cms_col=None):
     return None, blank_date_issues, blank_date_row_issues
 
 
-def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_issues):
+def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_issues, filename_year=None):
     """
     Perform data quality validation checks on OASCAPHS sheet columns.
     Returns updated issues and row_issues lists.
@@ -1964,6 +1964,20 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         "cms": None,
                         "issue_type": "Service Date Wrong Month",
                         "description": f"Date {svc_date.strftime('%Y-%m-%d')} not in {expected_year}-{expected_month:02d}",
+                    }
+                )
+
+    # Check all SERVICE DATEs are in the year from the filename
+    if filename_year is not None and service_dates:
+        for r, mrn_val, svc_date in service_dates:
+            if svc_date.year != filename_year:
+                row_issues.append(
+                    {
+                        "row": r,
+                        "mrn": mrn_val,
+                        "cms": None,
+                        "issue_type": "Service Date Wrong Year",
+                        "description": f"Date {svc_date.strftime('%m/%d/%Y')} is not in {filename_year} (filename year)",
                     }
                 )
 

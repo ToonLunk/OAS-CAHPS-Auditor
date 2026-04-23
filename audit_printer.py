@@ -56,6 +56,8 @@ def build_report(
     basefname = os.path.basename(file_path)
     base_before_hash = basefname.split("#", 1)[0]
 
+    filename_year = None
+
     try:
         after_hash = basefname.split("#", 1)[1]
     except IndexError:
@@ -72,8 +74,10 @@ def build_report(
         # Remove extension
         name_part = os.path.splitext(after_hash)[0]
 
+        parts = name_part.split()
+
         # Extract month name
-        month = name_part.split()[0].lower()
+        month = parts[0].lower() if parts else ""
 
         months = {
             "january", "february", "march", "april", "may", "june",
@@ -90,6 +94,15 @@ def build_report(
                     "description": f"Invalid or misspelled month in filename: '{month}'",
                 }
             )
+
+        # Extract year (expected format: "JANUARY OAS 2026")
+        try:
+            oas_idx = next(i for i, p in enumerate(parts) if p.upper() == 'OAS')
+            yr = int(parts[oas_idx + 1])
+            if 2000 <= yr <= 2100:
+                filename_year = yr
+        except (ValueError, IndexError, StopIteration):
+            pass
 
     # Start HTML document with helper function
     report_lines = _build_html_header(file_path, version, audit_id, sid_prefix, service_date_range)
@@ -568,7 +581,8 @@ def build_report(
     from audit_lib_funcs import column_validations
 
     issues, row_issues = column_validations(
-        sheet, headers, mrn_col, cms_col, em_col, issues, row_issues
+        sheet, headers, mrn_col, cms_col, em_col, issues, row_issues,
+        filename_year=filename_year
     )
 
     # Email quality / suspicious-email scan
