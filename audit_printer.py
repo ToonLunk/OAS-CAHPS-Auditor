@@ -937,61 +937,92 @@ def build_report(
         th = "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>"
         report_lines.append("<details open>")
         report_lines.append(f"<summary>CMS=1 patients with contact issues ({len(candidates)} found)</summary>")
-        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
-        report_lines.append(
-            f"<tr>{th}ROW</th>{th}MRN</th>{th}PATIENT NAME</th>{th}AGE</th>"
-            f"{th}CITY, STATE</th>{th}REASON(S)</th>"
-            f"<th style='background-color:#000;color:#fff;padding:4px 8px;'>SEARCH LINKS "
-            f"<span title='Names in this data are stored Last\u2192First. The links below search First\u2192Last, which is usually correct. If you get no results, use the &quot;No results? Try&quot; fallback with the name as it appears in the spreadsheet.' "
-            f"style='cursor:help;font-size:0.85em;opacity:0.8;'>&#9432;</span></th></tr>"
-        )
+
+        # Collect up to 3 sample names from lookup-mode candidates for the name-order picker
+        sample_names = []
         for c in candidates:
-            mrn_disp  = c["mrn"]  if c["mrn"]  is not None else ""
-            name_disp = c["name"] or "&mdash;"
-            age_disp  = c["age"]  if c["age"]  is not None else ""
-            location  = ", ".join(x for x in [c["city"], c["state"]] if x) or "&mdash;"
-            reasons   = "; ".join(c["issues"])
-            if c["mode"] == "lookup":
-                name_for_lookup = c["name"] or ""
-                urls = build_person_search_urls(name_for_lookup, c["city"], c["state"])
-                primary_links = " &nbsp; ".join(
-                    f"<a href='{url}' target='_blank' "
-                    f"style='color:#2980b9;text-decoration:none;white-space:nowrap;'>{label}</a>"
-                    for label, url in urls.items()
-                )
-                tokens = name_for_lookup.strip().split()
-                if len(tokens) > 1:
-                    # Assume LAST [MIDDLE...] FIRST → rearrange to FIRST [MIDDLE...] LAST
-                    rearranged_name = " ".join(tokens[1:] + [tokens[0]])
-                    rev_urls = build_person_search_urls(rearranged_name, c["city"], c["state"])
-                    rev_links = " &nbsp; ".join(
+            if c["mode"] != "lookup":
+                continue
+            name = (c["name"] or "").strip()
+            if len(name.split()) >= 2:
+                sample_names.append(name)
+            if len(sample_names) >= 3:
+                break
+        show_picker = len(sample_names) > 0
+
+        def _build_lookup_table(use_flipped):
+            rows = []
+            rows.append("<table class='excel-style' style='font-size: 0.85em;'>")
+            rows.append(
+                f"<tr>{th}ROW</th>{th}MRN</th>{th}PATIENT NAME</th>{th}AGE</th>"
+                f"{th}CITY, STATE</th>{th}REASON(S)</th>"
+                f"<th style='background-color:#000;color:#fff;padding:4px 8px;'>SEARCH LINKS</th></tr>"
+            )
+            for c in candidates:
+                mrn_disp = c["mrn"] if c["mrn"] is not None else ""
+                age_disp = c["age"] if c["age"] is not None else ""
+                location = ", ".join(x for x in [c["city"], c["state"]] if x) or "&mdash;"
+                reasons  = "; ".join(c["issues"])
+                if c["mode"] == "lookup":
+                    raw_name = (c["name"] or "").strip()
+                    tokens = raw_name.split()
+                    if use_flipped and len(tokens) >= 2:
+                        lookup_name = " ".join(tokens[1:] + [tokens[0]])
+                    else:
+                        lookup_name = raw_name
+                    name_disp  = lookup_name or "&mdash;"
+                    urls       = build_person_search_urls(lookup_name, c["city"], c["state"])
+                    links_html = " &nbsp; ".join(
                         f"<a href='{url}' target='_blank' "
                         f"style='color:#2980b9;text-decoration:none;white-space:nowrap;'>{label}</a>"
-                        for label, url in rev_urls.items()
-                    )
-                    # rearranged (First Last) is primary; raw spreadsheet name is fallback
-                    links_html = (
-                        f"{rev_links}"
-                        f"<div style='margin-top:4px;font-size:0.78em;color:#999;'>"
-                        f"No results? Try: {primary_links}"
-                        f"</div>"
+                        for label, url in urls.items()
                     )
                 else:
-                    links_html = primary_links
-            else:
-                links_html = "&mdash;"
+                    name_disp  = c["name"] or "&mdash;"
+                    links_html = "&mdash;"
+                rows.append(
+                    f"<tr>"
+                    f"<td style='padding: 3px 8px;'>{c['row']}</td>"
+                    f"<td style='padding: 3px 8px;'>{mrn_disp}</td>"
+                    f"<td style='padding: 3px 8px;'>{name_disp}</td>"
+                    f"<td style='padding: 3px 8px;'>{age_disp}</td>"
+                    f"<td style='padding: 3px 8px;'>{location}</td>"
+                    f"<td style='padding: 3px 8px;'>{reasons}</td>"
+                    f"<td style='padding: 3px 8px;'>{links_html}</td>"
+                    f"</tr>"
+                )
+            rows.append("</table>")
+            return rows
+
+        if show_picker:
+            flip_names = [
+                " ".join(n.split()[1:] + [n.split()[0]]) for n in sample_names
+            ]
+            raw_html  = "<br>".join(sample_names)
+            flip_html = "<br>".join(flip_names)
+            report_lines.append("<input type='radio' name='lookup-order' id='lo-raw' class='lookup-radio' checked>")
+            report_lines.append("<input type='radio' name='lookup-order' id='lo-flip' class='lookup-radio'>")
             report_lines.append(
-                f"<tr>"
-                f"<td style='padding: 3px 8px;'>{c['row']}</td>"
-                f"<td style='padding: 3px 8px;'>{mrn_disp}</td>"
-                f"<td style='padding: 3px 8px;'>{name_disp}</td>"
-                f"<td style='padding: 3px 8px;'>{age_disp}</td>"
-                f"<td style='padding: 3px 8px;'>{location}</td>"
-                f"<td style='padding: 3px 8px;'>{reasons}</td>"
-                f"<td style='padding: 3px 8px;'>{links_html}</td>"
-                f"</tr>"
+                "<div class='lookup-order-picker'>"
+                f"<label for='lo-raw'>"
+                f"<span class='pick-hint'>as stored</span>"
+                f"<span class='pick-sample'>{raw_html}</span>"
+                f"</label>"
+                f"<label for='lo-flip'>"
+                f"<span class='pick-hint'>first &amp; last swapped</span>"
+                f"<span class='pick-sample'>{flip_html}</span>"
+                f"</label>"
+                f"</div>"
             )
-        report_lines.append("</table>")
+            report_lines.append("<div class='lookup-table-raw'>")
+            report_lines.extend(_build_lookup_table(use_flipped=False))
+            report_lines.append("</div>")
+            report_lines.append("<div class='lookup-table-flip'>")
+            report_lines.extend(_build_lookup_table(use_flipped=True))
+            report_lines.append("</div>")
+        else:
+            report_lines.extend(_build_lookup_table(use_flipped=False))
+
         report_lines.append("</details>")
 
     # CMS=2 potentially invalid emails section (closed by default)

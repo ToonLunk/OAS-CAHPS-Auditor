@@ -2428,11 +2428,4 @@ def build_person_search_urls(name: str, city: str = "", state: str = "") -> dict
     tps_base = f"https://www.truepeoplesearch.com/results?name={name_q}"
     urls["TruePeopleSearch"] = f"{tps_base}&citystatezip={loc_q}" if loc_q else tps_base
 
-    # FastPeopleSearch
-    fps_base = f"https://www.fastpeoplesearch.com/name/{name_slug}"
-    if city_slug and state_up:
-        urls["FastPeopleSearch"] = f"{fps_base}_{city_slug}-{state_up}"
-    else:
-        urls["FastPeopleSearch"] = fps_base
-
     return urls

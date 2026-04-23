@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.3.4 - Contact Lookup Improvements
+
+- Contact Lookup section now shows a name-order picker above the table — displays real patient names from the file in both orderings (as stored vs. first/last swapped) so the user can select whichever is correct; all search links update to match
+- Removed FastPeopleSearch links; Contact Lookup now shows WhitePages and TruePeopleSearch only
+
+## Version 1.3.3
+
+- Minor internal fixes
+
 ## Version 1.3.2 - Reversed Name Search
 
 - Added collapsible "Try reversed name" expander to people-search links in the Contact Lookup section, covering cases where the patient name export order is ambiguous (e.g. LAST FIRST vs FIRST LAST)

@@ -345,3 +345,60 @@ details[open] summary {
     border-top-color: #999;
   }
 }
+
+/* ── Contact lookup: name-order picker ───────────────────────────── */
+.lookup-radio { display: none; }
+
+.lookup-order-picker {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.lookup-order-picker label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 160px;
+  background: #fafafa;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.lookup-order-picker label:hover {
+  border-color: #888;
+  background: #f0f0f0;
+}
+
+.lookup-order-picker .pick-hint {
+  font-size: 0.72em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #999;
+  font-weight: 600;
+}
+
+.lookup-order-picker .pick-sample {
+  font-family: Calibri, sans-serif;
+  font-size: 0.9em;
+  color: #333;
+  line-height: 1.6;
+}
+
+#lo-raw:checked ~ .lookup-order-picker label[for="lo-raw"],
+#lo-flip:checked ~ .lookup-order-picker label[for="lo-flip"] {
+  border-color: #27ae60;
+  background: #eafaf1;
+}
+
+#lo-raw:checked ~ .lookup-order-picker label[for="lo-raw"] .pick-hint,
+#lo-flip:checked ~ .lookup-order-picker label[for="lo-flip"] .pick-hint {
+  color: #27ae60;
+}
+
+.lookup-table-flip { display: none; }
+#lo-flip:checked ~ .lookup-table-flip { display: block; }
+#lo-flip:checked ~ .lookup-table-raw  { display: none; }
