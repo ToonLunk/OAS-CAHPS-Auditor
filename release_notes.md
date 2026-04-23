@@ -1,4 +1,4 @@
-# Version 1.3.4 - Contact Lookup Improvements
+# Version 1.3.4 - Contact Lookup Tweaks
 
 **Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v1.3.3...v1.3.4
 
