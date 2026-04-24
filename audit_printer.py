@@ -1,3 +1,4 @@
+import ast
 import os
 import sys
 import datetime
@@ -527,39 +528,6 @@ def build_report(
         report_lines.append("</tr>")
         report_lines.append("</table>")
 
-        # Show facility/location columns found in FRAME/POP tabs (collapsible)
-        fac_matches = facility_matches or []
-        if fac_matches:
-            count_label = f"{len(fac_matches)} column{'s' if len(fac_matches) != 1 else ''} found"
-            report_lines.append(
-                f"<details style='margin-top: 8px; font-size: 0.9em;'>"
-                f"<summary style='cursor: pointer; font-weight: 600;'>"
-                f"Facility / Location columns ({count_label})</summary>"
-            )
-            for match in fac_matches:
-                col_name = match.get('header_name', 'N/A')
-                tab_name = match.get('tab', 'POP')
-                is_delimited = match.get('is_delimited', False)
-                delim_note = f" <span style='color:#888; font-weight:400;'>(pipe-delimited)</span>" if is_delimited else (
-                    f" <span style='color:#888; font-weight:400;'>(comma-delimited)</span>" if match.get('delimiter') == ',' else '')
-                values = match.get('values', [])
-                val_count = len(values)
-                report_lines.append(
-                    f"<div style='margin-top: 8px; margin-bottom: 2px; font-weight: 600;'>"
-                    f"{tab_name} &rarr; <em>{col_name}</em>{delim_note} &mdash; "
-                    f"{val_count} unique value{'s' if val_count != 1 else ''}"
-                    f"</div>"
-                )
-                if values:
-                    report_lines.append("<table class='data-table' style='margin-top: 2px;'>")
-                    report_lines.append("<tr><th>#</th><th>Value</th></tr>")
-                    for i, val in enumerate(values, start=1):
-                        report_lines.append(f"<tr><td style='width: 40px; text-align: center;'>{i}</td><td>{val}</td></tr>")
-                    report_lines.append("</table>")
-                else:
-                    report_lines.append("<p style='margin: 2px 0; color: #888;'><em>No values found</em></p>")
-            report_lines.append("</details>")
-
     else:
         # Show that SID registry check couldn't be performed
         report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check"
@@ -576,6 +544,39 @@ def build_report(
         else:
             report_lines.append("⚠ Unable to perform SID registry check: Matching SID not found in registry")
         report_lines.append("</p>")
+
+    # Show facility/location columns found in POP tab (always, regardless of SID lookup result)
+    fac_matches = facility_matches or []
+    if fac_matches:
+        count_label = f"{len(fac_matches)} column{'s' if len(fac_matches) != 1 else ''} found"
+        report_lines.append(
+            f"<details style='margin-top: 8px; font-size: 0.9em;'>"
+            f"<summary style='cursor: pointer; font-weight: 600;'>"
+            f"Facility / Location columns ({count_label})</summary>"
+        )
+        for match in fac_matches:
+            col_name = match.get('header_name', 'N/A')
+            tab_name = match.get('tab', 'POP')
+            is_delimited = match.get('is_delimited', False)
+            delim_note = f" <span style='color:#888; font-weight:400;'>(pipe-delimited)</span>" if is_delimited else (
+                f" <span style='color:#888; font-weight:400;'>(comma-delimited)</span>" if match.get('delimiter') == ',' else '')
+            values = match.get('values', [])
+            val_count = len(values)
+            report_lines.append(
+                f"<div style='margin-top: 8px; margin-bottom: 2px; font-weight: 600;'>"
+                f"{tab_name} &rarr; <em>{col_name}</em>{delim_note} &mdash; "
+                f"{val_count} unique value{'s' if val_count != 1 else ''}"
+                f"</div>"
+            )
+            if values:
+                report_lines.append("<table class='data-table' style='margin-top: 2px;'>")
+                report_lines.append("<tr><th>#</th><th>Value</th></tr>")
+                for i, val in enumerate(values, start=1):
+                    report_lines.append(f"<tr><td style='width: 40px; text-align: center;'>{i}</td><td>{val}</td></tr>")
+                report_lines.append("</table>")
+            else:
+                report_lines.append("<p style='margin: 2px 0; color: #888;'><em>No values found</em></p>")
+        report_lines.append("</details>")
 
     # DATA QUALITY VALIDATION SECTION
     from audit_lib_funcs import column_validations
@@ -792,8 +793,11 @@ def build_report(
         for issue in row_issues:
             mrn_display = issue.get("mrn") if issue.get("mrn") is not None else ""
             cms_display = issue.get("cms") if issue.get("cms") is not None else ""
+            issue_type = issue['issue_type']
+            is_possible = issue_type.startswith("Possible") or issue_type.startswith("Potentially")
+            row_style = "background-color: #fefce8;" if is_possible else ""
             report_lines.append(
-                f"<tr><td style='padding: 3px 8px;'>{issue['row']}</td><td style='padding: 3px 8px;'>{mrn_display}</td><td style='padding: 3px 8px;'>{cms_display}</td><td style='padding: 3px 8px;'>{issue['issue_type']}</td><td style='padding: 3px 8px;'>{issue['description']}</td></tr>"
+                f"<tr style='{row_style}'><td style='padding: 3px 8px;'>{issue['row']}</td><td style='padding: 3px 8px;'>{mrn_display}</td><td style='padding: 3px 8px;'>{cms_display}</td><td style='padding: 3px 8px;'>{issue_type}</td><td style='padding: 3px 8px;'>{issue['description']}</td></tr>"
             )
         report_lines.append("</table>")
         report_lines.append("</details>")
@@ -877,7 +881,7 @@ def build_report(
             # Extract dictionary from ADDRESS part
             addr_dict_str = parts[4].replace("ADDRESS: ", "").strip("'")
             try:
-                addr_dict = eval(addr_dict_str)
+                addr_dict = ast.literal_eval(addr_dict_str)
                 street = addr_dict.get("street_address") or ""
                 city = addr_dict.get("city") or ""
                 state = addr_dict.get("country_area") or ""
@@ -946,8 +950,8 @@ def build_report(
 
     # PEOPLE-SEARCH LOOKUP SECTION
     candidates = collect_lookup_candidates(sheet, headers, mrn_col, cms_col)
-    report_lines.append("<h2>CONTACT LOOKUP</h2>")
     if candidates:
+        report_lines.append("<h2>CONTACT LOOKUP</h2>")
         th = "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>"
         report_lines.append("<details open>")
         report_lines.append(f"<summary>CMS=1 patients with contact issues ({len(candidates)} found)</summary>")

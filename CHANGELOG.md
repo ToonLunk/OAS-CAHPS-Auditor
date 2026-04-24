@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.3.5 - Facility Name Fixes & Report Polish
+
+- Fixed a bug where facility/location name collection stopped after 1 result — caused by a word-boundary matching issue (e.g. `"id"` was incorrectly matching inside words like `"provider"` and `"residential"`)
+- Facility/Location columns section now always appears in the report, even when SID lookup fails
+- Added support for additional facility column name aliases: `agency name`, `client id`, `revenue location` (and underscore/no-space variants)
+- Placeholder name flag softened to "Possible Placeholder Name" with a "please verify" note instead of a hard flag
+- "Possible" and "Potentially" issue rows now highlighted with a subtle yellow background in the issues table for easier scanning
+- CONTACT LOOKUP heading no longer appears when there are no contact issues to show
+- Internal: replaced `eval()` with `ast.literal_eval()` in address renderer for safety
+
 ## Version 1.3.4 - Contact Lookup Improvements
 
 - Contact Lookup section now shows a name-order picker above the table — displays real patient names from the file in both orderings (as stored vs. first/last swapped) so the user can select whichever is correct; all search links update to match

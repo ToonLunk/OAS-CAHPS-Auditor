@@ -1219,6 +1219,16 @@ FACILITY_NAME_ALIASES = [
     "loc",
     "loc name",
     "loc_name",
+    "agency name",
+    "agency_name",
+    "agencyname",
+    "agency",
+    "client id",
+    "client_id",
+    "clientid",
+    "revenue location",
+    "revenue_location",
+    "revenuelocation",
 ]
 
 # Headers that often mark the start of patient-level data blocks in POP-like layouts.
@@ -1254,13 +1264,8 @@ _DATA_BLOCK_HEADER_MARKERS = {
 
 _DATA_HEADER_KEYWORD_HINTS = (
     "patient",
-    "first",
-    "last",
-    "name",
     "mrn",
     "chart",
-    "record",
-    "account",
     "id",
     "dob",
     "birth",
@@ -1268,7 +1273,6 @@ _DATA_HEADER_KEYWORD_HINTS = (
     "email",
     "phone",
     "telephone",
-    "service",
     "date",
     "address",
     "city",
@@ -1304,10 +1308,12 @@ def _is_likely_data_block_header(value):
     compact = normalized.replace(" ", "").replace("_", "").replace("-", "")
     if normalized in _DATA_BLOCK_HEADER_MARKERS or compact in _DATA_BLOCK_HEADER_MARKERS:
         return True
-    return any(k in compact for k in _DATA_HEADER_KEYWORD_HINTS)
+    # Use word-boundary matching on the space-preserving normalized form so that
+    # short keywords like "id" don't fire on unrelated words ("provider", "valid", etc.)
+    return any(re.search(r'(?<![a-z])' + re.escape(k) + r'(?![a-z])', normalized) for k in _DATA_HEADER_KEYWORD_HINTS)
 
 
-def _row_has_data_header_signature(values, min_hits=2):
+def _row_has_data_header_signature(values, min_hits=3):
     """Heuristic: row looks like a patient-data header if several cells are header-like."""
     hits = 0
     for cell in values:
@@ -2097,8 +2103,8 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                                 "row": r,
                                 "mrn": mrn_val,
                                 "cms": cms_val,
-                                "issue_type": "Placeholder Name",
-                                "description": f"Patient Name '{name_val}' contains placeholder/test name",
+                                "issue_type": "Possible Placeholder Name",
+                                "description": f"Patient Name '{name_val}' may be a placeholder or test name",
                             }
                         )
                         break
