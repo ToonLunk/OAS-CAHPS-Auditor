@@ -1,10 +1,9 @@
-# Version 1.4.0 - Dark Mode & Improvements
+# Version 1.4.0 - Report Improvements
 
 **Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v1.3.5...v1.4.0
 
 ## What's New
 
-- Added dark mode — toggle in the top-right corner of any report, persists between reports
 - The VALIDATION SUMMARY is now collapsible — collapsed automatically when everything passes, open when there are failures
 - Age validation improved: ages ≤ 0, under 18, or over 110 are now flagged separately with distinct issue types
 - Console warning shown on startup if cpt_codes.json can't be loaded
