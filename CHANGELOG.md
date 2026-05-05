@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.4.0 - Dark Mode & Report Improvements
+
+- Added dark mode toggle — Monokai-inspired theme, persists across sessions via localStorage
+- VALIDATION SUMMARY section is now collapsible; auto-collapsed when all checks pass, open when there are failures
+- Contact Information wrapped into the Validation Summary collapsible
+- Age sanity bounds: ages ≤ 0 flagged as "Invalid Age", under 18 as "Age Too Young", over 110 as "Age Suspicious" (CMS=1 rows only)
+- Startup warning printed to console if cpt_codes.json fails to load
+- Dark mode color fixes: math warning rows, update badge, black table headers, and hardcoded text colors all properly themed
+- VALIDATION SUMMARY header restyled to match other section headings (disclosure triangle, no box)
+- Minor spacing improvements to section headers
+
 ## Version 1.3.5 - Facility Name Fixes & Report Polish
 
 - Fixed a bug where facility/location name collection stopped after 1 result — caused by a word-boundary matching issue (e.g. `"id"` was incorrectly matching inside words like `"provider"` and `"residential"`)

@@ -113,8 +113,12 @@ def _get_cpt_config_path():
         return os.path.join(base_path, 'cpt_codes.json')
 
 
+_CPT_LOAD_ERROR = None  # Set if cpt_codes.json fails to load; checked at startup in audit.py
+
+
 def _load_cpt_config():
     """Load CPT code configuration from JSON file."""
+    global _CPT_LOAD_ERROR
     config_path = _get_cpt_config_path()
     try:
         with open(config_path, 'r') as f:
@@ -126,7 +130,7 @@ def _load_cpt_config():
             'invalid_codes': set(str(c).upper() for c in config.get('invalid_codes', []))
         }
     except Exception as e:
-        print(f"Warning: Could not load CPT config from {config_path}: {e}")
+        _CPT_LOAD_ERROR = f"{config_path}: {e}"
         # Return defaults if file not found
         return {
             'valid_ranges': [[10004, 69990], [93451, 93462], [93566, 93572], [93985, 93986]],
@@ -223,6 +227,8 @@ def check_address(
     cms_col=None,
     em_col=None,
     street_address_2_col=None,
+    name_col=None,
+    age_col=None,
 ):
     from i18naddress import normalize_address, InvalidAddressError
     import usaddress
@@ -240,8 +246,10 @@ def check_address(
         if not any(cell is not None and str(cell).strip() != "" for cell in row):
             continue
 
-        mrn = row[mrn_col - 1] if mrn_col else ""
-        cms = row[cms_col - 1] if cms_col else ""
+        mrn  = row[mrn_col  - 1] if mrn_col  else ""
+        cms  = row[cms_col  - 1] if cms_col  else ""
+        name = str(row[name_col - 1] or "").strip() if name_col else ""
+        age  = row[age_col  - 1] if age_col  else ""
 
         # CMS=2 patients are contacted by email only — skip address checks
         try:
@@ -277,7 +285,7 @@ def check_address(
 
         if missing:
             invalid_addresses.append(
-                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - ADDRESS: '{{'street_address': '{street_str}', 'city': '{city_str}', 'country_area': '{state_str}', 'postal_code': '{postal_str}'}}' - REASON: 'Missing: {', '.join(missing)}'"
+                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - NAME: '{name}' - AGE: '{age}' - ADDRESS: '{{'street_address': '{street_str}', 'city': '{city_str}', 'country_area': '{state_str}', 'postal_code': '{postal_str}'}}' - REASON: 'Missing: {', '.join(missing)}'"
             )
             continue
 
@@ -293,7 +301,7 @@ def check_address(
             normalize_address(address_data)
         except InvalidAddressError as e:
             invalid_addresses.append(
-                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - ADDRESS: '{address_data}' - REASON: '{e}'"
+                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - NAME: '{name}' - AGE: '{age}' - ADDRESS: '{address_data}' - REASON: '{e}'"
             )
 
         # --- Experimental checks (results go into noted_addresses) ---
@@ -341,8 +349,10 @@ def check_address(
                 note_issues.append("ADDRESS1 has unusual/repeated address components")
 
         if note_issues:
+            _nc = city_str  or ""
+            _ns = state_str or ""
             noted_addresses.append(
-                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - ADDRESS: '{street_str}' - REASON(s): '{'; '.join(note_issues)}'"
+                f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - NAME: '{name}' - AGE: '{age}' - CITY: '{_nc}' - STATE: '{_ns}' - ADDRESS: '{street_str}' - REASON(s): '{'; '.join(note_issues)}'"
             )
             continue  # skip the city/state/zip-in-street check if we already flagged it
 
@@ -364,8 +374,10 @@ def check_address(
                     issues.append(postal_str)
 
                 if issues:
+                    _nc2 = city_str  or ""
+                    _ns2 = state_str or ""
                     noted_addresses.append(
-                        f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - ADDRESS: '{street_str}' - REASON(s): '{', '.join(issues)}'"
+                        f"Row: {row_number} - MRN: '{mrn}' - CMS: '{cms}' - E/M: '{em}' - NAME: '{name}' - AGE: '{age}' - CITY: '{_nc2}' - STATE: '{_ns2}' - ADDRESS: '{street_str}' - REASON(s): '{', '.join(issues)}'"
                     )
             except Exception:
                 pass
@@ -1825,16 +1837,37 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                     else None
                 )
 
-                if age_int is not None and age_int < 18 and cms_int == 1:
-                    row_issues.append(
-                        {
-                            "row": r,
-                            "mrn": mrn_val,
-                            "cms": cms_val,
-                            "issue_type": "Age Too Young",
-                            "description": f"Age {age_int} is below 18 (CMS=1)",
-                        }
-                    )
+                if age_int is not None and cms_int == 1:
+                    if age_int <= 0:
+                        row_issues.append(
+                            {
+                                "row": r,
+                                "mrn": mrn_val,
+                                "cms": cms_val,
+                                "issue_type": "Invalid Age",
+                                "description": f"Age {age_int} is not a valid age (CMS=1)",
+                            }
+                        )
+                    elif age_int < 18:
+                        row_issues.append(
+                            {
+                                "row": r,
+                                "mrn": mrn_val,
+                                "cms": cms_val,
+                                "issue_type": "Age Too Young",
+                                "description": f"Age {age_int} is below 18 (CMS=1)",
+                            }
+                        )
+                    elif age_int > 110:
+                        row_issues.append(
+                            {
+                                "row": r,
+                                "mrn": mrn_val,
+                                "cms": cms_val,
+                                "issue_type": "Age Suspicious",
+                                "description": f"Age {age_int} is implausibly high (CMS=1)",
+                            }
+                        )
             except (ValueError, TypeError):
                 pass
 

@@ -162,6 +162,10 @@ def build_report(
     
     report_lines.append("</div>")
 
+    # VALIDATION CHECKS — buffered for collapsible wrapper (starts with CONTACT INFORMATION)
+    _val_start_idx = len(report_lines)
+    issues_before_val = len(issues)
+
     # OASCAPHS tab analysis
     report_lines.append("<div class='section-subheader'>CONTACT INFORMATION</div>")
     report_lines.append("<table class='data-table'>")
@@ -228,8 +232,7 @@ def build_report(
         except Exception:
             frame_inel_count = None
 
-    # VALIDATION CHECKS
-    report_lines.append("<h2>VALIDATION SUMMARY</h2>")
+    # VALIDATION CHECKS — continued in same collapsible buffer
 
     # Tab counts in table format
     report_lines.append("<div class='section-subheader'>INELIGIBLE PATIENTS</div>")
@@ -433,7 +436,29 @@ def build_report(
                 f"<tr><td>Eligible + INEL = Submitted ({eligible_patients} + {total_inel_combined} = {patients_submitted})</td><td style='color: #28a745;'>✓</td></tr>"
             )
 
-    report_lines.append("</table>") # based on month (November=orange, December=green, etc.)
+    report_lines.append("</table>")
+
+    # Wrap the validation section in a collapsible <details>
+    _val_section = report_lines[_val_start_idx:]
+    _pass_count = sum(1 for line in _val_section if "\u2713" in line)
+    _fail_count = sum(1 for line in _val_section if "\u2717" in line)
+    _warn_count = sum(1 for line in _val_section if "\u26a0" in line)
+    _has_issues = _fail_count > 0 or len(issues) > issues_before_val
+    _label_parts = []
+    if _pass_count:
+        _label_parts.append(f"{_pass_count} passed")
+    if _fail_count:
+        _label_parts.append(f"{_fail_count} failed")
+    if _warn_count:
+        _label_parts.append(f"{_warn_count} warning{'s' if _warn_count != 1 else ''}")
+    _summary_label = ", ".join(_label_parts) if _label_parts else "no checks run"
+    _open_attr = " open" if _has_issues else ""
+    del report_lines[_val_start_idx:]
+    report_lines.append(f"<details{_open_attr} class='validation-summary-details'>")
+    report_lines.append(f"<summary>VALIDATION SUMMARY: {_summary_label}</summary>")
+    report_lines.extend(_val_section)
+    report_lines.append("</details>")
+
     qtr_header_color = "#2dbd69"  # Default green
     if service_date_range:
         try:
@@ -495,7 +520,7 @@ def build_report(
     
     # Add SID client name comparison if available
     if sid_prefix and sid_registry_name:
-        report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check"
+        report_lines.append("<h2>SID REGISTRY CHECK"
             " <span class='info-icon'>i<span class='tooltip'>"
             "SIDs.csv contains the list of client names matched to SID codes. "
             "If facility/site name columns are found in the POP tab, they are shown below. "
@@ -503,7 +528,7 @@ def build_report(
             "<a href='https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU' "
             "style='color: #5dade2;' target='_blank'>shared OneDrive folder</a> "
             "and place it in your installation directory (default: C:\\OAS-CAHPS-Auditor)."
-            "</span></span></h3>")
+            "</span></span></h2>")
         report_lines.append("<table class='excel-style' style='font-size: 0.9em;'>")
         report_lines.append("<tr>")
         report_lines.append("<th style='background-color: #000; color: #fff;'>SID</th>")
@@ -530,14 +555,14 @@ def build_report(
 
     else:
         # Show that SID registry check couldn't be performed
-        report_lines.append("<h3 style='margin-top: 15px; margin-bottom: 5px;'>SID Registry Check"
+        report_lines.append("<h2>SID Registry Check"
             " <span class='info-icon'>i<span class='tooltip'>"
             "SIDs.csv contains the list of client names matched to SID codes. "
             "Download the latest version from the "
             "<a href='https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU' "
             "style='color: #5dade2;' target='_blank'>shared OneDrive folder</a> "
             "and place it in your installation directory (default: C:\\OAS-CAHPS-Auditor)."
-            "</span></span></h3>")
+            "</span></span></h2>")
         report_lines.append("<p style='color: #000; margin: 5px 0;'>")
         if not sid_prefix:
             report_lines.append("⚠ Unable to perform SID registry check: SID prefix not found in file")
@@ -849,8 +874,11 @@ def build_report(
         report_lines.append("</details>")
 
     # INVALID ADDRESSES section
+    _name_col_addr = headers.get("PATIENT NAME")
+    _age_col_addr  = headers.get("AGE")
     invalid_addresses, noted_addresses = check_address(
-        sheet, addr1_col, city_col, state_col, zip_col, mrn_col, cms_col, em_col, addr2_col
+        sheet, addr1_col, city_col, state_col, zip_col, mrn_col, cms_col, em_col, addr2_col,
+        name_col=_name_col_addr, age_col=_age_col_addr
     )
     if invalid_addresses:
         report_lines.append("<h2>INVALID ADDRESSES FOUND</h2>")
@@ -858,54 +886,146 @@ def build_report(
         report_lines.append(
             f"<summary>Invalid Address Details ({len(invalid_addresses)} found)</summary>"
         )
-        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
-        report_lines.append(
-            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>E/M</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STREET</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CITY</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>STATE</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ZIP</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th></tr>"
-        )
+
+        # Parse all entries first so we can build the name-flip picker
+        _addr_rows = []
         for address in invalid_addresses:
-            # Parse format: "Row: 5 - MRN: '123' - CMS: '1' - E/M: 'E' - ADDRESS: '{'country_code': 'US', ...}' - REASON: 'Invalid state'"
+            # Format: "Row: 5 - MRN: '123' - CMS: '1' - E/M: 'E' - NAME: 'Smith, John' - AGE: '45' - ADDRESS: '{...}' - REASON: '...'"
             parts = address.split(" - ")
-            row_num = parts[0].replace("Row: ", "").strip()
-            mrn_val = parts[1].replace("MRN: ", "").strip("'")
-            cms_val = parts[2].replace("CMS: ", "").strip("'")
-            em_val = parts[3].replace("E/M: ", "").strip("'")
+            row_num  = parts[0].replace("Row: ", "").strip()
+            mrn_val  = parts[1].replace("MRN: ", "").strip("'")
+            cms_val  = parts[2].replace("CMS: ", "").strip("'")
+            em_val   = parts[3].replace("E/M: ", "").strip("'")
+            name_val = parts[4].replace("NAME: ", "").strip("'") if len(parts) > 4 else ""
+            age_val  = parts[5].replace("AGE: ", "").strip("'")  if len(parts) > 5 else ""
 
-            # Replace 'None' with empty string for display
-            if mrn_val == "None":
-                mrn_val = ""
-            if cms_val == "None":
-                cms_val = ""
-            if em_val == "None":
-                em_val = ""
+            mrn_val  = "" if mrn_val  == "None" else mrn_val
+            cms_val  = "" if cms_val  == "None" else cms_val
+            em_val   = "" if em_val   == "None" else em_val
+            name_val = "" if name_val == "None" else name_val
+            age_val  = "" if age_val  == "None" else age_val
 
-            # Extract dictionary from ADDRESS part
-            addr_dict_str = parts[4].replace("ADDRESS: ", "").strip("'")
+            addr_dict_str = parts[6].replace("ADDRESS: ", "").strip("'") if len(parts) > 6 else ""
             try:
                 addr_dict = ast.literal_eval(addr_dict_str)
-                street = addr_dict.get("street_address") or ""
-                city = addr_dict.get("city") or ""
-                state = addr_dict.get("country_area") or ""
+                street   = addr_dict.get("street_address") or ""
+                city     = addr_dict.get("city") or ""
+                state    = addr_dict.get("country_area") or ""
                 zip_code = addr_dict.get("postal_code") or ""
-
-                # Clean up "None" strings
-                if street == "None":
-                    street = ""
-                if city == "None":
-                    city = ""
-                if state == "None":
-                    state = ""
-                if zip_code == "None":
-                    zip_code = ""
-            except:
+                street   = "" if street   == "None" else street
+                city     = "" if city     == "None" else city
+                state    = "" if state    == "None" else state
+                zip_code = "" if zip_code == "None" else zip_code
+            except Exception:
                 street = city = state = zip_code = ""
 
-            reason_text = (
-                parts[5].replace("REASON: ", "").strip("'") if len(parts) > 5 else ""
+            reason_text = parts[7].replace("REASON: ", "").strip("'") if len(parts) > 7 else ""
+            _addr_rows.append({
+                "row_num": row_num, "mrn": mrn_val, "cms": cms_val, "em": em_val,
+                "name": name_val, "age": age_val,
+                "street": street, "city": city, "state": state, "zip": zip_code,
+                "reason": reason_text,
+            })
+
+        # Collect up to 3 sample names for the name-order picker
+        _addr_sample_names = []
+        for _r in _addr_rows:
+            _n = _r["name"]
+            if len(_n.split()) >= 2:
+                _addr_sample_names.append(_n)
+            if len(_addr_sample_names) >= 3:
+                break
+        _addr_show_picker = len(_addr_sample_names) > 0
+
+        th = "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>"
+
+        def _build_addr_table(use_flipped):
+            _rows = []
+            _rows.append("<table class='excel-style' style='font-size: 0.85em;'>")
+            _rows.append(
+                f"<tr>{th}ROW</th>{th}MRN</th>{th}CMS</th>{th}E/M</th>"
+                f"{th}PATIENT NAME</th>{th}AGE</th>"
+                f"{th}STREET</th>{th}CITY</th>{th}STATE</th>{th}ZIP</th>"
+                f"{th}REASON</th>"
+                f"<th style='background-color:#000;color:#fff;padding:4px 8px;'>SEARCH LINKS</th></tr>"
             )
+            for _r in _addr_rows:
+                raw_name = _r["name"]
+                tokens = raw_name.split()
+                if use_flipped and len(tokens) >= 2:
+                    lookup_name = " ".join(tokens[1:] + [tokens[0]])
+                else:
+                    lookup_name = raw_name
+                name_disp = lookup_name or "&mdash;"
+                if lookup_name:
+                    _loc_city  = _r["city"]
+                    _loc_state = _r["state"]
+                    _urls = build_person_search_urls(lookup_name, _loc_city, _loc_state)
+                    links_html = " &nbsp; ".join(
+                        f"<a href='{url}' target='_blank' "
+                        f"style='color:#2980b9;text-decoration:none;white-space:nowrap;'>{label}</a>"
+                        for label, url in _urls.items()
+                    )
+                else:
+                    links_html = "&mdash;"
+                # Highlight specific blank cells for missing-field rows
+                missing_fields = set()
+                if _r["reason"].startswith("Missing:"):
+                    for _mf in _r["reason"].replace("Missing:", "").split(","):
+                        missing_fields.add(_mf.strip().lower())
+                def _td(val, field="", _mf=missing_fields):
+                    bg = "background-color: #fff3cd; " if field in _mf else ""
+                    return f"<td style='{bg}padding: 3px 8px;'>{val}</td>"
+                _rows.append(
+                    f"<tr>"
+                    f"{_td(_r['row_num'])}"
+                    f"{_td(_r['mrn'])}"
+                    f"{_td(_r['cms'])}"
+                    f"{_td(_r['em'])}"
+                    f"{_td(name_disp)}"
+                    f"{_td(_r['age'])}"
+                    f"{_td(_r['street'] or '&mdash;', 'street')}"
+                    f"{_td(_r['city']   or '&mdash;', 'city')}"
+                    f"{_td(_r['state']  or '&mdash;', 'state')}"
+                    f"{_td(_r['zip']    or '&mdash;', 'zip')}"
+                    f"{_td(_r['reason'])}"
+                    f"{_td(links_html)}"
+                    f"</tr>"
+                )
+            _rows.append("</table>")
+            return _rows
+
+        if _addr_show_picker:
+            _flip_names = [
+                " ".join(n.split()[1:] + [n.split()[0]]) for n in _addr_sample_names
+            ]
+            sep = " &nbsp;&middot;&nbsp; "
+            raw_html  = sep.join(_addr_sample_names)
+            flip_html = sep.join(_flip_names)
+            report_lines.append("<input type='radio' name='addr-order' id='ao-raw' class='addr-radio' checked>")
+            report_lines.append("<input type='radio' name='addr-order' id='ao-flip' class='addr-radio'>")
+            report_lines.append("<p class='lookup-picker-label'>Choose whichever option shows names in the correct order (from first name to last name):</p>")
             report_lines.append(
-                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{mrn_val}</td><td style='padding: 3px 8px;'>{cms_val}</td><td style='padding: 3px 8px;'>{em_val}</td><td style='padding: 3px 8px;'>{street}</td><td style='padding: 3px 8px;'>{city}</td><td style='padding: 3px 8px;'>{state}</td><td style='padding: 3px 8px;'>{zip_code}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
+                "<div class='lookup-order-picker addr-order-picker'>"
+                f"<label for='ao-raw'>"
+                f"<span class='pick-hint'>Option 1</span>"
+                f"<span class='pick-sample'>{raw_html}</span>"
+                f"</label>"
+                f"<label for='ao-flip'>"
+                f"<span class='pick-hint'>Option 2</span>"
+                f"<span class='pick-sample'>{flip_html}</span>"
+                f"</label>"
+                f"</div>"
             )
-        report_lines.append("</table>")
+            report_lines.append("<div class='addr-table-raw'>")
+            report_lines.extend(_build_addr_table(use_flipped=False))
+            report_lines.append("</div>")
+            report_lines.append("<div class='addr-table-flip'>")
+            report_lines.extend(_build_addr_table(use_flipped=True))
+            report_lines.append("</div>")
+        else:
+            report_lines.extend(_build_addr_table(use_flipped=False))
+
         report_lines.append("</details>")
 
     # possibly problematic addresses
@@ -915,37 +1035,120 @@ def build_report(
         report_lines.append(
             f"<summary>Problematic Address Details ({len(noted_addresses)} found)</summary>"
         )
-        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
-        report_lines.append(
-            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>E/M</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ADDRESS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ISSUE(S)</th></tr>"
-        )
+
+        _noted_rows = []
         for address in noted_addresses:
-            # Parse format: "Row: 5 - MRN: '123' - CMS: '1' - E/M: 'E' - ADDRESS: '123 Main St' - REASON(s): 'city, state'"
+            # Format: "Row: 5 - MRN: '123' - CMS: '1' - E/M: 'M' - NAME: 'x' - AGE: '45' - CITY: 'x' - STATE: 'x' - ADDRESS: '123 Main St' - REASON(s): '...'"
             parts = address.split(" - ")
-            row_num = parts[0].replace("Row: ", "").strip()
-            mrn_val = parts[1].replace("MRN: ", "").strip("'")
-            cms_val = parts[2].replace("CMS: ", "").strip("'")
-            em_val = parts[3].replace("E/M: ", "").strip("'")
+            row_num  = parts[0].replace("Row: ",   "").strip()
+            mrn_val  = parts[1].replace("MRN: ",   "").strip("'")
+            cms_val  = parts[2].replace("CMS: ",   "").strip("'")
+            em_val   = parts[3].replace("E/M: ",   "").strip("'")
+            name_val = parts[4].replace("NAME: ",  "").strip("'") if len(parts) > 4 else ""
+            age_val  = parts[5].replace("AGE: ",   "").strip("'") if len(parts) > 5 else ""
+            city_val = parts[6].replace("CITY: ",  "").strip("'") if len(parts) > 6 else ""
+            state_val= parts[7].replace("STATE: ", "").strip("'") if len(parts) > 7 else ""
+            addr_val = parts[8].replace("ADDRESS: ","").strip("'") if len(parts) > 8 else ""
+            reason_text = " - ".join(parts[9:]).replace("REASON(s): ", "", 1).strip("'") if len(parts) > 9 else ""
+            mrn_val   = "" if mrn_val   == "None" else mrn_val
+            cms_val   = "" if cms_val   == "None" else cms_val
+            em_val    = "" if em_val    == "None" else em_val
+            name_val  = "" if name_val  == "None" else name_val
+            age_val   = "" if age_val   == "None" else age_val
+            city_val  = "" if city_val  == "None" else city_val
+            state_val = "" if state_val == "None" else state_val
+            addr_val  = "" if addr_val  == "None" else addr_val
+            _noted_rows.append({
+                "row_num": row_num, "mrn": mrn_val, "cms": cms_val, "em": em_val,
+                "name": name_val, "age": age_val,
+                "city": city_val, "state": state_val,
+                "address": addr_val, "reason": reason_text,
+            })
 
-            # Replace 'None' with empty string for display
-            if mrn_val == "None":
-                mrn_val = ""
-            if cms_val == "None":
-                cms_val = ""
-            if em_val == "None":
-                em_val = ""
+        _noted_sample_names = []
+        for _r in _noted_rows:
+            _n = _r["name"]
+            if len(_n.split()) >= 2:
+                _noted_sample_names.append(_n)
+            if len(_noted_sample_names) >= 3:
+                break
+        _noted_show_picker = len(_noted_sample_names) > 0
 
-            addr_text = parts[4].replace("ADDRESS: ", "").strip("'")
-            if addr_text == "None":
-                addr_text = ""
+        _nth = "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>"
 
-            reason_text = (
-                parts[5].replace("REASON(s): ", "").strip("'") if len(parts) > 5 else ""
+        def _build_noted_table(use_flipped):
+            _rows = []
+            _rows.append("<table class='excel-style' style='font-size: 0.85em;'>")
+            _rows.append(
+                f"<tr>{_nth}ROW</th>{_nth}MRN</th>{_nth}CMS</th>{_nth}E/M</th>"
+                f"{_nth}PATIENT NAME</th>{_nth}AGE</th>"
+                f"{_nth}ADDRESS</th>{_nth}ISSUE(S)</th>"
+                f"<th style='background-color:#000;color:#fff;padding:4px 8px;'>SEARCH LINKS</th></tr>"
             )
+            for _r in _noted_rows:
+                raw_name = _r["name"]
+                tokens = raw_name.split()
+                if use_flipped and len(tokens) >= 2:
+                    lookup_name = " ".join(tokens[1:] + [tokens[0]])
+                else:
+                    lookup_name = raw_name
+                name_disp = lookup_name or "&mdash;"
+                if lookup_name:
+                    _urls = build_person_search_urls(lookup_name, _r["city"], _r["state"])
+                    links_html = " &nbsp; ".join(
+                        f"<a href='{url}' target='_blank' "
+                        f"style='color:#2980b9;text-decoration:none;white-space:nowrap;'>{label}</a>"
+                        for label, url in _urls.items()
+                    )
+                else:
+                    links_html = "&mdash;"
+                _rows.append(
+                    f"<tr>"
+                    f"<td style='padding: 3px 8px;'>{_r['row_num']}</td>"
+                    f"<td style='padding: 3px 8px;'>{_r['mrn']}</td>"
+                    f"<td style='padding: 3px 8px;'>{_r['cms']}</td>"
+                    f"<td style='padding: 3px 8px;'>{_r['em']}</td>"
+                    f"<td style='padding: 3px 8px;'>{name_disp}</td>"
+                    f"<td style='padding: 3px 8px;'>{_r['age']}</td>"
+                    f"<td style='padding: 3px 8px;'>{_r['address'] or '&mdash;'}</td>"
+                    f"<td style='padding: 3px 8px;'>{_r['reason']}</td>"
+                    f"<td style='padding: 3px 8px;'>{links_html}</td>"
+                    f"</tr>"
+                )
+            _rows.append("</table>")
+            return _rows
+
+        if _noted_show_picker:
+            _flip_names = [
+                " ".join(n.split()[1:] + [n.split()[0]]) for n in _noted_sample_names
+            ]
+            sep = " &nbsp;&middot;&nbsp; "
+            raw_html  = sep.join(_noted_sample_names)
+            flip_html = sep.join(_flip_names)
+            report_lines.append("<input type='radio' name='noted-order' id='no-raw' class='noted-radio' checked>")
+            report_lines.append("<input type='radio' name='noted-order' id='no-flip' class='noted-radio'>")
+            report_lines.append("<p class='lookup-picker-label'>Choose whichever option shows names in the correct order (from first name to last name):</p>")
             report_lines.append(
-                f"<tr><td style='padding: 3px 8px;'>{row_num}</td><td style='padding: 3px 8px;'>{mrn_val}</td><td style='padding: 3px 8px;'>{cms_val}</td><td style='padding: 3px 8px;'>{em_val}</td><td style='padding: 3px 8px;'>{addr_text}</td><td style='padding: 3px 8px;'>{reason_text}</td></tr>"
+                "<div class='lookup-order-picker noted-order-picker'>"
+                f"<label for='no-raw'>"
+                f"<span class='pick-hint'>Option 1</span>"
+                f"<span class='pick-sample'>{raw_html}</span>"
+                f"</label>"
+                f"<label for='no-flip'>"
+                f"<span class='pick-hint'>Option 2</span>"
+                f"<span class='pick-sample'>{flip_html}</span>"
+                f"</label>"
+                f"</div>"
             )
-        report_lines.append("</table>")
+            report_lines.append("<div class='noted-table-raw'>")
+            report_lines.extend(_build_noted_table(use_flipped=False))
+            report_lines.append("</div>")
+            report_lines.append("<div class='noted-table-flip'>")
+            report_lines.extend(_build_noted_table(use_flipped=True))
+            report_lines.append("</div>")
+        else:
+            report_lines.extend(_build_noted_table(use_flipped=False))
+
         report_lines.append("</details>")
 
     # PEOPLE-SEARCH LOOKUP SECTION
@@ -1122,7 +1325,7 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
 
     header_lines = []
     header_lines.append("<!DOCTYPE html>")
-    header_lines.append("<html>")
+    header_lines.append('<html lang="en">')
     header_lines.append("<head>")
     header_lines.append("    <meta charset='UTF-8'>")
     title_prefix = "Failed Audit" if audit_id is None else "Audit Report"
@@ -1142,8 +1345,24 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
         header_lines.append("        body { font-family: sans-serif; }")
 
     header_lines.append("    </style>")
+    header_lines.append("    <script>")
+    header_lines.append("    (function(){var t=localStorage.getItem('oas-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();")
+    header_lines.append("    function toggleTheme(){")
+    header_lines.append("      var html=document.documentElement;")
+    header_lines.append("      var next=html.getAttribute('data-theme')==='dark'?'light':'dark';")
+    header_lines.append("      html.setAttribute('data-theme',next);")
+    header_lines.append("      localStorage.setItem('oas-theme',next);")
+    header_lines.append("      var btn=document.querySelector('.theme-toggle');")
+    header_lines.append("      if(btn)btn.textContent=next==='dark'?'\u2600 Light':'\U0001f319 Dark';")
+    header_lines.append("    }")
+    header_lines.append("    document.addEventListener('DOMContentLoaded',function(){")
+    header_lines.append("      var btn=document.querySelector('.theme-toggle');")
+    header_lines.append("      if(btn&&localStorage.getItem('oas-theme')==='dark')btn.textContent='\u2600 Light';")
+    header_lines.append("    });")
+    header_lines.append("    </script>")
     header_lines.append("</head>")
     header_lines.append("<body>")
+    header_lines.append("<button class='theme-toggle' onclick='toggleTheme()' aria-label='Toggle dark mode'>\U0001f319 Dark</button>")
     header_lines.append("<div class='report-container'>")
 
     # Updated header presentation
@@ -1170,16 +1389,16 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
                 end_long = f"{end_date.strftime('%B')} {ordinal(end_date.day)}, {end_date.year}"
                 long_date_range = f"{start_long} - {end_long}"
                 
-                header_lines.append(f"<div style='font-size: 1.2em; color: #34495e; font-weight: 500;'>{long_date_range}</div>")
+                header_lines.append(f"<div class='header-service-dates'>{long_date_range}</div>")
             else:
                 # Fallback to original if parsing fails
-                header_lines.append(f"<div style='font-size: 1.2em; color: #34495e; font-weight: 500;'>{service_date_range}</div>")
+                header_lines.append(f"<div class='header-service-dates'>{service_date_range}</div>")
         except (ValueError, AttributeError):
             # Fallback to original if parsing fails
-            header_lines.append(f"<div style='font-size: 1.2em; color: #34495e; font-weight: 500;'>{service_date_range}</div>")
+            header_lines.append(f"<div class='header-service-dates'>{service_date_range}</div>")
     header_lines.append("</div>")
     header_lines.append(
-        f"<div style='display: flex; justify-content: space-between; align-items: center; margin: 0 0 5px 0; color: #bdc3c7; font-size: 0.85em;'>"
+        f"<div class='header-meta-row'>"
         f"<span><a href='https://tylercbrock.com' style='color: inherit; text-decoration: none;'>Auditor</a> v{version}</span>"
         f"<span><a href='https://github.com/ToonLunk/OAS-CAHPS-Auditor' style='color: inherit; text-decoration: none;'>Need Help?</a></span>"
         f"</div>"
@@ -1312,6 +1531,7 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha",
     if update_info and isinstance(report_lines, list):
         _badge = (
             f"<a href=\"{update_info['download_url']}\" "
+            "class='update-badge' "
             "style='margin-left:8px;background:#fffbe6;border:1px solid #ffe58f;"
             "padding:2px 8px;border-radius:3px;color:#8a6d3b;font-size:0.9em;"
             "text-decoration:none;font-weight:500;'"

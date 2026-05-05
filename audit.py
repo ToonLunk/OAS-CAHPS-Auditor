@@ -9,8 +9,9 @@ from multiprocessing import Pool, cpu_count, freeze_support
 from tqdm import tqdm
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
+from audit_lib_funcs import _CPT_LOAD_ERROR
 
-__version__ = "1.3.5"
+__version__ = "1.4.0"
 version = __version__
 
 
@@ -309,7 +310,15 @@ if __name__ == "__main__":
     freeze_support()
     
     _update_info = check_for_updates()
-    
+
+    if _CPT_LOAD_ERROR:
+        print("=" * 60)
+        print("  WARNING: cpt_codes.json could not be loaded.")
+        print(f"  {_CPT_LOAD_ERROR}")
+        print("  CPT ineligibility checks will use built-in defaults.")
+        print("=" * 60)
+        print()
+
     remaining_argv = sys.argv[1:]
 
     if len(remaining_argv) != 1:

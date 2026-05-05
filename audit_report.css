@@ -1,34 +1,122 @@
+/* ── Theme variables ─────────────────────────────────────────────────────────────────── */
+:root {
+  --bg-page: #f5f5f5;
+  --bg-container: #ffffff;
+  --bg-surface: #f9f9f9;
+  --bg-summary: #ecf0f1;
+  --bg-summary-hover: #d5dbdc;
+  --text-primary: #000000;
+  --text-h1: #2c3e50;
+  --text-secondary: #555555;
+  --text-muted: #7f8c8d;
+  --border-color: #bdc3c7;
+  --border-subtle: #e0e0e0;
+}
+
+[data-theme="dark"] {
+  --bg-page: #1e1e1e;
+  --bg-container: #272822;
+  --bg-surface: #2d2d2a;
+  --bg-summary: #3a3a34;
+  --bg-summary-hover: #44443d;
+  --text-primary: #f8f8f2;
+  --text-h1: #cfcfc2;
+  --text-secondary: #aaa99a;
+  --text-muted: #75715e;
+  --border-color: #49483e;
+  --border-subtle: #3a3a34;
+}
+
+/* Dark mode overrides for problematic inline styles */
+[data-theme="dark"] td[style*="fff3cd"] {
+  background-color: #3a2e00 !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] p[style*="color: #000"] {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] th[style*="background-color: #000"] {
+  background-color: #3a3a34 !important;
+}
+
+[data-theme="dark"] .update-badge {
+  background: #2a2310 !important;
+  border-color: #6b5a1a !important;
+  color: #d4b85a !important;
+}
+
+/* ── Dark mode toggle button ────────────────────────────────────────────────── */
+.theme-toggle {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  background: var(--bg-summary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 0.9em;
+  z-index: 1000;
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+
+.theme-toggle:hover {
+  background: var(--bg-summary-hover);
+}
+
+/* ── Report header classes (for theme support) ───────────────────────── */
+.header-service-dates {
+  font-size: 1.2em;
+  color: var(--text-h1);
+  font-weight: 500;
+}
+
+.header-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 5px 0;
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   max-width: 1000px;
   margin: 10px auto;
   padding: 0;
-  background-color: #f5f5f5;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
   line-height: 1.4;
 }
 
 .report-container {
-  background-color: white;
+  background-color: var(--bg-container);
   padding: 15px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
-  color: #2c3e50;
+  color: var(--text-h1);
   border-bottom: 2px solid #27ae60;
   padding-bottom: 5px;
   margin: 0 0 10px 0;
 }
 
 h2 {
-  color: #000;
-  font-size: 1.2em;
-  margin: 15px 0 5px 0;
+  color: var(--text-primary);
+  font-size: 1.05em;
+  margin: 15px 0 10px 0;
   font-weight: bold;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 4px;
 }
 
 h3 {
-  color: #000;
+  color: var(--text-primary);
   font-size: 0.8em;
   margin: 10px 0 5px 0;
   font-weight: bold;
@@ -50,7 +138,7 @@ p {
 
 hr {
   border: none;
-  border-top: 1px solid #bdc3c7;
+  border-top: 1px solid var(--border-color);
   margin: 10px 0;
 }
 
@@ -71,12 +159,12 @@ table.excel-style th {
 }
 
 table.excel-style td {
-  border: 1px solid #bdc3c7;
+  border: 1px solid var(--border-color);
   padding: 6px 12px;
 }
 
 table.excel-style tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: var(--bg-surface);
 }
 
 table.data-table {
@@ -87,11 +175,11 @@ table.data-table {
 
 table.data-table td {
   padding: 4px 8px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 table.data-table tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: var(--bg-surface);
 }
 
 table.data-table td:first-child {
@@ -117,11 +205,11 @@ table.validation-table {
 
 table.validation-table td {
   padding: 4px 8px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 table.validation-table tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: var(--bg-surface);
 }
 
 table.validation-table td:first-child {
@@ -156,19 +244,48 @@ details {
 
 details summary {
   cursor: pointer;
-  font-weight: bold;
+  font-weight: normal;
   padding: 8px;
-  background-color: #ecf0f1;
+  background-color: var(--bg-summary);
   border-left: 3px solid #27ae60;
   user-select: none;
 }
 
 details summary:hover {
-  background-color: #d5dbdc;
+  background-color: var(--bg-summary-hover);
 }
 
 details[open] summary {
   border-left-color: #e8e8e8;
+}
+
+/* Validation summary — styled as an H2 heading, not a box */
+.validation-summary-details {
+  margin: 15px 0 10px 0;
+}
+
+.validation-summary-details > summary {
+  display: list-item;
+  list-style: disclosure-closed inside;
+  font-size: 1.05em;
+  font-weight: bold;
+  color: var(--text-primary);
+  background: none;
+  border-left: none;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 0 4px 0;
+  transition: color 0.15s;
+}
+
+.validation-summary-details[open] > summary {
+  list-style-type: disclosure-open;
+  border-left: none;
+  background: none;
+}
+
+.validation-summary-details > summary:hover {
+  background: none;
+  color: var(--text-muted);
 }
 
 /* Tooltip styles */
@@ -229,7 +346,7 @@ details[open] summary {
 
 /* Section subheaders */
 .section-subheader {
-  color: #7f8c8d;
+  color: var(--text-muted);
   font-size: 0.75em;
   font-weight: 600;
   text-transform: uppercase;
@@ -250,21 +367,21 @@ details[open] summary {
 .three-column-flex .column {
   flex: 1;
   text-align: left;
-  background-color: #f9f9f9;
+  background-color: var(--bg-surface);
   padding: 10px 12px;
-  border-left: 3px solid #e0e0e0;
+  border-left: 3px solid var(--border-subtle);
 }
 
 .three-column-flex .column .label {
   font-size: 0.9em;
-  color: #555;
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
 
 .three-column-flex .column .value {
   font-size: 1.1em;
   font-weight: bold;
-  color: #000;
+  color: var(--text-primary);
 }
 
 /* ── Print styles ── */
@@ -351,7 +468,7 @@ details[open] summary {
 
 .lookup-picker-label {
   font-size: 0.85em;
-  color: #555;
+  color: var(--text-secondary);
   margin: 8px 0 4px;
   font-style: italic;
 }
@@ -369,16 +486,16 @@ details[open] summary {
   align-items: center;
   gap: 14px;
   padding: 7px 12px;
-  border: 2px solid #ccc;
+  border: 2px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
-  background: #fafafa;
+  background: var(--bg-surface);
   transition: border-color 0.12s, background 0.12s;
 }
 
 .lookup-order-picker label:hover {
   border-color: #888;
-  background: #f0f0f0;
+  background: var(--bg-summary-hover);
 }
 
 .lookup-order-picker .pick-hint {
@@ -395,7 +512,7 @@ details[open] summary {
 .lookup-order-picker .pick-sample {
   font-family: Calibri, sans-serif;
   font-size: 0.9em;
-  color: #333;
+  color: var(--text-primary);
 }
 
 #lo-raw:checked ~ .lookup-order-picker label[for="lo-raw"],
@@ -412,3 +529,39 @@ details[open] summary {
 .lookup-table-flip { display: none; }
 #lo-flip:checked ~ .lookup-table-flip { display: block; }
 #lo-flip:checked ~ .lookup-table-raw  { display: none; }
+
+/* ── Invalid address: name-order picker ───────────────────────────── */
+.addr-radio { display: none; }
+
+#ao-raw:checked ~ .addr-order-picker label[for="ao-raw"],
+#ao-flip:checked ~ .addr-order-picker label[for="ao-flip"] {
+  border-color: #27ae60;
+  background: #eafaf1;
+}
+
+#ao-raw:checked ~ .addr-order-picker label[for="ao-raw"] .pick-hint,
+#ao-flip:checked ~ .addr-order-picker label[for="ao-flip"] .pick-hint {
+  color: #27ae60;
+}
+
+.addr-table-flip { display: none; }
+#ao-flip:checked ~ .addr-table-flip { display: block; }
+#ao-flip:checked ~ .addr-table-raw  { display: none; }
+
+/* ── Problematic address: name-order picker ──────────────────────── */
+.noted-radio { display: none; }
+
+#no-raw:checked ~ .noted-order-picker label[for="no-raw"],
+#no-flip:checked ~ .noted-order-picker label[for="no-flip"] {
+  border-color: #27ae60;
+  background: #eafaf1;
+}
+
+#no-raw:checked ~ .noted-order-picker label[for="no-raw"] .pick-hint,
+#no-flip:checked ~ .noted-order-picker label[for="no-flip"] .pick-hint {
+  color: #27ae60;
+}
+
+.noted-table-flip { display: none; }
+#no-flip:checked ~ .noted-table-flip { display: block; }
+#no-flip:checked ~ .noted-table-raw  { display: none; }
