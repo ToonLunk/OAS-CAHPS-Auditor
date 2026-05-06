@@ -83,6 +83,16 @@
   font-size: 0.85em;
 }
 
+.header-meta-row a.meta-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.header-meta-row a.meta-link:hover {
+  color: var(--text-primary);
+}
+
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   max-width: 1000px;

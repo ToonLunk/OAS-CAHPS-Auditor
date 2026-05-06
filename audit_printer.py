@@ -1,3 +1,16 @@
+# OAS CAHPS Auditor
+# Copyright (C) 2026 Tyler Brock
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 import ast
 import os
 import sys
@@ -1383,8 +1396,8 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
     header_lines.append("</div>")
     header_lines.append(
         f"<div class='header-meta-row'>"
-        f"<span><a href='https://tylercbrock.com' style='color: inherit; text-decoration: none;'>Auditor</a> v{version}</span>"
-        f"<span><a href='https://github.com/ToonLunk/OAS-CAHPS-Auditor' style='color: inherit; text-decoration: none;'>Need Help?</a></span>"
+        f"<span><a href='https://tylercbrock.com' class='meta-link' title='tylercbrock.com'>Auditor</a> v{version}</span>"
+        f"<span><a href='https://github.com/ToonLunk/OAS-CAHPS-Auditor' class='meta-link' title='OAS-CAHPS-Auditor on GitHub'>Need Help?</a></span>"
         f"</div>"
     )
     header_lines.append("</div>")

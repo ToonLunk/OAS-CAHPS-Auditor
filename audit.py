@@ -1,4 +1,17 @@
 #!/usr/bin/env python3
+# OAS CAHPS Auditor
+# Copyright (C) 2026 Tyler Brock
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 import openpyxl
 import os
 import re
@@ -16,7 +29,7 @@ version = __version__
 
 
 def print_app_info_and_help_block():
-    print(f"OAS auditor version {version}")
+    print(f"OAS CAHPS Auditor v{version} by Tyler Brock")
     print()
     print(
         "Need help? Visit https://github.com/ToonLunk/OAS-CAHPS-Auditor, or contact support."
