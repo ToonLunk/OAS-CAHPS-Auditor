@@ -1,22 +1,23 @@
-# Version 1.4.0 - Report Improvements
+# Version 1.4.1 - Per-User Installation (No Admin Required)
 
-**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v1.3.5...v1.4.0
+**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v1.4.0...v1.4.1
 
 ## What's New
 
-- The VALIDATION SUMMARY is now collapsible — collapsed automatically when everything passes, open when there are failures
-- Age validation improved: ages ≤ 0, under 18, or over 110 are now flagged separately with distinct issue types
-- Console warning shown on startup if cpt_codes.json can't be loaded
+- Installer no longer requires administrator privileges — users can install without IT involvement
+- Install location changed from `C:\OAS-CAHPS-Auditor` to `%LOCALAPPDATA%\OAS-CAHPS-Auditor`
+- Context menu and Add/Remove Programs entries now registered per-user instead of system-wide
+- PATH entry now added to user environment instead of system environment
 
 ---
 
 ## How do I install this?
 
-1. Download **`OAS-CAHPS-Auditor-v1.4.0-Setup.exe`** below.
+1. Download **`OAS-CAHPS-Auditor-v1.4.1-Setup.exe`** below.
 2. Run the installer - it will upgrade in place if you already have a previous version.
 3. You're done! You can now start using the auditor.
 
-Default install location: `C:\OAS-CAHPS-Auditor`
+Default install location: `%LOCALAPPDATA%\OAS-CAHPS-Auditor`
 
 ---
 
