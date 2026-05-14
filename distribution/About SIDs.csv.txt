@@ -9,9 +9,10 @@ Download the latest SIDs.csv from the shared OneDrive folder:
 WHERE TO PUT IT:
 Place SIDs.csv in the installation directory:
 
-  C:\OAS-CAHPS-Auditor\SIDs.csv
+  %LOCALAPPDATA%\OAS-CAHPS-Auditor\SIDs.csv
 
-(This is the same folder where audit.exe is installed.)
+(This is the same folder where audit.exe is installed.
+ On most systems this expands to C:\Users\<your name>\AppData\Local\OAS-CAHPS-Auditor)
 
 HOW TO UPDATE IT (when new clients are added):
 - Download the latest SIDs.csv from the shared OneDrive folder (link below).

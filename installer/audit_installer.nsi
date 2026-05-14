@@ -22,14 +22,14 @@
 !define PUBLISHER "Tyler Brock"
 !define HELPURL "https://github.com/ToonLunk/OAS-CAHPS-Auditor"
 !define EXE_NAME "audit.exe"
-!define INSTALL_DIR "C:\OAS-CAHPS-Auditor"
+!define INSTALL_DIR "%LOCALAPPDATA%\OAS-CAHPS-Auditor"
 !define UNINSTALL_REG_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\OASCAHPSAuditor"
 
 ; --------------- General Settings ---------------
 Name "${APPNAME} ${VERSION}"
 OutFile "..\dist\OAS-CAHPS-Auditor-v${VERSION}-Setup.exe"
-InstallDir "${INSTALL_DIR}"
-RequestExecutionLevel admin
+InstallDir "$LOCALAPPDATA\OAS-CAHPS-Auditor"
+RequestExecutionLevel user
 SetCompressor /SOLID lzma
 BrandingText "${APPNAME} v${VERSION}"
 
@@ -135,27 +135,27 @@ Section "!Core Files (required)" SecCore
   WriteUninstaller "$INSTDIR\uninstall.exe"
 
   ; --- Add/Remove Programs entry ---
-  WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "DisplayName" "${APPNAME}"
-  WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
-  WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
-  WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "Publisher" "${PUBLISHER}"
-  WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "URLInfoAbout" "${HELPURL}"
-  WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "HelpLink" "${HELPURL}"
-  WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "DisplayVersion" "${VERSION}"
-  WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "DisplayIcon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegDWORD HKLM "${UNINSTALL_REG_KEY}" "NoModify" 1
-  WriteRegDWORD HKLM "${UNINSTALL_REG_KEY}" "NoRepair" 1
+  WriteRegStr HKCU "${UNINSTALL_REG_KEY}" "DisplayName" "${APPNAME}"
+  WriteRegStr HKCU "${UNINSTALL_REG_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
+  WriteRegStr HKCU "${UNINSTALL_REG_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
+  WriteRegStr HKCU "${UNINSTALL_REG_KEY}" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "${UNINSTALL_REG_KEY}" "Publisher" "${PUBLISHER}"
+  WriteRegStr HKCU "${UNINSTALL_REG_KEY}" "URLInfoAbout" "${HELPURL}"
+  WriteRegStr HKCU "${UNINSTALL_REG_KEY}" "HelpLink" "${HELPURL}"
+  WriteRegStr HKCU "${UNINSTALL_REG_KEY}" "DisplayVersion" "${VERSION}"
+  WriteRegStr HKCU "${UNINSTALL_REG_KEY}" "DisplayIcon" "$INSTDIR\${EXE_NAME},0"
+  WriteRegDWORD HKCU "${UNINSTALL_REG_KEY}" "NoModify" 1
+  WriteRegDWORD HKCU "${UNINSTALL_REG_KEY}" "NoRepair" 1
 
   ; --- Estimated size ---
   ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
   IntFmt $0 "0x%08X" $0
-  WriteRegDWORD HKLM "${UNINSTALL_REG_KEY}" "EstimatedSize" $0
+  WriteRegDWORD HKCU "${UNINSTALL_REG_KEY}" "EstimatedSize" $0
 SectionEnd
 
-Section "Add to System PATH" SecPath
-  ; Use EnVar plugin to add install dir to system PATH
-  EnVar::SetHKLM
+Section "Add to User PATH" SecPath
+  ; Use EnVar plugin to add install dir to user PATH
+  EnVar::SetHKCU
   EnVar::Check "PATH" "$INSTDIR"
   Pop $0
   ${If} $0 != 0
@@ -165,37 +165,32 @@ Section "Add to System PATH" SecPath
 SectionEnd
 
 Section "Context Menu Integration" SecContextMenu
-  ; --- Folder background: "Audit All OAS Files" (legacy context menu) ---
-  WriteRegStr HKCR "Directory\Background\shell\AuditAll" "" "Audit All OAS Files"
-  WriteRegStr HKCR "Directory\Background\shell\AuditAll" "Icon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegStr HKCR "Directory\Background\shell\AuditAll\command" "" 'cmd.exe /c cd /d "%V" & "$INSTDIR\${EXE_NAME}" --all & pause'
-
-  ; --- Folder background: "Audit All OAS Files" (Windows 11 new context menu) ---
-  WriteRegStr HKLM "SOFTWARE\Classes\Directory\Background\shell\AuditAll" "" "Audit All OAS Files"
-  WriteRegStr HKLM "SOFTWARE\Classes\Directory\Background\shell\AuditAll" "Icon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegStr HKLM "SOFTWARE\Classes\Directory\Background\shell\AuditAll\command" "" 'cmd.exe /c cd /d "%V" & "$INSTDIR\${EXE_NAME}" --all & pause'
+  ; --- Folder background: "Audit All OAS Files" (Windows 10 & 11) ---
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll" "" "Audit All OAS Files"
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll" "Icon" "$INSTDIR\${EXE_NAME},0"
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll\command" "" 'cmd.exe /c cd /d "%V" & "$INSTDIR\${EXE_NAME}" --all & pause'
 
   ; --- Individual Excel files: "Audit This OAS File" ---
   ; .xlsx
-  WriteRegStr HKCR "SystemFileAssociations\.xlsx\shell\AuditFile" "" "Audit This OAS File"
-  WriteRegStr HKCR "SystemFileAssociations\.xlsx\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegStr HKCR "SystemFileAssociations\.xlsx\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile" "" "Audit This OAS File"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
 
   ; .xls
-  WriteRegStr HKCR "SystemFileAssociations\.xls\shell\AuditFile" "" "Audit This OAS File"
-  WriteRegStr HKCR "SystemFileAssociations\.xls\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegStr HKCR "SystemFileAssociations\.xls\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile" "" "Audit This OAS File"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
 
   ; .xlsm
-  WriteRegStr HKCR "SystemFileAssociations\.xlsm\shell\AuditFile" "" "Audit This OAS File"
-  WriteRegStr HKCR "SystemFileAssociations\.xlsm\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegStr HKCR "SystemFileAssociations\.xlsm\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile" "" "Audit This OAS File"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
 SectionEnd
 
 ; --------------- Section Descriptions ---------------
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} "Installs the auditor executable and required files."
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecPath} "Adds the install directory to the system PATH so you can run 'audit' from any terminal."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecPath} "Adds the install directory to your user PATH so you can run 'audit' from any terminal."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecContextMenu} "Adds right-click context menu options to audit Excel files and folders directly from Explorer."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
@@ -216,22 +211,19 @@ Section "Uninstall"
   ; --- Remove install directory (only if empty) ---
   RMDir "$INSTDIR"
 
-  ; --- Remove from system PATH ---
-  EnVar::SetHKLM
+  ; --- Remove from user PATH ---
+  EnVar::SetHKCU
   EnVar::DeleteValue "PATH" "$INSTDIR"
   Pop $0
 
-  ; --- Remove context menu entries (legacy) ---
-  DeleteRegKey HKCR "Directory\Background\shell\AuditAll"
-
-  ; --- Remove context menu entries (Windows 11) ---
-  DeleteRegKey HKLM "SOFTWARE\Classes\Directory\Background\shell\AuditAll"
+  ; --- Remove context menu entries ---
+  DeleteRegKey HKCU "Software\Classes\Directory\Background\shell\AuditAll"
 
   ; --- Remove file association context menu entries ---
-  DeleteRegKey HKCR "SystemFileAssociations\.xlsx\shell\AuditFile"
-  DeleteRegKey HKCR "SystemFileAssociations\.xls\shell\AuditFile"
-  DeleteRegKey HKCR "SystemFileAssociations\.xlsm\shell\AuditFile"
+  DeleteRegKey HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile"
+  DeleteRegKey HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile"
+  DeleteRegKey HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile"
 
   ; --- Remove Add/Remove Programs entry ---
-  DeleteRegKey HKLM "${UNINSTALL_REG_KEY}"
+  DeleteRegKey HKCU "${UNINSTALL_REG_KEY}"
 SectionEnd

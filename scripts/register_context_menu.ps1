@@ -1,8 +1,7 @@
 # register_context_menu.ps1
 # Adds "Audit All Excel Files" context menu to folder background
-# Must be run as Administrator
 
-$installDir = "C:\OAS-CAHPS-Auditor"
+$installDir = "$env:LOCALAPPDATA\OAS-CAHPS-Auditor"
 $exePath = "$installDir\audit.exe"
 
 # Check if audit.exe exists
@@ -14,8 +13,8 @@ if (-not (Test-Path $exePath)) {
 
 Write-Host "Installing context menu for folders..." -ForegroundColor Cyan
 
-# Register for folders (Right-click inside folder background)
-$folderShellKey = "Registry::HKEY_CLASSES_ROOT\Directory\Background\shell\AuditAll"
+# Register for folders and Excel files (Windows 10 & 11)
+$folderShellKey = "Registry::HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\AuditAll"
 try {
     New-Item -Path $folderShellKey -Force | Out-Null
     Set-ItemProperty -Path $folderShellKey -Name "(Default)" -Value "Audit All OAS Files"
@@ -25,34 +24,14 @@ try {
     New-Item -Path $folderCommandKey -Force | Out-Null
     Set-ItemProperty -Path $folderCommandKey -Name "(Default)" -Value "cmd.exe /c cd /d `"%V`" && `"$exePath`" --all && pause"
 
-    Write-Host "Registered for legacy context menu (Shift+Right-click)" -ForegroundColor Green
-
-    # Add to Windows 11 new context menu
-    # This uses the ExplorerCommandHandler which appears in the new Win11 menu
-    Write-Host "Attempting to register for Windows 11 new context menu..." -ForegroundColor Cyan
-    
-    # Create GUID for the command
-    $guid = "{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}"
-    
-    # Register in Classes
-    $win11Key = "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\AuditAll"
-    New-Item -Path $win11Key -Force | Out-Null
-    Set-ItemProperty -Path $win11Key -Name "(Default)" -Value "Audit All OAS Files"
-    Set-ItemProperty -Path $win11Key -Name "Icon" -Value "$exePath,0"
-    
-    $win11CommandKey = "$win11Key\command"
-    New-Item -Path $win11CommandKey -Force | Out-Null
-    $commandValue = "cmd.exe /c cd /d `"%V`" && `"$exePath`" --all && pause"
-    Set-ItemProperty -Path $win11CommandKey -Name "(Default)" -Value $commandValue
-    
-    Write-Host "Registered for Windows 11 new context menu" -ForegroundColor Green
+    Write-Host "Registered context menu for folders (Windows 10 & 11)" -ForegroundColor Green
 
     # Register for individual Excel files (.xlsx, .xls, .xlsm)
     Write-Host "Installing context menu for individual Excel files..." -ForegroundColor Cyan
     
     $extensions = @(".xlsx", ".xls", ".xlsm")
     foreach ($ext in $extensions) {
-        $fileKey = "Registry::HKEY_CLASSES_ROOT\SystemFileAssociations\$ext\shell\AuditFile"
+        $fileKey = "Registry::HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\$ext\shell\AuditFile"
         New-Item -Path $fileKey -Force | Out-Null
         Set-ItemProperty -Path $fileKey -Name "(Default)" -Value "Audit This OAS File"
         Set-ItemProperty -Path $fileKey -Name "Icon" -Value "$exePath,0"

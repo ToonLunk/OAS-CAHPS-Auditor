@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.4.1 - Per-User Installation (No Admin Required)
+
+- Installer no longer requires administrator privileges — users can install without IT involvement
+- Install location changed from `C:\OAS-CAHPS-Auditor` to `%LOCALAPPDATA%\OAS-CAHPS-Auditor`
+- PATH entry now added to user environment instead of system environment
+- Context menu and Add/Remove Programs entries now registered per-user (HKCU) instead of system-wide (HKLM/HKCR)
+- Context menu functionality is identical to previous versions
+
 ## Version 1.4.0 - Report Improvements
 
 - VALIDATION SUMMARY section is now collapsible; auto-collapsed when all checks pass, open when there are failures

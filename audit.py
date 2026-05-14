@@ -24,7 +24,7 @@ from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 from audit_lib_funcs import _CPT_LOAD_ERROR
 
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 version = __version__
 
 
@@ -35,10 +35,11 @@ def print_app_info_and_help_block():
         "Need help? Visit https://github.com/ToonLunk/OAS-CAHPS-Auditor, or contact support."
     )
     print()
+    install_dir = os.path.join(os.environ.get("LOCALAPPDATA", "C:\\Users\\<user>\\AppData\\Local"), "OAS-CAHPS-Auditor")
     print("If there's a new version of this software, you will see an update notice here.")
     print("If you need to update SIDs or CPT code lists, you can find them below:")
-    print("  - SIDs: C:\\OAS-CAHPS-Auditor\\SIDs.csv")
-    print("  - CPT codes: C:\\OAS-CAHPS-Auditor\\CPT_Codes.csv")
+    print(f"  - SIDs: {install_dir}\\SIDs.csv")
+    print(f"  - CPT codes: {install_dir}\\cpt_codes.json")
 
 
 def check_for_updates():
