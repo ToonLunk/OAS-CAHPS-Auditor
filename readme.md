@@ -113,8 +113,8 @@ See [todo.md](todo.md) for planned features and improvements. None of these feat
 
 ## License and Credit
 
-Copyright (C) 2026 HST Pathways. All rights reserved. Originally developed by Tyler Brock.
+Copyright (C) 2026 HST Pathways. All rights reserved. Developed by Tyler Brock.
 
-This software is proprietary and confidential. Unauthorized copying, distribution, modification, or use without the express written permission of HST Pathways is strictly prohibited. This copyright notice, including authorship credit to Tyler Brock, must be preserved in all copies, modifications, and derivative works.
+This software is proprietary and confidential. Unauthorized copying, distribution, modification, or use without the express written permission of HST Pathways is strictly prohibited. This copyright notice, including attribution to the author, must be preserved in all copies, modifications, and derivative works.
 
 See [LICENSE](LICENSE) file for full legal text.
