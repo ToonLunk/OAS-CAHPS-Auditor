@@ -1,4 +1,4 @@
-# Version 1.4.2 - License Update
+# Version 1.4.2
 
 **Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v1.4.1...v1.4.2
 
@@ -37,7 +37,7 @@ In order for the auditor to find SIDs, the SIDs.csv file must be downloaded and 
 
 1. Hover over the blue 🛈 icon in the report, then click the link.
 2. Download the SIDs.csv file and save it to your computer.
-3. Move the SIDs.csv file to the same folder where the OAS-CAHPS-Auditor is installed (e.g., `C:\OAS-CAHPS-Auditor`).
+3. Move the SIDs.csv file to the same folder where the OAS-CAHPS-Auditor is installed (e.g., `%LOCALAPPDATA%\OAS-CAHPS-Auditor`).
 
 ---
 
