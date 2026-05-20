@@ -1,17 +1,9 @@
 #!/usr/bin/env python3
 # OAS CAHPS Auditor
-# Copyright (C) 2026 Tyler Brock
-# SPDX-License-Identifier: GPL-3.0-or-later
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
+# Copyright (C) 2026 HST Pathways. All rights reserved.
+# Originally developed by Tyler Brock. This copyright notice, including
+# authorship credit to Tyler Brock, must be preserved in all copies,
+# modifications, and derivative works of this software.
 import openpyxl
 import os
 import re
@@ -24,7 +16,7 @@ from audit_printer import save_report, build_report
 from audit_lib_funcs import *
 from audit_lib_funcs import _CPT_LOAD_ERROR
 
-__version__ = "1.4.1"
+__version__ = "1.4.2"
 version = __version__
 
 

@@ -113,10 +113,8 @@ See [todo.md](todo.md) for planned features and improvements. None of these feat
 
 ## License and Credit
 
-Developed for J.L. Morgan & Associates, Inc. Code written by Tyler Brock.
+Copyright (C) 2026 HST Pathways. All rights reserved. Originally developed by Tyler Brock.
 
-This software is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. Any changes or modifications to the source code must also be released under the same license. You are free to use, modify, and distribute this software, but you must provide attribution to the original author and include a copy of the GPL license with any distribution.
+This software is proprietary and confidential. Unauthorized copying, distribution, modification, or use without the express written permission of HST Pathways is strictly prohibited. This copyright notice, including authorship credit to Tyler Brock, must be preserved in all copies, modifications, and derivative works.
 
-See [LICENSE](LICENSE) file for full legal text or visit: https://www.gnu.org/licenses/gpl-3.0.en.html
-
-Copyright © 2026 Tyler Brock.
+See [LICENSE](LICENSE) file for full legal text.

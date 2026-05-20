@@ -1,6 +1,6 @@
-# Version 1.4.1 - Per-User Installation (No Admin Required)
+# Version 1.4.2 - License Update
 
-**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v1.4.0...v1.4.1
+**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v1.4.1...v1.4.2
 
 ## What's New
 
@@ -13,7 +13,7 @@
 
 ## How do I install this?
 
-1. Download **`OAS-CAHPS-Auditor-v1.4.1-Setup.exe`** below.
+1. Download **`OAS-CAHPS-Auditor-v1.4.2-Setup.exe`** below.
 2. Run the installer - it will upgrade in place if you already have a previous version.
 3. You're done! You can now start using the auditor.
 
