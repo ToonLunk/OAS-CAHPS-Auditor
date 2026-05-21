@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # OAS CAHPS Auditor
-# Copyright (C) 2026 HST Pathways. All rights reserved.
-# Originally developed by Tyler Brock. This copyright notice, including
-# authorship credit to Tyler Brock, must be preserved in all copies,
-# modifications, and derivative works of this software.
+# Copyright (C) 2026 HST Pathways. All rights reserved. Developed by Tyler Brock. 
+# This copyright notice must be preserved in all copies, modifications, and derivative works of this software.
 import openpyxl
 import os
 import re
