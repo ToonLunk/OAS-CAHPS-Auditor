@@ -36,21 +36,21 @@ Example Audit Report: [docs/SAMPLE_AUDIT.png](docs/SAMPLE_AUDIT.png)
 
 - Ensures required headers are present and correctly named in OASCAPHS and UPLOAD tabs
 - Validates header formatting and order
-- Validates sample size and other key header values
 
 **Number Validation:**
 
-- Checks that Emails (E) and Mailings (M) sum up to the sample size as well as the sum of rows where CMS = 1
-- Checks that eligible is the same as submitted minus all ineligible rows
+- Checks that Emails (E) and Mailings (M) sum up to the sample size as well as the number of rows where CMS = 1
+- Runs a number of checks to ensure that the submitted, INEL, and sample size work out logically
 - and more!
 
 **Data Validation:**
 
-- Validates address fields (State, ZIP, City) for correct formatting
-- Validates CPT codes against a customizable list of valid codes
-- Checks DOB and SERVICE DATE columns for valid date formats
+- Validates address fields (State, ZIP, City) for correct formatting and likelihood of being invalid
+- Validates CPT codes against a user-customizable list of valid codes
+- Checks DOB and SERVICE DATE columns for valid date ranges and formats
 - Ensures no duplicate rows based on MRN
 - Validates client names against a customizable list of valid client names (SIDs.csv)
+- If telephone numbers or addresses are missing, populates a search query to search for their information according to CMS guidelines
 - Checks SIDs for correct formatting and ranges
 - and more!
 
@@ -70,34 +70,13 @@ The setup wizard installs to `C:\OAS-CAHPS-Auditor`, adds it to your system PATH
 
 ## Updating the CPT and SID Lists
 
-The CPT and SID lists are stored in `CPT_CODES.json` and `SIDs.csv` respectively. You can typically find these files in the default installation folder, which is `C:\OAS-CAHPS-Auditor`. For information on SIDs.csv, see the `About SIDs.csv.txt` file included in the distribution package. For first-time users, you will need to download `SIDs.csv` from the shared OneDrive folder and place it in the installation directory to enable SID registry lookup functionality.
+The CPT and SID lists are stored in `CPT_CODES.json` and `SIDs.csv` respectively. They are stored in the default path (`%localappdata%OAS-CAHPS-Auditor`). For information on SIDs.csv, see the `About SIDs.csv.txt` file included in the distribution package. For first-time users, you will need to download `SIDs.csv` from the shared OneDrive folder and place it in the installation directory to enable SID registry lookup functionality.
 
 If you updated these lists and later download a new version of the auditor, be sure to make a backup of your custom `CPT_CODES.csv` file before installing the new version, as the installer may overwrite it with the default version. After installing the new version, you can replace the default `CPT_CODES.csv` with your backup to retain your custom codes.
 
 ## Updating this Software
 
 When a new update is available, you will get a notification when running the auditor. You can also check for updates manually by visiting the [Releases page](https://github.com/ToonLunk/OAS-CAHPS-Auditor/releases).
-
-## Building from Source
-
-**Requirements:** Python 3.8+
-
-**Build executable (for development):**
-
-```cmd
-pip install -r requirements.txt
-scripts\build_exe.bat
-```
-
-Output: `dist/audit.exe`
-
-**Create distribution package (for users):**
-
-```cmd
-scripts\package.bat
-```
-
-Output: `dist/OAS-CAHPS-Auditor-v{VERSION}-Setup.exe` (setup wizard with auditor, installation instructions, CPT codes, and license)
 
 **Development:**
 
@@ -115,6 +94,6 @@ See [todo.md](todo.md) for planned features and improvements. None of these feat
 
 Copyright (C) 2026 HST Pathways. All rights reserved. Developed by Tyler Brock.
 
-This software is proprietary and confidential. Unauthorized copying, distribution, modification, or use without the express written permission of HST Pathways is strictly prohibited. This copyright notice, including attribution to the author, must be preserved in all copies, modifications, and derivative works.
+This software is proprietary and confidential. Unauthorized copying, distribution, modification, or use without the express written permission of HST Pathways is strictly prohibited. This copyright notice must be preserved in all copies, modifications, and derivative works.
 
 See [LICENSE](LICENSE) file for full legal text.
