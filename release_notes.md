@@ -4,7 +4,7 @@
 
 ## What's New
 
-- Installer no longer requires administrator privileges — users can install without IT involvement
+- Installer no longer requires administrator privileges
 - Install location changed from `C:\OAS-CAHPS-Auditor` to `%LOCALAPPDATA%\OAS-CAHPS-Auditor`
 - Context menu and Add/Remove Programs entries now registered per-user instead of system-wide
 - PATH entry now added to user environment instead of system environment
