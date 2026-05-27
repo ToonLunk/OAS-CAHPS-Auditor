@@ -13,46 +13,57 @@ from openpyxl.worksheet.worksheet import Worksheet
 import phonenumbers
 from email_validator import validate_email as ev_validate, EmailNotValidError
 
+# Build-time constants baked in by build_exe.bat; fallback to .env in dev
+try:
+    from _constants import OAS_SIDS_ONEDRIVE_LINK, HCAHPS_SIDS_ONEDRIVE_LINK  # type: ignore[import]
+except ImportError:
+    from dotenv import load_dotenv as _load_dotenv
+    _load_dotenv()
+    OAS_SIDS_ONEDRIVE_LINK = os.getenv('OAS_SIDS_ONEDRIVE_LINK', '')
+    HCAHPS_SIDS_ONEDRIVE_LINK = os.getenv('HCAHPS_SIDS_ONEDRIVE_LINK', '')
+
 
 # --- SID Registry lookup ---
-SIDS_ONEDRIVE_LINK = "https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU"
 
-def _get_sids_csv_path():
-    """Get the path to SIDs.csv from the installation directory."""
+def _get_sid_file_path(filename):
+    """Get the path to a SID registry file from the installation directory."""
     if getattr(sys, 'frozen', False):
         exe_dir = os.path.dirname(sys.executable)
-        return os.path.join(exe_dir, 'SIDs.csv')
+        return os.path.join(exe_dir, filename)
     else:
         base_path = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(base_path, 'SIDs.csv')
+        return os.path.join(base_path, filename)
 
 
-def lookup_sid_client_name(sid_prefix, show_missing_warning=False):
-    """Look up client name from SIDs.csv by 2-3 letter SID code.
-    
+def lookup_sid_client_name(sid_prefix, sid_filename='SIDs.csv', onedrive_link=None, show_missing_warning=False):
+    """Look up client name from a SID registry CSV by 2-3 letter SID code.
+
     Args:
-        sid_prefix: 2-3 letter SID code (e.g., 'ANM', 'AGM', 'AC')
-        show_missing_warning: If True, print warning when SIDs.csv is missing
-        
+        sid_prefix:        2-3 letter SID code (e.g., 'ANM', 'AGM', 'AC')
+        sid_filename:      Name of the SID CSV file to read (default: 'SIDs.csv')
+        onedrive_link:     Download URL shown in the missing-file warning (optional)
+        show_missing_warning: If True, print warning when the SID file is missing
+
     Returns:
         Client name string if found, None if not found or error
     """
     if not sid_prefix or len(sid_prefix) < 2 or len(sid_prefix) > 3:
         return None
-        
-    csv_path = _get_sids_csv_path()
-    
+
+    csv_path = _get_sid_file_path(sid_filename)
+
     # Check if file exists
     if not os.path.exists(csv_path):
         if show_missing_warning:
             print("\n" + "="*60)
-            print("NOTE: SIDs.csv not found")
+            print(f"NOTE: {sid_filename} not found")
             print("="*60)
-            print("The SID registry file (SIDs.csv) is not in the")
+            print(f"The SID registry file ({sid_filename}) is not in the")
             print("installation directory. SID validation will be skipped.")
-            print("")
-            print("Download SIDs.csv from the shared OneDrive folder:")
-            print(f"  {SIDS_ONEDRIVE_LINK}")
+            if onedrive_link:
+                print("")
+                print(f"Download {sid_filename} from the shared OneDrive folder:")
+                print(f"  {onedrive_link}")
             print("")
             print("Then place it in:")
             print(f"  {os.path.dirname(csv_path)}")
@@ -104,50 +115,6 @@ def lookup_sid_client_name(sid_prefix, show_missing_warning=False):
     
     return None
 
-
-# --- CPT ineligibility rules (loaded from JSON)
-def _get_cpt_config_path():
-    """Get the path to cpt_codes.json from the installation directory."""
-    if getattr(sys, 'frozen', False):
-        # Running as PyInstaller bundle - use installation directory
-        exe_dir = os.path.dirname(sys.executable)
-        return os.path.join(exe_dir, 'cpt_codes.json')
-    else:
-        # Running as script
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(base_path, 'cpt_codes.json')
-
-
-_CPT_LOAD_ERROR = None  # Set if cpt_codes.json fails to load; checked at startup in audit.py
-
-
-def _load_cpt_config():
-    """Load CPT code configuration from JSON file."""
-    global _CPT_LOAD_ERROR
-    config_path = _get_cpt_config_path()
-    try:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-        return {
-            'valid_ranges': config.get('valid_ranges', []),
-            'invalid_ranges': config.get('invalid_ranges', []),
-            'valid_codes': set(str(c).upper() for c in config.get('valid_codes', [])),
-            'invalid_codes': set(str(c).upper() for c in config.get('invalid_codes', []))
-        }
-    except Exception as e:
-        _CPT_LOAD_ERROR = f"{config_path}: {e}"
-        # Return defaults if file not found
-        return {
-            'valid_ranges': [[10004, 69990], [93451, 93462], [93566, 93572], [93985, 93986]],
-            'invalid_ranges': [],
-            'valid_codes': set(),
-            'invalid_codes': set()
-        }
-
-
-_CPT_CONFIG = _load_cpt_config()
-EXPLICIT_VALID_SET = _CPT_CONFIG['valid_codes']
-INVALID_CPT_SET = _CPT_CONFIG['invalid_codes']
 
 
 def get_hf_text(item):
@@ -390,68 +357,6 @@ def check_address(
     return invalid_addresses, noted_addresses
 
 
-def calc_e_m_total(sheet, cms_col, em_col):
-    emails = 0
-    mailings = 0
-    non_reported = 0
-    cms1_count = 0
-
-    for row in sheet.iter_rows(min_row=2, values_only=True):
-        cms_val = row[cms_col - 1]  # type: ignore
-        em_val = row[em_col - 1]  # type: ignore
-
-        # normalize cms_val to an int when possible
-        try:
-            cms_num = int(cms_val) if cms_val is not None else None
-        except (ValueError, TypeError):
-            cms_num = None
-
-        # normalize em_val to uppercase string for reliable comparison
-        em_str = str(em_val).strip().upper() if em_val is not None else ""
-
-        if cms_num == 1:
-            cms1_count += 1
-            if em_str == "E":
-                emails += 1
-            elif em_str == "M":
-                mailings += 1
-        elif cms_num == 2:
-            non_reported += 1
-
-    total_em = emails + mailings
-    return total_em, emails, mailings, non_reported, cms1_count
-
-
-def classify_cpt(cpt_code: str) -> int:
-    """Return expected surgical category for a CPT code (existing logic)."""
-    if not cpt_code:
-        return 5
-    txt = str(cpt_code).strip().lower()
-    # Exact text codes
-    if txt in ("g0105", "g0121", "g0104"):
-        return 1
-    if txt == "g0260":
-        return 2
-    # Numeric ranges
-    if txt.isdigit():
-        num = int(txt)
-        if 40490 <= num <= 49999:
-            return 1
-        elif 20000 <= num <= 29999:
-            return 2
-        elif 65091 <= num <= 68999:
-            return 3
-        elif (
-            (10004 <= num <= 19999)
-            or (30000 <= num <= 39999)
-            or (50000 <= num <= 64999)
-            or (68900 <= num <= 69990)
-            or (92920 <= num <= 93986)
-        ):
-            return 4
-    return 5
-
-
 def count_nonempty_rows(sheet):
     """Count rows that actually contain data (ignores blanks/formatting)."""
     count = 0
@@ -566,169 +471,6 @@ def parse_dob(raw):
 
     # Return normalized format MM/DD/YYYY
     return True, dt.strftime("%m/%d/%Y"), None
-
-
-# CPT eligibility check
-def cpt_is_ineligible(cpt_raw) -> tuple[bool, str]:
-    """
-    Determine whether a CPT code is ineligible.
-    Returns (is_ineligible, reason).
-    """
-    if cpt_raw is None:
-        return False, "blank CPT is OK"
-    cpt = str(cpt_raw).strip().upper()
-    if cpt == "":
-        return False, "blank CPT is OK"
-
-    # Exact explicit valid codes are always valid
-    if cpt in EXPLICIT_VALID_SET:
-        return False, "explicitly valid"
-
-    # Exact invalid list
-    if cpt in INVALID_CPT_SET:
-        return True, "explicitly invalid list"
-
-    # If purely numeric, check valid ranges
-    if cpt.isdigit():
-        num = int(cpt)
-        
-        # Check invalid ranges first
-        for range_pair in _CPT_CONFIG['invalid_ranges']:
-            if range_pair[0] <= num <= range_pair[1]:
-                return True, "numeric in invalid range"
-        
-        # Check valid ranges
-        for range_pair in _CPT_CONFIG['valid_ranges']:
-            if range_pair[0] <= num <= range_pair[1]:
-                return False, "numeric in valid range"
-        
-        return True, "outside valid ranges"
-
-    # Non-numeric codes that are not in EXPLICIT_VALID_SET are ineligible
-    return True, "not explicitly valid, and not in ranges"
-
-
-def find_frame_inel_count(
-    frame_sheet: Worksheet,
-    top_nonempty_threshold: int = 3,
-    min_block_rows: int = 3,
-    max_blank_within_block: int = 1,
-) -> int:
-    """
-    Locate the lower sparse block and count non-empty values in column B for that block.
-    Returns integer count.
-    """
-    rows = list(frame_sheet.iter_rows(values_only=True))
-    if not rows:
-        return 0
-
-    # count non-empty cells per row
-    nonempty_counts = [
-        sum(1 for c in row if c is not None and str(c).strip() != "") for row in rows
-    ]
-
-    # find last dense row
-    last_dense_index = -1
-    for i, cnt in enumerate(nonempty_counts):
-        if cnt >= top_nonempty_threshold:
-            last_dense_index = i
-
-    # candidate start of sparse region
-    start_idx = last_dense_index + 1
-    if start_idx >= len(rows):
-        return 0
-
-    # accumulate a sparse run starting at start_idx allowing a small number of blanks inside
-    sparse_run = 0
-    blanks_in_run = 0
-    i = start_idx
-    while i < len(rows):
-        cnt = nonempty_counts[i]
-        if cnt <= 2:
-            sparse_run += 1
-            i += 1  # ✅ Add this line
-        else:
-            if sparse_run >= min_block_rows:
-                break
-            sparse_run = 0
-            start_idx = i + 1
-            i += 1
-
-    if sparse_run < min_block_rows:
-        # fallback: scan whole sheet for any run of rows with <=2 non-empty values
-        start_idx = None
-        for i in range(len(rows)):
-            if nonempty_counts[i] <= 2 and nonempty_counts[i] != 0:
-                run = 1
-                blanks = 0
-                for j in range(i + 1, len(rows)):
-                    if nonempty_counts[j] == 0:
-                        blanks += 1
-                        if blanks > max_blank_within_block:
-                            break
-                    elif nonempty_counts[j] <= 2:
-                        run += 1
-                    else:
-                        break
-                if run >= min_block_rows:
-                    start_idx = i
-                    sparse_run = run
-                    break
-        if start_idx is None:
-            return 0
-
-    end_idx = start_idx + sparse_run  # exclusive
-
-    # Count rows with any non-empty value from column B onwards in the sparse block.
-    # Column A is skipped because RATSTATS random numbers may be placed there and
-    # should not be counted as INEL entries. Identifiers may be in any column >= B.
-    pt_id_count = 0
-    for r in range(start_idx, end_idx):
-        row = rows[r]
-        if any(val is not None and str(val).strip() != "" for val in row[1:]):
-            pt_id_count += 1
-
-    return pt_id_count
-
-
-# function to check for required headers
-def check_req_headers(headers):
-    required_names = [
-        "SID",
-        "PATIENT NAME",
-        "ADDRESS1",
-        "CITY",
-        "STATE",
-        "ZIP",
-        "TELEPHONE",
-        "SERVICE DATE",
-        "GENDER",
-        "AGE",
-        "PROVIDER NAME",
-        "MRN",
-        "P.TYPE",
-        "SURGICAL CATEGORY",
-        "ATT",
-        "LAG",
-        "ID",
-        "FD",
-        "LG",
-        "E/M",
-        "EMAIL ADDRESS",
-        "CMS INDICATOR",
-        "SURVEY LANGUAGE",
-    ]
-
-    mapping = {}
-    missing_req_headers = []
-
-    for name in required_names:
-        mapping[name] = headers.get(name)
-        if mapping[name] is None:
-            missing_req_headers.append(name)
-
-    # Return mapping and list of missing headers without raising exception
-    return mapping, missing_req_headers
 
 
 def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
@@ -871,159 +613,9 @@ def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
     return issues, row_issues
 
 
-def validate_inel_repeat_rows(inel_sheet, show_progress=False):
-    """
-    Validate INEL tab REPEAT entries.
-    
-    For rows marked as REPEAT (duplicates):
-    - All cells in the row should have red font (RGB 255, 0, 0)
-    - "REPEAT" should appear in the rightmost column
-    - The "REPEAT" cell should have yellow background fill and bold red font
-    - No other cells should have highlighting (yellow background)
-    
-    For rows with no cell-level highlighting:
-    - They MUST have "REPEAT" marker, otherwise there's no indication why they're in INEL
-    
-    Returns (issues, row_issues) lists.
-    """
-    issues = []
-    row_issues = []
-    
-    if inel_sheet is None:
-        return issues, row_issues
-    
-    # Helper function to extract RGB color efficiently
-    def get_rgb_str(color_obj):
-        if color_obj and color_obj.rgb:
-            rgb = color_obj.rgb
-            if isinstance(rgb, str) and len(rgb) >= 6:
-                return (rgb[-6:] if len(rgb) == 8 else rgb).upper()
-        return None
-    
-    # Get the maximum column used in the sheet
-    max_col = inel_sheet.max_column
-    total_rows = inel_sheet.max_row
-    
-    if show_progress and total_rows > 100:
-        print(f"  Checking {total_rows} rows in INEL tab...")
-    
-    for row_num in range(2, total_rows + 1):
-        # Show progress for large sheets
-        if show_progress and total_rows > 100 and row_num % 100 == 0:
-            print(f"  Progress: {row_num}/{total_rows} rows checked...", end='\r')
-        
-        # Quick check if row is completely empty before doing expensive style checks
-        has_data = False
-        for col_num in range(1, max_col + 1):
-            cell = inel_sheet.cell(row_num, col_num)
-            if cell.value is not None and str(cell.value).strip() != "":
-                has_data = True
-                break
-        
-        if not has_data:
-            continue
-        
-        # Check if "REPEAT" or "LISTED MORE THAN ONCE ON FILE" exists in the rightmost column
-        has_repeat = False
-        repeat_cell = inel_sheet.cell(row_num, max_col)
-        
-        if repeat_cell.value:
-            cell_text = str(repeat_cell.value).strip().upper()
-            if cell_text == "REPEAT" or cell_text == "LISTED MORE THAN ONCE ON FILE":
-                has_repeat = True
-        
-        # Check for yellow highlighting (background fill) and red font in non-REPEAT cells
-        cells_with_yellow_bg = []
-        cells_with_red_font = []
-        
-        for col_num in range(1, max_col):  # Exclude rightmost column
-            cell = inel_sheet.cell(row_num, col_num)
-            if cell.value is None or str(cell.value).strip() == "":
-                continue
-            
-            # Check for yellow background fill
-            bg_rgb = get_rgb_str(cell.fill.fgColor if cell.fill else None)
-            if bg_rgb in ['FFFF00', 'FFFFE0', 'FFFFCC']:  # Common yellow shades
-                cells_with_yellow_bg.append((row_num, col_num))
-            
-            # Check for red font
-            font_rgb = get_rgb_str(cell.font.color if cell.font else None)
-            if font_rgb == 'FF0000':  # Red font
-                cells_with_red_font.append((row_num, col_num))
-        
-        # Validate REPEAT rows
-        if has_repeat:
-            # Check REPEAT cell formatting (cached access)
-            repeat_font_ok = False
-            repeat_bg_ok = False
-            repeat_bold_ok = False
-            
-            if repeat_cell.font is not None:
-                font_rgb = get_rgb_str(repeat_cell.font.color)
-                if font_rgb == 'FF0000':
-                    repeat_font_ok = True
-                if repeat_cell.font.bold:
-                    repeat_bold_ok = True
-            
-            bg_rgb = get_rgb_str(repeat_cell.fill.fgColor if repeat_cell.fill else None)
-            if bg_rgb in ['FFFF00', 'FFFFE0', 'FFFFCC']:
-                repeat_bg_ok = True
-            
-            # Check if there are other highlighted cells (conflicting indicators)
-            if cells_with_yellow_bg:
-                row_issues.append({
-                    'row': row_num,
-                    'issue_type': 'INEL REPEAT Conflict',
-                    'description': f"Row {row_num}: Has 'REPEAT' marker but also has {len(cells_with_yellow_bg)} other highlighted cell(s) - conflicting INEL reasons"
-                })
-            
-            # Check if all cells have red font (count non-empty cells efficiently)
-            expected_red_cells = 0
-            for col_num in range(1, max_col):
-                cell = inel_sheet.cell(row_num, col_num)
-                if cell.value is not None and str(cell.value).strip() != "":
-                    expected_red_cells += 1
-            
-            actual_red_cells = len(cells_with_red_font)
-            
-            if actual_red_cells < expected_red_cells:
-                row_issues.append({
-                    'row': row_num,
-                    'issue_type': 'INEL REPEAT Formatting',
-                    'description': f"Row {row_num}: REPEAT row should have red font on ALL cells ({actual_red_cells}/{expected_red_cells} cells have red font)"
-                })
-            
-            # Check REPEAT cell formatting
-            formatting_issues = []
-            if not repeat_font_ok:
-                formatting_issues.append("red font")
-            if not repeat_bold_ok:
-                formatting_issues.append("bold")
-            if not repeat_bg_ok:
-                formatting_issues.append("yellow background")
-            
-            if formatting_issues:
-                row_issues.append({
-                    'row': row_num,
-                    'issue_type': 'INEL REPEAT Cell Format',
-                    'description': f"Row {row_num}: REPEAT cell missing {', '.join(formatting_issues)}"
-                })
-        
-        # Check rows with no highlighting - they should have REPEAT
-        elif not cells_with_yellow_bg:
-            # No REPEAT and no highlighted cells = no indication of INEL reason
-            row_issues.append({
-                'row': row_num,
-                'issue_type': 'INEL Missing Reason',
-                'description': f"Row {row_num}: No highlighted cells and no REPEAT marker - no indication of why row is in INEL"
-            })
-    
-    if show_progress and total_rows > 100:
-        print()  # New line after progress updates
-    
-    return issues, row_issues
-        
-        
+# validate_inel_repeat_rows has been moved to audit_oas_funcs.py (OAS-specific)
+
+
 # --- Cross-tab consistency checking ---
 
 # MRN and Email alias mappings (from VBA script)
@@ -1412,7 +1004,7 @@ def find_column_in_sheet(sheet, aliases):
         return None
 
     expanded = _expand_aliases(aliases)
-    for pos, part in enumerate(parts):
+    for pos, part in enumerate(parts or []):
         cell_str = re.sub(r'\s+', ' ', part).strip().strip('"\'').strip().lower()
         if cell_str in expanded:
             return {
@@ -1539,12 +1131,12 @@ def find_all_columns_in_sheet(sheet, aliases):
 
     expanded = _expand_aliases(aliases)
     found = []
-    for pos, part in enumerate(parts):
+    for pos, part in enumerate(parts or []):
         cell_str = re.sub(r'\s+', ' ', part).strip().strip('"\'').strip().lower()
         if cell_str in expanded:
             unique_vals = []
             seen_vals = set()
-            for data_row in sheet.iter_rows(min_row=hdr_row + 1, values_only=True):
+            for data_row in sheet.iter_rows(min_row=(hdr_row or 0) + 1, values_only=True):
                 raw = data_row[0] if data_row else None
                 if raw is None:
                     continue
@@ -2039,7 +1631,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         "description": f"MRN appears in rows: {rows_str}",
                     }
                 )
-            issues.append(f"OASCAPHS: Duplicate MRN '{mrn}' found in rows {rows_str}")
+            issues.append(f"Duplicate MRN '{mrn}' found in rows {rows_str}")
 
     # check validity of telephone numbers using phonenumbers package
     if tel_col:
@@ -2095,13 +1687,15 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                 phone_tracker[str(tel_val).strip()].append((r, mrn_val, cms_val))
         for tel_str, entries in phone_tracker.items():
             if len(entries) > 1:
-                # Only flag if at least 2 appearances are CMS=1
-                cms1_appearances = sum(
-                    1 for _, _, cms_val in entries
-                    if cms_val is not None and str(cms_val).strip() == "1"
-                )
-                if cms1_appearances < 2:
-                    continue
+                # If cms_col is present, only flag when at least 2 rows are CMS=1
+                # (avoids false positives for non-reported patients sharing a number)
+                if cms_col:
+                    cms1_appearances = sum(
+                        1 for _, _, cms_val in entries
+                        if cms_val is not None and str(cms_val).strip() == "1"
+                    )
+                    if cms1_appearances < 2:
+                        continue
                 rows_str = ", ".join(str(e[0]) for e in entries)
                 for r, mrn_val, cms_val in entries:
                     row_issues.append({
@@ -2111,7 +1705,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         "issue_type": "Duplicate Telephone Number",
                         "description": f"Phone '{tel_str}' appears in rows: {rows_str}",
                     })
-                issues.append(f"OASCAPHS: Phone '{tel_str}' appears in rows {rows_str}")
+                issues.append(f"Duplicate phone '{tel_str}' found in rows {rows_str}")
 
     # find placeholder/test names in patient name col
     if name_col:

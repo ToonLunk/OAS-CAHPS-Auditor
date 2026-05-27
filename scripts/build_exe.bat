@@ -31,6 +31,10 @@ if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
 echo.
 
+echo Generating build-time constants from .env...
+python -c "from dotenv import dotenv_values; c=dotenv_values('.env'); open('_constants.py','w').write('# Auto-generated at build time. Do not edit.\nOAS_SIDS_ONEDRIVE_LINK = ' + repr(c.get('OAS_SIDS_ONEDRIVE_LINK','')) + '\nHCAHPS_SIDS_ONEDRIVE_LINK = ' + repr(c.get('HCAHPS_SIDS_ONEDRIVE_LINK','')) + '\n')"
+echo.
+
 echo Building executable using audit.spec...
 echo This may take a few minutes...
 echo.

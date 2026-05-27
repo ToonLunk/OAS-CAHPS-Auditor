@@ -14,9 +14,17 @@ from multiprocessing import Pool, cpu_count, freeze_support
 from tqdm import tqdm
 from audit_printer import save_report, build_report
 from audit_lib_funcs import *
-from audit_lib_funcs import _CPT_LOAD_ERROR
+from audit_oas_funcs import (
+    _CPT_LOAD_ERROR,
+    classify_cpt,
+    cpt_is_ineligible,
+    calc_e_m_total,
+    find_frame_inel_count,
+    check_req_headers,
+    validate_inel_repeat_rows,
+)
 
-__version__ = "1.4.2"
+__version__ = "2.0.0"
 version = __version__
 
 
@@ -113,8 +121,12 @@ def audit_excel(file_path, show_progress=False):
     # Look up client name from SID registry
     sid_registry_name = None
     if sid_prefix:
-        from audit_lib_funcs import lookup_sid_client_name
-        sid_registry_name = lookup_sid_client_name(sid_prefix, show_missing_warning=True)
+        sid_registry_name = lookup_sid_client_name(
+            sid_prefix,
+            sid_filename='SIDs.csv',
+            onedrive_link=OAS_SIDS_ONEDRIVE_LINK,
+            show_missing_warning=True,
+        )
     
     # Look up facility/location names from FRAME tab (if it exists)
     # Look up facility/location names from POP tab only

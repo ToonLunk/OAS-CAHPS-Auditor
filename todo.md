@@ -2,6 +2,10 @@
 
 ## Technical
 ### High Priority
+- [ ] Add HCAHPS file auditing
+- [ ] Add OAS SIDs to .env, and add HCAHPS SIDs
+- [ ] Separate the OAS and generic functions into different files to prepare for HCAHPS auditing
+
 ### Low Priority
 - [ ] Add option to let user change the audit output directory during installation and in the settings
 
