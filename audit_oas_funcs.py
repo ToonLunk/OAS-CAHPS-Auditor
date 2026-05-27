@@ -1,4 +1,4 @@
-# OAS CAHPS Auditor - OAS-specific functions
+# CAHPS Auditor - OAS-specific functions
 # Copyright (C) 2026 HST Pathways. All rights reserved.
 # Originally developed by Tyler Brock. This copyright notice, including
 # authorship credit to Tyler Brock, must be preserved in all copies,

@@ -1,5 +1,5 @@
 ================================================================================
-                         OAS CAHPS AUDITOR
+                         CAHPS AUDITOR
 ================================================================================
 
 INSTALLATION:
@@ -58,7 +58,7 @@ MANUAL INSTALLATION (if the setup wizard doesn't work):
 UNINSTALLING:
 
   Use Add/Remove Programs:
-    Settings > Apps > Installed Apps > OAS CAHPS Auditor > Uninstall
+    Settings > Apps > Installed Apps > CAHPS Auditor > Uninstall
 
   This removes all files, PATH entries, and context menu registrations.
 

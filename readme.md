@@ -1,4 +1,4 @@
-# OAS CAHPS Auditor
+# CAHPS Auditor
 
 Command-line tool for auditing OAS CAHPS Excel files. Validates headers, sample sizes, addresses, CPT codes, cross-tab consistency, and data quality. Outputs HTML reports in a user-friendly format.
 
@@ -66,7 +66,7 @@ The setup wizard installs to `C:\OAS-CAHPS-Auditor`, adds it to your system PATH
 
 **Context Menu:** During installation, you can choose to add right-click integration. This is highly recommended for ease of use - you can audit folders without opening a terminal!
 
-**To Uninstall:** Use Add/Remove Programs (Settings → Apps → Installed Apps → OAS CAHPS Auditor → Uninstall). This removes all files, PATH entries, and context menu registrations.
+**To Uninstall:** Use Add/Remove Programs (Settings → Apps → Installed Apps → CAHPS Auditor → Uninstall). This removes all files, PATH entries, and context menu registrations.
 
 ## Updating the CPT and SID Lists
 

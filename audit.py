@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# OAS CAHPS Auditor
+# CAHPS Auditor
 # Copyright (C) 2026 HST Pathways. All rights reserved. Developed by Tyler Brock. 
 # This copyright notice must be preserved in all copies, modifications, and derivative works of this software.
 import openpyxl
@@ -27,7 +27,7 @@ version = __version__
 
 
 def print_app_info_and_help_block():
-    print(f"OAS CAHPS Auditor v{version} by Tyler Brock")
+    print(f"CAHPS Auditor v{version} by Tyler Brock")
     print()
     print(
         "Need help? Visit https://github.com/ToonLunk/OAS-CAHPS-Auditor, or contact support."
@@ -434,7 +434,7 @@ if __name__ == "__main__":
 
         sys.exit(0)
     if arg == "--version" or arg == "-v":
-        print(f"OAS auditor version {version}")
+        print(f"CAHPS Auditor version {version}")
         sys.exit(0)
 
     # Handle single file

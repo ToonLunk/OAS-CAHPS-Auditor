@@ -1,6 +1,6 @@
 @echo off
 REM ============================================
-REM Build and Package OAS CAHPS Auditor
+REM Build and Package CAHPS Auditor
 REM ============================================
 REM Builds the executable with PyInstaller, then
 REM compiles the NSIS installer (Setup.exe).
@@ -22,7 +22,7 @@ for /f "tokens=2 delims==" %%a in ('findstr "VERSION" .env') do set VERSION=%%a
 
 echo.
 echo ========================================
-echo Building OAS CAHPS Auditor Package
+echo Building CAHPS Auditor Package
 echo Version: %VERSION%
 echo ========================================
 echo.

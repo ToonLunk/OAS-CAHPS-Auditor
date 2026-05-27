@@ -1,4 +1,4 @@
-# OAS CAHPS Auditor
+# CAHPS Auditor
 # Copyright (C) 2026 HST Pathways. All rights reserved.
 # Originally developed by Tyler Brock. This copyright notice, including
 # authorship credit to Tyler Brock, must be preserved in all copies,

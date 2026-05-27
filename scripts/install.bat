@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 
 echo ====================================
-echo OAS-CAHPS Auditor Installer
+echo CAHPS Auditor Installer
 echo ====================================
 echo.
 
@@ -10,7 +10,7 @@ REM Get the directory where this script is located
 set "INSTALL_DIR=%~dp0"
 set "INSTALL_DIR=%INSTALL_DIR:~0,-1%"
 
-echo This will install the OAS-CAHPS Auditor to:
+echo This will install the CAHPS Auditor to:
 echo   %INSTALL_DIR%
 echo.
 echo And add it to your PATH so you can run "audit" from anywhere.

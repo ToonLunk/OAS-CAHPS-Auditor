@@ -1,5 +1,5 @@
 ; =============================================
-; OAS CAHPS Auditor - NSIS Installer Script
+; CAHPS Auditor - NSIS Installer Script
 ; =============================================
 ; Build with: makensis audit_installer.nsi
 ; Requires: NSIS 3.x, EnVar plugin
@@ -18,7 +18,7 @@
   !define VERSION "0.0.0"
 !endif
 
-!define APPNAME "OAS CAHPS Auditor"
+!define APPNAME "CAHPS Auditor"
 !define PUBLISHER "Tyler Brock"
 !define HELPURL "https://github.com/ToonLunk/OAS-CAHPS-Auditor"
 !define EXE_NAME "audit.exe"

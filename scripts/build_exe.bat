@@ -6,7 +6,7 @@ REM Read version from .env file
 for /f "tokens=2 delims==" %%a in ('findstr "VERSION" .env') do set VERSION=%%a
 
 echo ====================================
-echo Building OAS-CAHPS Auditor Executable
+echo Building CAHPS Auditor Executable
 echo Version: %VERSION%
 echo ====================================
 echo.
