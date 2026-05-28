@@ -17,7 +17,7 @@ Write-Host "Installing context menu for folders..." -ForegroundColor Cyan
 $folderShellKey = "Registry::HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\AuditAll"
 try {
     New-Item -Path $folderShellKey -Force | Out-Null
-    Set-ItemProperty -Path $folderShellKey -Name "(Default)" -Value "Audit All OAS Files"
+    Set-ItemProperty -Path $folderShellKey -Name "(Default)" -Value "Audit All CAHPS Files"
     Set-ItemProperty -Path $folderShellKey -Name "Icon" -Value "$exePath,0"
 
     $folderCommandKey = "$folderShellKey\command"
@@ -33,7 +33,7 @@ try {
     foreach ($ext in $extensions) {
         $fileKey = "Registry::HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\$ext\shell\AuditFile"
         New-Item -Path $fileKey -Force | Out-Null
-        Set-ItemProperty -Path $fileKey -Name "(Default)" -Value "Audit This OAS File"
+        Set-ItemProperty -Path $fileKey -Name "(Default)" -Value "Audit This CAHPS File"
         Set-ItemProperty -Path $fileKey -Name "Icon" -Value "$exePath,0"
         
         $fileCommandKey = "$fileKey\command"
@@ -46,8 +46,8 @@ try {
     Write-Host ""
     Write-Host "SUCCESS: Context menu installed!" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Folder auditing: Right-click inside any folder -> 'Audit All OAS Files'" -ForegroundColor White
-    Write-Host "File auditing: Right-click any Excel file -> 'Audit This OAS File'" -ForegroundColor White
+    Write-Host "Folder auditing: Right-click inside any folder -> 'Audit All CAHPS Files'" -ForegroundColor White
+    Write-Host "File auditing: Right-click any Excel file -> 'Audit This CAHPS File'" -ForegroundColor White
     Write-Host ""
     pause
     exit 0

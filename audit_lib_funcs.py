@@ -33,7 +33,7 @@ def _get_sid_file_path(filename):
         return os.path.join(base_path, filename)
 
 
-def lookup_sid_client_name(sid_prefix, sid_filename='SIDs.csv', onedrive_link=None, show_missing_warning=False):
+def lookup_sid_client_name(sid_prefix, sid_filename='SIDs.csv', onedrive_link=None, show_missing_warning=False, sid_col_idx=0):
     """Look up client name from a SID registry CSV by 2-3 letter SID code.
 
     Args:
@@ -76,22 +76,32 @@ def lookup_sid_client_name(sid_prefix, sid_filename='SIDs.csv', onedrive_link=No
         # Prefer tab-separated lines (current file format).
         if "\t" in line:
             parts = line.split("\t", 1)
-            code = parts[0].strip()
-            name = parts[1].strip() if len(parts) > 1 else ""
+            if sid_col_idx == 0:
+                code = parts[0].strip()
+                name = parts[1].strip() if len(parts) > 1 else ""
+            else:
+                name = parts[0].strip()
+                code = parts[1].strip() if len(parts) > 1 else ""
             return code, name.strip('"')
 
         # Fall back to CSV parsing for comma-separated values (legacy format).
         try:
             row = next(csv.reader([line]))
             if len(row) >= 2:
-                return row[0].strip(), row[1].strip()
+                if sid_col_idx == 0:
+                    return row[0].strip(), row[1].strip()
+                else:
+                    return row[1].strip(), row[0].strip()
         except Exception:
             pass
 
         # Final fallback: split on any whitespace.
         parts = line.split(None, 1)
         if len(parts) >= 2:
-            return parts[0].strip(), parts[1].strip().strip('"')
+            if sid_col_idx == 0:
+                return parts[0].strip(), parts[1].strip().strip('"')
+            else:
+                return parts[1].strip(), parts[0].strip().strip('"')
         return None, None
 
     # Read SIDs.csv with a resilient decode strategy so non-UTF8 copies still work.
@@ -759,6 +769,7 @@ SERVICE_DATE_ALIASES = [
     "clmcreatedday",
     "from dos",
     "case dos",
+    "d.date",
 ]
 
 FACILITY_NAME_ALIASES = [
@@ -1326,7 +1337,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
     """
     from collections import defaultdict
 
-    svc_col = headers.get("SERVICE DATE")
+    svc_col = headers.get("SERVICE DATE") or headers.get("D.DATE")
     age_col = headers.get("AGE")
     email_col = headers.get("EMAIL ADDRESS")
     lang_col = headers.get("SURVEY LANGUAGE")

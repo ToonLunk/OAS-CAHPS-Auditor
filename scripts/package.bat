@@ -29,7 +29,9 @@ echo.
 
 REM Step 1: Build the executable
 echo [1/2] Building executable...
+set SKIP_PAUSE=1
 call scripts\build_exe.bat
+set SKIP_PAUSE=
 if errorlevel 1 (
     echo ERROR: Build failed!
     pause

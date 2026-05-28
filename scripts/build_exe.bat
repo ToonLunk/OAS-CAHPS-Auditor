@@ -66,4 +66,4 @@ echo   audit --all
 echo   audit filename.xlsx
 echo from anywhere!
 echo.
-pause
+if not defined SKIP_PAUSE pause

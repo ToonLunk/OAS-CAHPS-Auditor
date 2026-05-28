@@ -21,8 +21,9 @@ from audit_oas_funcs import (
     check_req_headers,
     validate_inel_repeat_rows,
 )
+from audit_hcahps_funcs import _DRG_APR_LOAD_ERROR
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 version = __version__
 
 
@@ -38,6 +39,7 @@ def print_app_info_and_help_block():
     print("If you need to update SIDs or CPT code lists, you can find them below:")
     print(f"  - SIDs: {install_dir}\\SIDs.csv")
     print(f"  - CPT codes: {install_dir}\\cpt_codes.json")
+    print(f"  - DRG/APR codes: {install_dir}\\drg_apr_codes.json")
 
 
 def check_for_updates():
@@ -86,6 +88,212 @@ def audit_excel(file_path, show_progress=False):
         input("Press enter to continue: ")
         print("\n")
         sys.exit(1)
+
+    # Auto-detect audit type: HCAHPS workbooks contain a "CMS" tab; OAS do not.
+    if "CMS" in wb.sheetnames:
+        audit_type = "HCAHPS"
+    else:
+        audit_type = "OAS"
+
+    # HCAHPS-specific processing and validation 
+    if audit_type == "HCAHPS":
+        from audit_hcahps_funcs import check_req_headers as hcahps_check_req_headers
+        sheet = wb["CMS"]
+
+        # --- Extract and clean header/footer ---
+        raw_header = pick_header(sheet)
+        raw_footer = pick_footer(sheet)
+
+        header = clean_hf_text(raw_header)
+        footer = clean_hf_text(raw_footer)
+
+        # --- Extract values from header/footer text ---
+        # HCAHPS does not include a SUBMITTED value in the header.
+        patients_submitted = None
+
+        header_clean = re.sub(r"&\[[^\]]+\]", "", header)
+        m = re.search(r"(?<![A-Z])([A-Z]{2})(?![A-Z])", header_clean)
+        two_letter_code = m.group(1) if m else ""
+
+        # HCAHPS SIDs have 2-letter prefixes (e.g. "AC123" not "ANM123")
+        sid_match = re.search(r"([A-Z]{2}\d+)", header_clean)
+        header_sid = sid_match.group(1) if sid_match else None
+
+        if header_sid:
+            prefix_match = re.match(r"([A-Z]{2})", header_sid)
+            sid_prefix = prefix_match.group(1) if prefix_match else None
+        else:
+            sid_prefix = None
+
+        # Look up client name from HCAHPS SID registry
+        sid_registry_name = None
+        if sid_prefix:
+            sid_registry_name = lookup_sid_client_name(
+                sid_prefix,
+                sid_filename='HCAHPS_SIDs.csv',
+                onedrive_link=HCAHPS_SIDS_ONEDRIVE_LINK,
+                show_missing_warning=True,
+                sid_col_idx=1,
+            )
+
+        basefname = os.path.basename(file_path)
+        base_before_hash = basefname.split("#", 1)[0]
+
+        nums = "".join(str(ord(c) - 64) for c in two_letter_code)
+        uuid_code = uuid.uuid4().hex
+        audit_id = f"{uuid_code}{nums}"
+
+        el_match = re.search(r"EL\s*=\s*(\d+)", footer)
+        ss_match = re.search(r"SS\s*=\s*(\d+)", footer)
+        eligible_patients = int(el_match.group(1)) if el_match else None
+        sample_size = int(ss_match.group(1)) if ss_match else None
+
+        # --- Find column indexes ---
+        first_row = next(sheet.iter_rows(min_row=1, max_row=1))
+        headers = {cell.value: idx for idx, cell in enumerate(first_row, start=1)}
+
+        mapping, missing_req_headers = hcahps_check_req_headers(headers)
+
+        sid_col     = mapping.get("SID")
+        mrn_col     = mapping.get("MRN")
+        tel_col     = mapping.get("TELEPHONE")
+        ddate_col   = mapping.get("D.DATE")
+        age_col     = mapping.get("AGE")
+        ds_col      = mapping.get("DS")
+        gender_col  = mapping.get("GENDER")
+        unit_col    = mapping.get("UNIT")
+        physician_col = mapping.get("PHYSICIAN NAME")
+        drg_col     = mapping.get("DRG")
+        att_col     = mapping.get("ATT")
+        lag_col     = mapping.get("LAG")
+        id_col      = mapping.get("ID")
+        fd_col      = mapping.get("FD")
+        lg_col      = mapping.get("LG")
+        email_col   = mapping.get("EMAIL ADDRESS")
+        cms_col     = mapping.get("CMS INDICATOR")
+        lang_col    = mapping.get("LANGUAGE")
+
+        issues = []
+
+        # Validate SID sequence (only for rows with CMS=1)
+        sid_issues = []
+        sid_row_issues = []
+        if sid_col and cms_col:
+            sid_issues, sid_row_issues = validate_sid_sequence(sheet, sid_col, cms_col, header_sid)  # type: ignore
+            issues.extend(sid_issues)
+            if show_progress:
+                print(f"[OK] SID validation complete ({len(sid_issues)} issues found)")
+
+        # Validate INEL tab REPEAT entries
+        inel_issues = []
+        inel_row_issues = []
+        # TODO: implement HCAHPS-specific INEL validation (OAS rules do not apply)
+
+        # Validate EXCLU tab
+        exclu_count = None
+        exclu_row_issues = []
+        if "EXCLU" in wb.sheetnames:
+            from audit_hcahps_funcs import validate_exclu_rows
+            exclu_count, exclu_row_issues = validate_exclu_rows(wb["EXCLU"])
+            if show_progress:
+                print(f"[OK] EXCLU validation complete ({len(exclu_row_issues)} issues found)")
+
+        # Extract discharge date range and validate blank dates
+        service_date_range = None
+        blank_date_row_issues = []
+        if ddate_col:
+            service_date_range, blank_date_issues, blank_date_row_issues = extract_service_date_range(
+                sheet, ddate_col, mrn_col=mrn_col, cms_col=cms_col
+            )
+            issues.extend(blank_date_issues)
+            if show_progress:
+                print(f"[OK] Discharge date extraction complete")
+
+        # Calculate name match status for batch reporting
+        name_match_info = None
+        if sid_prefix and sid_registry_name:
+            normalized_registry = re.sub(r'\s*-?\s*\d{1,2}/\d{1,2}(?:/\d{2,4})?\s*$', '', sid_registry_name).strip().lower()
+            normalized_filename = base_before_hash.strip().lower()
+            names_match = (normalized_registry == normalized_filename)
+            name_match_info = {
+                'filename': base_before_hash,
+                'registry_name': sid_registry_name,
+                'match': names_match,
+            }
+
+        # Count CMS=1 and CMS=2 rows (HCAHPS has no E/M column)
+        em_col = None
+        total_em = None
+        emails = None
+        mailings = None
+        cms1_count = 0
+        non_reported = 0
+        if cms_col:
+            for _row in sheet.iter_rows(min_row=2, values_only=True):
+                if not any(cell is not None for cell in _row):
+                    continue
+                cms_val = _row[cms_col - 1]
+                if cms_val is not None:
+                    try:
+                        cms_int = int(float(str(cms_val).strip()))
+                        if cms_int == 1:
+                            cms1_count += 1
+                        elif cms_int == 2:
+                            non_reported += 1
+                    except (ValueError, TypeError):
+                        pass
+
+        if show_progress:
+            print("Building report...")
+
+        report_lines, issues = build_report(
+            wb=wb,
+            sheet=sheet,
+            file_path=file_path,
+            version=version,
+            audit_id=audit_id,
+            missing_req_headers=missing_req_headers,
+            patients_submitted=None,
+            eligible_patients=eligible_patients,
+            sample_size=sample_size,
+            sid_prefix=sid_prefix,
+            sid_registry_name=sid_registry_name,
+            emails=emails,
+            mailings=mailings,
+            total_em=total_em,
+            non_reported=non_reported,
+            cms1_count=cms1_count,
+            headers=headers,
+            issues=issues,
+            count_nonempty_rows=count_nonempty_rows,
+            classify_cpt=None,
+            cpt_is_ineligible=None,
+            addr1_col=None,
+            addr2_col=None,
+            city_col=None,
+            state_col=None,
+            zip_col=None,
+            cms_col=cms_col,
+            em_col=em_col,
+            find_frame_inel_count=None,
+            mrn_col=mrn_col,
+            sid_col=sid_col,
+            sid_row_issues=sid_row_issues,
+            inel_row_issues=inel_row_issues,
+            service_date_range=service_date_range,
+            blank_date_row_issues=blank_date_row_issues,
+            facility_matches=None,
+            exclu_count=exclu_count,
+            exclu_row_issues=exclu_row_issues,
+            audit_type="HCAHPS",
+        )
+
+        if show_progress:
+            print("[OK] Report built successfully")
+
+        return file_path, report_lines, service_date_range, name_match_info
+
+    # OAS-specific processing and validation
     sheet = wb["OASCAPHS"]
 
     # --- Extract and clean header/footer ---
@@ -332,6 +540,14 @@ if __name__ == "__main__":
         print("  WARNING: cpt_codes.json could not be loaded.")
         print(f"  {_CPT_LOAD_ERROR}")
         print("  CPT ineligibility checks will use built-in defaults.")
+        print("=" * 60)
+        print()
+
+    if _DRG_APR_LOAD_ERROR:
+        print("=" * 60)
+        print("  WARNING: drg_apr_codes.json could not be loaded.")
+        print(f"  {_DRG_APR_LOAD_ERROR}")
+        print("  DRG/APR ineligibility checks will use built-in defaults.")
         print("=" * 60)
         print()
 

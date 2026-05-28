@@ -131,6 +131,14 @@ Section "!Core Files (required)" SecCore
     File "..\cpt_codes.json"
   skip_cpt:
 
+  ; --- drg_apr_codes.json with upgrade logic ---
+  IfFileExists "$INSTDIR\drg_apr_codes.json" 0 +3
+    MessageBox MB_YESNO|MB_ICONQUESTION "An existing drg_apr_codes.json was found.$\r$\nDo you want to overwrite it with the new version?" IDYES install_drg_apr IDNO skip_drg_apr
+    Goto skip_drg_apr
+  install_drg_apr:
+    File "..\drg_apr_codes.json"
+  skip_drg_apr:
+
   ; --- Write uninstaller ---
   WriteUninstaller "$INSTDIR\uninstall.exe"
 
@@ -165,24 +173,24 @@ Section "Add to User PATH" SecPath
 SectionEnd
 
 Section "Context Menu Integration" SecContextMenu
-  ; --- Folder background: "Audit All OAS Files" (Windows 10 & 11) ---
-  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll" "" "Audit All OAS Files"
+  ; --- Folder background: "Audit All CAHPS Files" (Windows 10 & 11) ---
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll" "" "Audit All CAHPS Files"
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll" "Icon" "$INSTDIR\${EXE_NAME},0"
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll\command" "" 'cmd.exe /c cd /d "%V" & "$INSTDIR\${EXE_NAME}" --all & pause'
 
-  ; --- Individual Excel files: "Audit This OAS File" ---
+  ; --- Individual Excel files: "Audit This CAHPS File" ---
   ; .xlsx
-  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile" "" "Audit This OAS File"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile" "" "Audit This CAHPS File"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
 
   ; .xls
-  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile" "" "Audit This OAS File"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile" "" "Audit This CAHPS File"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
 
   ; .xlsm
-  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile" "" "Audit This OAS File"
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile" "" "Audit This CAHPS File"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
 SectionEnd

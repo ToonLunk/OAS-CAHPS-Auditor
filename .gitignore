@@ -40,3 +40,4 @@ distribution/audit.exe
 distribution/audit.exe
 SIDs.csv
 .env
+HCAHPS_sids.csv

@@ -51,6 +51,9 @@ def build_report(
     service_date_range=None,
     blank_date_row_issues=None,
     facility_matches=None,
+    exclu_count=None,
+    exclu_row_issues=None,
+    audit_type="OAS",
 ):
     """
     Build the HTML audit report for saving as .html
@@ -61,6 +64,7 @@ def build_report(
 
     basefname = os.path.basename(file_path)
     base_before_hash = basefname.split("#", 1)[0]
+    main_tab_name = "CMS" if audit_type == "HCAHPS" else "OASCAPHS"
 
     filename_year = None
 
@@ -82,36 +86,37 @@ def build_report(
 
         parts = name_part.split()
 
-        # Extract month name
-        month = parts[0].lower() if parts else ""
-
         months = {
             "january", "february", "march", "april", "may", "june",
             "july", "august", "september", "october", "november", "december",
         }
 
-        if month not in months:
+        # Find month anywhere in the parts (handles both "MONTH TYPE YEAR" and "TYPE MONTH YEAR")
+        month = next((p.lower() for p in parts if p.lower() in months), None)
+
+        if month is None:
             row_issues.append(
                 {
                     "row": "FILE",
                     "mrn": None,
                     "cms": None,
                     "issue_type": "Filename Issue",
-                    "description": f"Invalid or misspelled month in filename: '{month}'",
+                    "description": "Month not found in filename after '#'",
                 }
             )
 
-        # Extract year (expected format: "JANUARY OAS 2026")
-        try:
-            oas_idx = next(i for i, p in enumerate(parts) if p.upper() == 'OAS')
-            yr = int(parts[oas_idx + 1])
-            if 2000 <= yr <= 2100:
-                filename_year = yr
-        except (ValueError, IndexError, StopIteration):
-            pass
+        # Extract year (scan for any 4-digit number in 2000-2100 range)
+        for _p in parts:
+            try:
+                _yr = int(_p)
+                if 2000 <= _yr <= 2100:
+                    filename_year = _yr
+                    break
+            except ValueError:
+                pass
 
     # Start HTML document with helper function
-    report_lines = _build_html_header(file_path, version, audit_id, sid_prefix, service_date_range)
+    report_lines = _build_html_header(file_path, version, audit_id, sid_prefix, service_date_range, audit_type)
         
     # Add SID row issues if provided
     if sid_row_issues:
@@ -120,6 +125,10 @@ def build_report(
     # Add INEL row issues if provided
     if inel_row_issues:
         row_issues.extend(inel_row_issues)
+
+    # Add EXCLU row issues if provided
+    if exclu_row_issues:
+        row_issues.extend(exclu_row_issues)
     
     # Add blank date row issues if provided
     if blank_date_row_issues:
@@ -132,18 +141,19 @@ def build_report(
 
     # Header/Footer extracted values
     report_lines.append("<h2>DATA SUMMARY</h2>")
-    report_lines.append("<div class='section-subheader'>OASCAPHS TAB ANALYSIS</div>")
+    report_lines.append(f"<div class='section-subheader'>{'CMS TAB ANALYSIS' if audit_type == 'HCAHPS' else 'OASCAPHS TAB ANALYSIS'}</div>")
     report_lines.append("<div class='three-column-flex'>")
     
-    # Column 1: Patients Submitted
-    report_lines.append("<div class='column'>")
-    report_lines.append("<div class='label'>Patients Submitted (from header)</div>")
-    if patients_submitted is not None:
-        report_lines.append(f"<div class='value'>{patients_submitted}</div>")
-    else:
-        report_lines.append("<div class='value' style='color: orange;'>NOT FOUND</div>")
-        issues.append("<strong>WARNING:</strong> SUBMITTED value not found in header")
-    report_lines.append("</div>")
+    # Column 1: Patients Submitted (OAS only — HCAHPS has no submitted value)
+    if audit_type == "OAS":
+        report_lines.append("<div class='column'>")
+        report_lines.append("<div class='label'>Patients Submitted (from header)</div>")
+        if patients_submitted is not None:
+            report_lines.append(f"<div class='value'>{patients_submitted}</div>")
+        else:
+            report_lines.append("<div class='value' style='color: orange;'>NOT FOUND</div>")
+            issues.append("<strong>WARNING:</strong> SUBMITTED value not found in header")
+        report_lines.append("</div>")
     
     # Column 2: Eligible Patients
     report_lines.append("<div class='column'>")
@@ -177,9 +187,10 @@ def build_report(
     report_lines.append(
         f"<tr><td>Rows with CMS INDICATOR = 1</td><td>{cms1_count}</td></tr>"
     )
-    report_lines.append(f"<tr><td>Emails counted</td><td>{emails}</td></tr>")
-    report_lines.append(f"<tr><td>Mailings counted</td><td>{mailings}</td></tr>")
-    report_lines.append(f"<tr><td>Total of Emails + Mailings</td><td>{total_em}</td></tr>")
+    if audit_type == "OAS":
+        report_lines.append(f"<tr><td>Emails counted</td><td>{emails}</td></tr>")
+        report_lines.append(f"<tr><td>Mailings counted</td><td>{mailings}</td></tr>")
+        report_lines.append(f"<tr><td>Total of Emails + Mailings</td><td>{total_em}</td></tr>")
     report_lines.append(
         f"<tr><td>Non-Reported entries (CMS INDICATOR = 2)</td><td>{non_reported}</td></tr>"
     )
@@ -230,7 +241,7 @@ def build_report(
                 inel_highlighted_count += 1
 
     frame_inel_count = None
-    if "FRAME" in wb.sheetnames and find_frame_inel_count is not None:
+    if audit_type == "OAS" and "FRAME" in wb.sheetnames and find_frame_inel_count is not None:
         frame_sheet = wb["FRAME"]
         try:
             frame_inel_count = find_frame_inel_count(frame_sheet)
@@ -244,9 +255,11 @@ def build_report(
     report_lines.append("<table class='data-table'>")
     if inel_count is not None:
         report_lines.append(f"<tr><td>Patients in INEL tab</td><td>{inel_count}</td></tr>")
-        report_lines.append(
-            f"<tr><td>Patients with ineligible service dates</td><td>{inel_highlighted_count}</td></tr>"
-        )
+        if audit_type == "OAS":
+            # OAS: highlighted service dates indicate ineligible date range rows
+            report_lines.append(
+                f"<tr><td>Patients with ineligible service dates</td><td>{inel_highlighted_count}</td></tr>"
+            )
     else:
         issues.append("INEL tab missing")
 
@@ -260,6 +273,14 @@ def build_report(
         report_lines.append(
             f"<tr><td>Total Ineligible Patients</td><td>{total_inel_combined}</td></tr>"
         )
+
+    # EXCLU tab row count (HCAHPS only)
+    if audit_type == "HCAHPS":
+        if exclu_count is not None:
+            report_lines.append(f"<tr><td>Patients in EXCLU tab</td><td>{exclu_count}</td></tr>")
+        else:
+            report_lines.append("<tr><td>EXCLU tab</td><td style='color: #888;'>Not found</td></tr>")
+
     report_lines.append("</table>")
 
     # Validation checks in table format
@@ -278,20 +299,21 @@ def build_report(
             "<tr><td>Sample Size matches Reported</td><td style='color: #28a745;'>✓</td></tr>"
         )
 
-    # Check 2: E/M total matches Sample Size
-    if sample_size is not None and total_em != sample_size:
-        issue_msg = f"<strong>WARNING:</strong> Reported total mismatch: <strong>{total_em}</strong> vs Sample Size <strong>{sample_size}</strong>"
-        report_lines.append(
-            f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
-        )
-        issues.append(issue_msg)
-    else:
-        report_lines.append(
-            "<tr><td>E/M total matches Sample Size</td><td style='color: #28a745;'>✓</td></tr>"
-        )
+    # Check 2: E/M total matches Sample Size (OAS only)
+    if audit_type == "OAS":
+        if sample_size is not None and total_em != sample_size:
+            issue_msg = f"<strong>WARNING:</strong> Reported total mismatch: <strong>{total_em}</strong> vs Sample Size <strong>{sample_size}</strong>"
+            report_lines.append(
+                f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
+            )
+            issues.append(issue_msg)
+        else:
+            report_lines.append(
+                "<tr><td>E/M total matches Sample Size</td><td style='color: #28a745;'>✓</td></tr>"
+            )
 
-    # Check 3: Submitted matches POP tab
-    if "POP" in wb.sheetnames and patients_submitted is not None:
+    # Check 3: Submitted matches POP tab (OAS only)
+    if audit_type == "OAS" and "POP" in wb.sheetnames and patients_submitted is not None:
         pop_sheet = wb["POP"]
         pop_rows = count_nonempty_rows_after_header(pop_sheet)
         TOL = 4
@@ -316,28 +338,29 @@ def build_report(
                 "<tr><td>Submitted # matches POP tab #</td><td style='color: #28a745;'>✓</td></tr>"
             )
     else:
-        issue_msg = (
-            "<strong>WARNING:</strong> POP tab missing or Submitted value not found"
-        )
-        report_lines.append(
-            f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
-        )
-        issues.append(issue_msg)
+        if audit_type == "OAS":
+            issue_msg = (
+                "<strong>WARNING:</strong> POP tab missing or Submitted value not found"
+            )
+            report_lines.append(
+                f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
+            )
+            issues.append(issue_msg)
 
-    # Check 4: UPLOAD and OASCAPHS row counts match
+    # Check 4: UPLOAD and main tab row counts match
     if "UPLOAD" in wb.sheetnames:
         upload_sheet = wb["UPLOAD"]
         upload_rows = count_nonempty_rows(upload_sheet)
         oascaphs_rows = count_nonempty_rows(sheet)
         if upload_rows != oascaphs_rows:
-            issue_msg = f"<strong>WARNING:</strong> UPLOAD mismatch: {upload_rows} rows vs {oascaphs_rows} rows in OASCAPHS"
+            issue_msg = f"<strong>WARNING:</strong> UPLOAD mismatch: {upload_rows} rows vs {oascaphs_rows} rows in {main_tab_name}"
             report_lines.append(
                 f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
             )
             issues.append(issue_msg)
         else:
             report_lines.append(
-                "<tr><td>UPLOAD and OASCAPHS row counts match</td><td style='color: #28a745;'>✓</td></tr>"
+                f"<tr><td>UPLOAD and {main_tab_name} row counts match</td><td style='color: #28a745;'>✓</td></tr>"
             )
     else:
         issue_msg = "UPLOAD tab missing"
@@ -346,8 +369,8 @@ def build_report(
         )
         issues.append(issue_msg)
 
-    # Check 5: UPLOAD tab has the correct columns (OASCAPHS minus ATT, LAG, ID, FD, LG, E/M)
-    upload_only_cols = {"ATT", "LAG", "ID", "FD", "LG", "E/M"}
+    # Check 5: UPLOAD tab has the correct columns (main tab minus ATT, LAG, ID, FD, LG [and E/M for OAS])
+    upload_only_cols = {"ATT", "LAG", "ID", "FD", "LG"} if audit_type == "HCAHPS" else {"ATT", "LAG", "ID", "FD", "LG", "E/M"}
     if "UPLOAD" in wb.sheetnames:
         upload_sheet = wb["UPLOAD"]
         up_header_set = {
@@ -397,28 +420,29 @@ def build_report(
             f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
         )
 
-    # Check 6: INEL REPEAT validation
-    if inel_row_issues is not None:
-        if not inel_row_issues:
-            report_lines.append(
-                "<tr><td>INEL tab REPEAT entries properly formatted</td><td style='color: #28a745;'>✓</td></tr>"
-            )
+    # Check 6: INEL REPEAT validation (OAS only — HCAHPS does not validate INEL REPEAT)
+    if audit_type == "OAS":
+        if inel_row_issues is not None:
+            if not inel_row_issues:
+                report_lines.append(
+                    "<tr><td>INEL tab REPEAT entries properly formatted</td><td style='color: #28a745;'>✓</td></tr>"
+                )
+            else:
+                issue_types = set(issue['issue_type'] for issue in inel_row_issues)
+                issue_summary = ', '.join(issue_types)
+                issue_msg = f"<strong>WARNING:</strong> INEL REPEAT validation failed: {issue_summary} ({len(inel_row_issues)} issues)"
+                report_lines.append(
+                    f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
+                )
         else:
-            issue_types = set(issue['issue_type'] for issue in inel_row_issues)
-            issue_summary = ', '.join(issue_types)
-            issue_msg = f"<strong>WARNING:</strong> INEL REPEAT validation failed: {issue_summary} ({len(inel_row_issues)} issues)"
-            report_lines.append(
-                f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
-            )
-    else:
-        if "INEL" in wb.sheetnames:
-            issue_msg = "INEL REPEAT validation not performed"
-            report_lines.append(
-                f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
-            )
+            if "INEL" in wb.sheetnames:
+                issue_msg = "INEL REPEAT validation not performed"
+                report_lines.append(
+                    f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
+                )
 
-    # Check 7: Eligible + INEL = Submitted math check
-    if patients_submitted is not None and eligible_patients is not None and inel_count is not None:
+    # Check 7: Eligible + INEL = Submitted math check (OAS only — HCAHPS has no Submitted value)
+    if audit_type == "OAS" and patients_submitted is not None and eligible_patients is not None and inel_count is not None:
         math_total = eligible_patients + total_inel_combined
         if math_total != patients_submitted:
             issue_msg = (
@@ -440,6 +464,20 @@ def build_report(
             report_lines.append(
                 f"<tr><td>Eligible + INEL = Submitted ({eligible_patients} + {total_inel_combined} = {patients_submitted})</td><td style='color: #28a745;'>✓</td></tr>"
             )
+
+    # EXCLU validation (HCAHPS only)
+    if audit_type == "HCAHPS":
+        if exclu_count is not None:
+            if not exclu_row_issues:
+                report_lines.append(
+                    "<tr><td>EXCLU rows all marked with exclusion reason</td><td style='color: #28a745;'>✓</td></tr>"
+                )
+            else:
+                issue_msg = f"<strong>WARNING:</strong> {len(exclu_row_issues)} EXCLU row(s) missing a highlighted cell or red font"
+                report_lines.append(
+                    f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
+                )
+                issues.append(issue_msg)
 
     report_lines.append("</table>")
 
@@ -479,49 +517,89 @@ def build_report(
         except (ValueError, AttributeError):
             pass  # Keep default green
     
-    report_lines.append("<h2>ESTIMATED LOG SHEET LINE"
-        " <span class='info-icon'>i<span class='tooltip'>"
-        "<b>Data sources:</b><br>"
-        "SID — from header<br>"
-        "Client — SID registry (SIDs.csv) or filename<br>"
-        "Non-Reported — CMS INDICATOR = 2 count<br>"
-        "Emails / Mailings — E/M column (CMS=1 rows)<br>"
-        "Selection % — Sample Size ÷ Eligible<br>"
-        "Submitted — from header<br>"
-        "Eligible — from footer (EL)<br>"
-        "Sample Size — from footer (SS)"
-        "</span></span></h2>")
-    c = 'text-align: center;'
-    report_lines.append(f"<table class='excel-style' style='--header-color: {qtr_header_color};'>")
-    report_lines.append("<tr>")
-    report_lines.append(
-        f"<th style='background-color: {qtr_header_color}; {c}'>SID</th>" 
-        f"<th style='background-color: {qtr_header_color}; width: 30%;'>CLIENT NAME</th>" 
-        f"<th style='background-color: {qtr_header_color}; {c}'>NON REPORTED</th>" 
-        f"<th style='background-color: {qtr_header_color}; {c}'>REPORTED EMAILS</th>" 
-        f"<th style='background-color: {qtr_header_color}; {c}'>MAILINGS TOTAL</th>"
-    )
-    report_lines.append(
-        f"<th style='background-color: {qtr_header_color}; {c}'>EST. %</th>"
-        f"<th style='background-color: {qtr_header_color}; {c}'># PATIENTS SUBMITTED</th>"
-        f"<th style='background-color: {qtr_header_color}; {c}'>ELIGIBLE PATIENTS</th>"
-        f"<th style='background-color: {qtr_header_color}; {c}'>SAMPLE SIZE</th>"
-    )
-    report_lines.append("</tr>")
-    report_lines.append("<tr>")
-    report_lines.append(f"<td style='{c}'>{sid_prefix if sid_prefix else 'N/A'}</td>")
-    # Use registry name if available, otherwise fall back to file name
-    client_name_display = sid_registry_name if sid_registry_name else base_before_hash
-    report_lines.append(f"<td>{client_name_display}</td>")
-    report_lines.append(f"<td style='{c}'>{non_reported if non_reported is not None else 'N/A'}</td>")
-    report_lines.append(f"<td style='{c}'>{emails if emails is not None else 'N/A'}</td>")
-    report_lines.append(f"<td style='{c}'>{mailings if mailings is not None else 'N/A'}</td>")
-    report_lines.append(f"<td style='{c}'>~{estimated_percentage}%</td>" if estimated_percentage is not None else f"<td style='{c}'>N/A</td>")
-    report_lines.append(f"<td style='{c}'>{patients_submitted if patients_submitted is not None else 'N/A'}</td>")
-    report_lines.append(f"<td style='{c}'>{eligible_patients if eligible_patients is not None else 'N/A'}</td>")
-    report_lines.append(f"<td style='{c}'>{sample_size if sample_size is not None else 'N/A'}</td>")
-    report_lines.append("</tr>")
-    report_lines.append("</table>")
+    if audit_type == "HCAHPS":
+        # --- HCAHPS: DATA AT A GLANCE ---
+        report_lines.append("<h2>DATA AT A GLANCE</h2>")
+        c = 'text-align: center;'
+        report_lines.append(f"<table class='excel-style' style='--header-color: {qtr_header_color};'>")
+        report_lines.append("<tr>")
+        report_lines.append(
+            f"<th style='background-color: {qtr_header_color}; width: 35%;'>FACILITY</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>SID</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>DATE RANGE</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>EL / SS</th>"
+        )
+        report_lines.append("</tr>")
+        report_lines.append("<tr>")
+        client_name_display = sid_registry_name if sid_registry_name else base_before_hash
+        report_lines.append(f"<td>{client_name_display}</td>")
+        report_lines.append(f"<td style='{c}'>{sid_prefix if sid_prefix else 'N/A'}</td>")
+        # Format date range as "MAR 1-13" (or "MAR 28 - APR 5" if crossing months)
+        _hcahps_date_display = 'N/A'
+        if service_date_range:
+            try:
+                _dp = service_date_range.split(' - ')
+                if len(_dp) == 2:
+                    _d1 = datetime.datetime.strptime(_dp[0].strip(), '%m/%d/%Y')
+                    _d2 = datetime.datetime.strptime(_dp[1].strip(), '%m/%d/%Y')
+                    _MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+                    if _d1.month == _d2.month and _d1.year == _d2.year:
+                        _hcahps_date_display = f"{_MONTHS[_d1.month-1]} {_d1.day}-{_d2.day}"
+                    else:
+                        _hcahps_date_display = f"{_MONTHS[_d1.month-1]} {_d1.day} - {_MONTHS[_d2.month-1]} {_d2.day}"
+            except (ValueError, AttributeError):
+                _hcahps_date_display = service_date_range
+        report_lines.append(f"<td style='{c}'>{_hcahps_date_display}</td>")
+        _el = eligible_patients if eligible_patients is not None else 'N/A'
+        _ss = sample_size if sample_size is not None else 'N/A'
+        report_lines.append(f"<td style='{c}'>{_el} / {_ss}</td>")
+        report_lines.append("</tr>")
+        report_lines.append("</table>")
+    else:
+        # --- OAS: ESTIMATED LOG SHEET LINE ---
+        report_lines.append("<h2>ESTIMATED LOG SHEET LINE"
+            " <span class='info-icon'>i<span class='tooltip'>"
+            "<b>Data sources:</b><br>"
+            "SID — from header<br>"
+            "Client — SID registry (SIDs.csv) or filename<br>"
+            "Non-Reported — CMS INDICATOR = 2 count<br>"
+            "Emails / Mailings — E/M column (CMS=1 rows)<br>"
+            "Selection % — Sample Size ÷ Eligible<br>"
+            "Submitted — from header<br>"
+            "Eligible — from footer (EL)<br>"
+            "Sample Size — from footer (SS)"
+            "</span></span></h2>")
+        c = 'text-align: center;'
+        report_lines.append(f"<table class='excel-style' style='--header-color: {qtr_header_color};'>")
+        report_lines.append("<tr>")
+        report_lines.append(
+            f"<th style='background-color: {qtr_header_color}; {c}'>SID</th>"
+            f"<th style='background-color: {qtr_header_color}; width: 30%;'>CLIENT NAME</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>NON REPORTED</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>REPORTED EMAILS</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>MAILINGS TOTAL</th>"
+        )
+        report_lines.append(
+            f"<th style='background-color: {qtr_header_color}; {c}'>EST. %</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'># PATIENTS SUBMITTED</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>ELIGIBLE PATIENTS</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>SAMPLE SIZE</th>"
+        )
+        report_lines.append("</tr>")
+        report_lines.append("<tr>")
+        report_lines.append(f"<td style='{c}'>{sid_prefix if sid_prefix else 'N/A'}</td>")
+        # Use registry name if available, otherwise fall back to file name
+        client_name_display = sid_registry_name if sid_registry_name else base_before_hash
+        report_lines.append(f"<td>{client_name_display}</td>")
+        report_lines.append(f"<td style='{c}'>{non_reported if non_reported is not None else 'N/A'}</td>")
+        report_lines.append(f"<td style='{c}'>{emails if emails is not None else 'N/A'}</td>")
+        report_lines.append(f"<td style='{c}'>{mailings if mailings is not None else 'N/A'}</td>")
+        report_lines.append(f"<td style='{c}'>~{estimated_percentage}%</td>" if estimated_percentage is not None else f"<td style='{c}'>N/A</td>")
+        report_lines.append(f"<td style='{c}'>{patients_submitted if patients_submitted is not None else 'N/A'}</td>")
+        report_lines.append(f"<td style='{c}'>{eligible_patients if eligible_patients is not None else 'N/A'}</td>")
+        report_lines.append(f"<td style='{c}'>{sample_size if sample_size is not None else 'N/A'}</td>")
+        report_lines.append("</tr>")
+        report_lines.append("</table>")
     
     # Add SID client name comparison if available
     if sid_prefix and sid_registry_name:
@@ -575,8 +653,8 @@ def build_report(
             report_lines.append("⚠ Unable to perform SID registry check: Matching SID not found in registry")
         report_lines.append("</p>")
 
-    # Show facility/location columns found in POP tab (always, regardless of SID lookup result)
-    fac_matches = facility_matches or []
+    # Show facility/location columns found in POP tab (OAS only)
+    fac_matches = (facility_matches or []) if audit_type == "OAS" else []
     if fac_matches:
         count_label = f"{len(fac_matches)} column{'s' if len(fac_matches) != 1 else ''} found"
         report_lines.append(
@@ -633,12 +711,13 @@ def build_report(
                 "description": f"'{eq['email']}' — {desc}",
             }
         )
-        issues.append(f"OASCAPHS Row {eq['row']}: Potentially invalid email '{eq['email']}' — {desc}")
+        issues.append(f"{main_tab_name} Row {eq['row']}: Potentially invalid email '{eq['email']}' — {desc}")
 
-    # 1. Surgical Category Validation (OASCAPHS)
-    report_lines.append("")
-    cpt_col = headers.get("CPT")
-    cat_col = headers.get("SURGICAL CATEGORY")
+    # 1. Surgical Category Validation (OAS only)
+    cpt_col = headers.get("CPT") if audit_type == "OAS" else None
+    cat_col = headers.get("SURGICAL CATEGORY") if audit_type == "OAS" else None
+    if audit_type == "OAS":
+        report_lines.append("")
     if cpt_col and cat_col:
         from audit_lib_funcs import is_blank_row
         
@@ -673,7 +752,7 @@ def build_report(
                 issues.append(
                     f"OASCAPHS Row {r}: CPT {cpt_val} has category {cat_val}, expected {expected}"
                 )
-    else:
+    elif audit_type == "OAS":
         issue_msg = "Missing CPT or SURGICAL CATEGORY column in OASCAPHS"
         issues.append(issue_msg)
 
@@ -725,7 +804,7 @@ def build_report(
                             "row": r,
                             "mrn": mrn_val,
                             "cms": cms_val,
-                            "issue_type": "UPLOAD/OASCAPHS Mismatch",
+                            "issue_type": f"UPLOAD/{main_tab_name} Mismatch",
                             "description": "; ".join(row_mismatches),
                         }
                     )
@@ -733,8 +812,8 @@ def build_report(
                         f"Row {r}: " + "; ".join(row_mismatches)
                     )
 
-    # 2b. Cross-tab consistency: POP vs UPLOAD email matching
-    if "UPLOAD" in wb.sheetnames:
+    # 2b. Cross-tab consistency: POP vs UPLOAD email matching (OAS only)
+    if audit_type == "OAS" and "UPLOAD" in wb.sheetnames:
         upload_sheet = wb["UPLOAD"]
         up_headers = {
             cell.value: idx
@@ -775,9 +854,9 @@ def build_report(
 
     # Check combined ineligible math — handled in ADDITIONAL VALIDATIONS table above
 
-    # 3. CPT Ineligibility Check (only report when CMS == 1)
+    # 3. CPT Ineligibility Check (OAS only, when CMS == 1)
     cpt_ineligible_rows = []
-    if cpt_col:
+    if audit_type == "OAS" and cpt_col:
         for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
             if not any(row):
                 continue
@@ -806,10 +885,46 @@ def build_report(
                     }
                 )
                 issues.append(msg)
-    else:
+    elif audit_type == "OAS":
         issues.append("CPT column missing in OASCAPHS for ineligibility check")
 
-    # ISSUES section
+    # DRG/APR Ineligibility Check (HCAHPS only, CMS = 1 rows)
+    drg_apr_ineligible_rows = []
+    if audit_type == "HCAHPS":
+        from audit_hcahps_funcs import is_ineligible_drg, is_ineligible_apr
+        _drg_col = headers.get("DRG")
+        _apr_col = headers.get("APR")
+        for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+            if not any(row):
+                continue
+            cms_val = row[cms_col - 1] if cms_col else None
+            mrn_val = row[mrn_col - 1] if mrn_col else None
+            try:
+                cms_int = int(float(str(cms_val).strip())) if cms_val is not None and str(cms_val).strip() != "" else None
+            except Exception:
+                cms_int = None
+            if cms_int != 1:
+                continue
+            if _drg_col:
+                drg_val = row[_drg_col - 1]
+                ineligible, reason = is_ineligible_drg(drg_val)
+                if ineligible:
+                    drg_apr_ineligible_rows.append((r, "DRG", drg_val, reason, mrn_val, cms_val))
+                    row_issues.append({
+                        "row": r, "mrn": mrn_val, "cms": cms_val,
+                        "issue_type": "DRG Ineligible",
+                        "description": f"DRG {drg_val} not eligible for HCAHPS ({reason})",
+                    })
+            if _apr_col:
+                apr_val = row[_apr_col - 1]
+                ineligible, reason = is_ineligible_apr(apr_val)
+                if ineligible:
+                    drg_apr_ineligible_rows.append((r, "APR", apr_val, reason, mrn_val, cms_val))
+                    row_issues.append({
+                        "row": r, "mrn": mrn_val, "cms": cms_val,
+                        "issue_type": "APR Ineligible",
+                        "description": f"APR {apr_val} not eligible for HCAHPS ({reason})",
+                    })
     report_lines.append("<h2>ISSUES FOUND</h2>")
 
     # Display row-based issues in table format
@@ -837,7 +952,7 @@ def build_report(
         iss
         for iss in issues
         if not any(
-            iss.startswith(f"OASCAPHS Row") or iss.startswith(f"UPLOAD Row")
+            iss.startswith(f"{main_tab_name} Row") or iss.startswith(f"UPLOAD Row")
             for iss in [iss]
         )
     ]
@@ -851,9 +966,9 @@ def build_report(
     if not row_issues and not non_row_issues:
         report_lines.append("<p>No issues found</p>")
 
-    # CPT ineligible summary
+    # CPT ineligible summary (OAS only)
 
-    if cpt_ineligible_rows:
+    if audit_type == "OAS" and cpt_ineligible_rows:
         report_lines.append("<h2>INELIGIBLE CPT CODES</h2>")
         report_lines.append(
             "<p><em>Note: Some ineligible CPT codes are expected to be in the non-report (CMS=2) section!</em></p>"
@@ -878,13 +993,53 @@ def build_report(
         report_lines.append("</table>")
         report_lines.append("</details>")
 
-    # INVALID ADDRESSES section
-    _name_col_addr = headers.get("PATIENT NAME")
-    _age_col_addr  = headers.get("AGE")
-    invalid_addresses, noted_addresses = check_address(
-        sheet, addr1_col, city_col, state_col, zip_col, mrn_col, cms_col, em_col, addr2_col,
-        name_col=_name_col_addr, age_col=_age_col_addr
-    )
+    # INELIGIBLE DRG/APR CODES section (HCAHPS only)
+    if audit_type == "HCAHPS" and drg_apr_ineligible_rows:
+        report_lines.append("<h2>INELIGIBLE DRG/APR CODES</h2>")
+        report_lines.append(
+            f"<p><strong>Total ineligible DRG/APR rows found (CMS=1): {len(drg_apr_ineligible_rows)}</strong></p>"
+        )
+        report_lines.append("<details open>")
+        report_lines.append(
+            f"<summary>Ineligible DRG/APR Details ({len(drg_apr_ineligible_rows)} rows)</summary>"
+        )
+        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
+        report_lines.append(
+            "<tr>"
+            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th>"
+            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th>"
+            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th>"
+            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>TYPE</th>"
+            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>CODE</th>"
+            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th>"
+            "</tr>"
+        )
+        for r, code_type, code_val, reason, mrn, cms in drg_apr_ineligible_rows:
+            mrn_display = mrn if mrn is not None else ""
+            cms_display = cms if cms is not None else ""
+            report_lines.append(
+                f"<tr>"
+                f"<td style='padding: 3px 8px;'>{r}</td>"
+                f"<td style='padding: 3px 8px;'>{mrn_display}</td>"
+                f"<td style='padding: 3px 8px;'>{cms_display}</td>"
+                f"<td style='padding: 3px 8px;'>{code_type}</td>"
+                f"<td style='padding: 3px 8px;'>{code_val}</td>"
+                f"<td style='padding: 3px 8px;'>{reason}</td>"
+                f"</tr>"
+            )
+        report_lines.append("</table>")
+        report_lines.append("</details>")
+
+    # INVALID ADDRESSES section (OAS only)
+    invalid_addresses = []
+    noted_addresses = []
+    if audit_type == "OAS":
+        _name_col_addr = headers.get("PATIENT NAME")
+        _age_col_addr  = headers.get("AGE")
+        invalid_addresses, noted_addresses = check_address(
+            sheet, addr1_col, city_col, state_col, zip_col, mrn_col, cms_col, em_col, addr2_col,
+            name_col=_name_col_addr, age_col=_age_col_addr
+        )
     if invalid_addresses:
         report_lines.append("<h2>INVALID ADDRESSES FOUND</h2>")
         report_lines.append("<details open>")
@@ -1296,7 +1451,7 @@ def build_report(
     return report_lines, issues
 
 
-def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, service_date_range=None):
+def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, service_date_range=None, audit_type="OAS"):
     """
     Build the HTML header section (reusable for both success and failure reports)
     """
@@ -1357,7 +1512,8 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
     # Updated header presentation
     header_lines.append("<div style='padding-bottom: 15px; '>")
     header_lines.append("<div style='display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; border-bottom: 2px solid #27ae60; padding-bottom: 5px;'>")
-    header_lines.append(f"<h1 style='margin: 0; border: none; padding: 0;'>OAS-CAHPS Audit Report</h1>")
+    title_text = "HCAHPS Audit Report" if audit_type == "HCAHPS" else "OAS-CAHPS Audit Report"
+    header_lines.append(f"<h1 style='margin: 0; border: none; padding: 0;'>{title_text}</h1>")
     if service_date_range:
         # Convert date range to long format (e.g., "November 16th, 2025 - November 30th, 2025")
         try:
@@ -1442,9 +1598,12 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha",
             parts_after_hash = filename.split("#")[1]
             name_part = os.path.splitext(parts_after_hash)[0].strip()  # Remove extension and trim
             
-            # Look for " OAS " to split month and year
-            if " OAS " in name_part:
-                month_part, year_part = name_part.split(" OAS ", 1)
+            # Look for " OAS " or " HCAHPS " to split month and year
+            _type_tok = next(
+                (t for t in (" OAS ", " HCAHPS ") if t in name_part), None
+            )
+            if _type_tok:
+                month_part, year_part = name_part.split(_type_tok, 1)
                 month_part = month_part.strip().upper()
                 year_part = year_part.strip()
                 

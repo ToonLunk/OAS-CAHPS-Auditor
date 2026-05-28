@@ -9,6 +9,13 @@
 ### Low Priority
 None at the moment
 
+### Notes
+
+- HCAHPS SIDs are in the same format as OAS SIDs except they have 2 letters instead of 3. They're inside "SIDs as of NOV 2018 - HCAHPS".
+- HCAHPS:
+    - INEL: Ineligible patients - these are patients who are ineligible for the HCAHPS survey for various reasons examples: outside of the US, same-day discharge (not inpatient), unit type (like ER or something), and more.
+    - EXCLU: Excluded patients - all of these are from certain discharge statuses.
+
 ## Graphical
 
 ### High Priority

@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
 
-datas = [('audit_report.css', '.'), ('cpt_codes.json', '.')]
+datas = [('audit_report.css', '.'), ('cpt_codes.json', '.'), ('drg_apr_codes.json', '.')]
 
 # NOTE: SIDs.csv is NOT bundled into the executable.
 # Users download it separately from the shared OneDrive folder.
