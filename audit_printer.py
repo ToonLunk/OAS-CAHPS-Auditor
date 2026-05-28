@@ -1497,7 +1497,7 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
     # Load CSS from external file
     css_path = os.path.join(os.path.dirname(__file__), "audit_report.css")
     try:
-        with open(css_path, "r", encoding="utf-8") as css_file:
+        with open(css_path, "r", encoding="utf-8-sig") as css_file:
             for line in css_file:
                 header_lines.append(f"        {line.rstrip()}")
     except FileNotFoundError:
