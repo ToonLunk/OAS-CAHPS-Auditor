@@ -1,4 +1,4 @@
-# CAHPS Auditor
+﻿# CAHPS Auditor
 # Copyright (C) 2026 HST Pathways. All rights reserved.
 # Originally developed by Tyler Brock. This copyright notice, including
 # authorship credit to Tyler Brock, must be preserved in all copies,
@@ -144,7 +144,7 @@ def build_report(
     report_lines.append(f"<div class='section-subheader'>{'CMS TAB ANALYSIS' if audit_type == 'HCAHPS' else 'OASCAPHS TAB ANALYSIS'}</div>")
     report_lines.append("<div class='three-column-flex'>")
     
-    # Column 1: Patients Submitted (OAS only — HCAHPS has no submitted value)
+    # Column 1: Patients Submitted (OAS only - HCAHPS has no submitted value)
     if audit_type == "OAS":
         report_lines.append("<div class='column'>")
         report_lines.append("<div class='label'>Patients Submitted (from header)</div>")
@@ -177,7 +177,7 @@ def build_report(
     
     report_lines.append("</div>")
 
-    # VALIDATION CHECKS — buffered for collapsible wrapper (starts with CONTACT INFORMATION)
+    # VALIDATION CHECKS - buffered for collapsible wrapper (starts with CONTACT INFORMATION)
     _val_start_idx = len(report_lines)
     issues_before_val = len(issues)
 
@@ -248,7 +248,7 @@ def build_report(
         except Exception:
             frame_inel_count = None
 
-    # VALIDATION CHECKS — continued in same collapsible buffer
+    # VALIDATION CHECKS - continued in same collapsible buffer
 
     # Tab counts in table format
     report_lines.append("<div class='section-subheader'>INELIGIBLE PATIENTS</div>")
@@ -420,7 +420,7 @@ def build_report(
             f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
         )
 
-    # Check 6: INEL REPEAT validation (OAS only — HCAHPS does not validate INEL REPEAT)
+    # Check 6: INEL REPEAT validation (OAS only - HCAHPS does not validate INEL REPEAT)
     if audit_type == "OAS":
         if inel_row_issues is not None:
             if not inel_row_issues:
@@ -441,7 +441,7 @@ def build_report(
                     f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
                 )
 
-    # Check 7: Eligible + INEL = Submitted math check (OAS only — HCAHPS has no Submitted value)
+    # Check 7: Eligible + INEL = Submitted math check (OAS only - HCAHPS has no Submitted value)
     if audit_type == "OAS" and patients_submitted is not None and eligible_patients is not None and inel_count is not None:
         math_total = eligible_patients + total_inel_combined
         if math_total != patients_submitted:
@@ -560,14 +560,14 @@ def build_report(
         report_lines.append("<h2>ESTIMATED LOG SHEET LINE"
             " <span class='info-icon'>i<span class='tooltip'>"
             "<b>Data sources:</b><br>"
-            "SID — from header<br>"
-            "Client — SID registry (SIDs.csv) or filename<br>"
-            "Non-Reported — CMS INDICATOR = 2 count<br>"
-            "Emails / Mailings — E/M column (CMS=1 rows)<br>"
-            "Selection % — Sample Size ÷ Eligible<br>"
-            "Submitted — from header<br>"
-            "Eligible — from footer (EL)<br>"
-            "Sample Size — from footer (SS)"
+            "SID - from header<br>"
+            "Client - SID registry (SIDs.csv) or filename<br>"
+            "Non-Reported - CMS INDICATOR = 2 count<br>"
+            "Emails / Mailings - E/M column (CMS=1 rows)<br>"
+            "Selection % - Sample Size / Eligible<br>"
+            "Submitted - from header<br>"
+            "Eligible - from footer (EL)<br>"
+            "Sample Size - from footer (SS)"
             "</span></span></h2>")
         c = 'text-align: center;'
         report_lines.append(f"<table class='excel-style' style='--header-color: {qtr_header_color};'>")
@@ -653,8 +653,8 @@ def build_report(
             report_lines.append("⚠ Unable to perform SID registry check: Matching SID not found in registry")
         report_lines.append("</p>")
 
-    # Show facility/location columns found in POP tab (OAS only)
-    fac_matches = (facility_matches or []) if audit_type == "OAS" else []
+    # Show facility/location columns found in POP tab
+    fac_matches = facility_matches or []
     if fac_matches:
         count_label = f"{len(fac_matches)} column{'s' if len(fac_matches) != 1 else ''} found"
         report_lines.append(
@@ -708,10 +708,10 @@ def build_report(
                 "mrn": eq["mrn"],
                 "cms": eq["cms"],
                 "issue_type": "Potentially Invalid Email",
-                "description": f"'{eq['email']}' — {desc}",
+                "description": f"'{eq['email']}' - {desc}",
             }
         )
-        issues.append(f"{main_tab_name} Row {eq['row']}: Potentially invalid email '{eq['email']}' — {desc}")
+        issues.append(f"{main_tab_name} Row {eq['row']}: Potentially invalid email '{eq['email']}' - {desc}")
 
     # 1. Surgical Category Validation (OAS only)
     cpt_col = headers.get("CPT") if audit_type == "OAS" else None
@@ -757,7 +757,7 @@ def build_report(
         issues.append(issue_msg)
 
     # 2. UPLOAD vs OASCAPHS comparison (value-by-value)
-    # Only run if UPLOAD tab exists AND row counts match — if counts differ,
+    # Only run if UPLOAD tab exists AND row counts match - if counts differ,
     # Check 4 above already reported it; positional comparison would be meaningless.
     if "UPLOAD" in wb.sheetnames:
         upload_sheet = wb["UPLOAD"]
@@ -794,7 +794,7 @@ def build_report(
                     oas_val = oas_row[oas_idx] if oas_idx < len(oas_row) else None
                     if _norm(up_val) != _norm(oas_val):
                         row_mismatches.append(
-                            f"{col}: OASCAPHS='{oas_val}' UPLOAD='{up_val}'"
+                            f"{col}: {main_tab_name}='{oas_val}' | UPLOAD='{up_val}'"
                         )
                 if row_mismatches:
                     mrn_val = oas_row[mrn_col - 1] if mrn_col else None
@@ -852,7 +852,7 @@ def build_report(
                         f"UPLOAD Row {upload_row}: Email mismatch for MRN {mrn} - UPLOAD: '{upload_email}' vs POP: '{pop_email}'"
                     )
 
-    # Check combined ineligible math — handled in ADDITIONAL VALIDATIONS table above
+    # Check combined ineligible math - handled in ADDITIONAL VALIDATIONS table above
 
     # 3. CPT Ineligibility Check (OAS only, when CMS == 1)
     cpt_ineligible_rows = []

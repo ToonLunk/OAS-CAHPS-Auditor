@@ -243,6 +243,15 @@ def audit_excel(file_path, show_progress=False):
                     except (ValueError, TypeError):
                         pass
 
+        # Look up facility/location names from POP tab
+        facility_matches = []
+        from audit_lib_funcs import FACILITY_NAME_ALIASES, find_all_columns_in_sheet
+        if 'POP' in wb.sheetnames:
+            tab_matches = find_all_columns_in_sheet(wb['POP'], FACILITY_NAME_ALIASES)
+            for m in tab_matches:
+                m['tab'] = 'POP'
+            facility_matches.extend(tab_matches)
+
         if show_progress:
             print("Building report...")
 
@@ -282,7 +291,7 @@ def audit_excel(file_path, show_progress=False):
             inel_row_issues=inel_row_issues,
             service_date_range=service_date_range,
             blank_date_row_issues=blank_date_row_issues,
-            facility_matches=None,
+            facility_matches=facility_matches,
             exclu_count=exclu_count,
             exclu_row_issues=exclu_row_issues,
             audit_type="HCAHPS",

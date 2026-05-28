@@ -1,4 +1,4 @@
-/* ── Theme variables ─────────────────────────────────────────────────────────────────── */
+﻿/* ── Theme variables ─────────────────────────────────────────────────────────────────── */
 :root {
   --bg-page: #f5f5f5;
   --bg-container: #ffffff;
@@ -269,7 +269,7 @@ details[open] summary {
   border-left-color: #e8e8e8;
 }
 
-/* Validation summary — styled as an H2 heading, not a box */
+/* Validation summary - styled as an H2 heading, not a box */
 .validation-summary-details {
   margin: 15px 0 10px 0;
 }

@@ -1,4 +1,4 @@
-# CAHPS Auditor - HCAHPS-specific functions
+﻿# CAHPS Auditor - HCAHPS-specific functions
 # Copyright (C) 2026 HST Pathways. All rights reserved.
 # Originally developed by Tyler Brock. This copyright notice, including
 # authorship credit to Tyler Brock, must be preserved in all copies,
@@ -212,7 +212,7 @@ def validate_exclu_rows(exclu_sheet, show_progress=False):
                 "mrn": mrn_val,
                 "cms": None,
                 "issue_type": "EXCLU Missing Highlight",
-                "description": "No highlighted cell or red font — exclusion reason not indicated",
+                "description": "No highlighted cell or red font - exclusion reason not indicated",
             })
 
     return exclu_count, row_issues

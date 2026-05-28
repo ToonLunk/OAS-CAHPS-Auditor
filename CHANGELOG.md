@@ -1,10 +1,10 @@
-# Changelog (Releases)
+﻿# Changelog (Releases)
 
 All notable changes to this project will be documented in this file.
 
 ## Version 1.4.1 - Per-User Installation (No Admin Required)
 
-- Installer no longer requires administrator privileges — users can install without IT involvement
+- Installer no longer requires administrator privileges - users can install without IT involvement
 - Install location changed from `C:\OAS-CAHPS-Auditor` to `%LOCALAPPDATA%\OAS-CAHPS-Auditor`
 - PATH entry now added to user environment instead of system environment
 - Context menu and Add/Remove Programs entries now registered per-user (HKCU) instead of system-wide (HKLM/HKCR)
@@ -21,7 +21,7 @@ All notable changes to this project will be documented in this file.
 
 ## Version 1.3.5 - Facility Name Fixes & Report Polish
 
-- Fixed a bug where facility/location name collection stopped after 1 result — caused by a word-boundary matching issue (e.g. `"id"` was incorrectly matching inside words like `"provider"` and `"residential"`)
+- Fixed a bug where facility/location name collection stopped after 1 result - caused by a word-boundary matching issue (e.g. `"id"` was incorrectly matching inside words like `"provider"` and `"residential"`)
 - Facility/Location columns section now always appears in the report, even when SID lookup fails
 - Added support for additional facility column name aliases: `agency name`, `client id`, `revenue location` (and underscore/no-space variants)
 - Placeholder name flag softened to "Possible Placeholder Name" with a "please verify" note instead of a hard flag
@@ -31,7 +31,7 @@ All notable changes to this project will be documented in this file.
 
 ## Version 1.3.4 - Contact Lookup Improvements
 
-- Contact Lookup section now shows a name-order picker above the table — displays real patient names from the file in both orderings (as stored vs. first/last swapped) so the user can select whichever is correct; all search links update to match
+- Contact Lookup section now shows a name-order picker above the table - displays real patient names from the file in both orderings (as stored vs. first/last swapped) so the user can select whichever is correct; all search links update to match
 - Removed FastPeopleSearch links; Contact Lookup now shows WhitePages and TruePeopleSearch only
 - Minor internal fixes, including some tweaks to where certain issues get printed
 - The auditor now checks to make sure the year in the filename matches the year(s) found in the patient data
@@ -51,7 +51,7 @@ All notable changes to this project will be documented in this file.
 
 ## Version 1.3.0 - Email Quality Checks
 
-- Replaced the basic email format regex with the `email-validator` library — now catches leading/trailing dots, consecutive dots, and other RFC-violating patterns that previously slipped through
+- Replaced the basic email format regex with the `email-validator` library - now catches leading/trailing dots, consecutive dots, and other RFC-violating patterns that previously slipped through
 - Added detection for potentially invalid emails: opt-out/placeholder local parts (e.g. `optout@`, `noreply@`, `declined@`, `test@`), single-character or all-numeric local parts (e.g. `0@gmail.com`), disposable/throwaway domains (e.g. `mailinator.com`), and very short addresses
 - CMS=1 rows with potentially invalid emails are flagged in the main Issues table
 - CMS=2 rows with potentially invalid emails are shown in a new collapsible section (closed by default) at the bottom of the report
@@ -59,11 +59,11 @@ All notable changes to this project will be documented in this file.
 
 ## Version 1.2.0 - Contact Lookup
 
-- Added a **CONTACT LOOKUP** section to the HTML report for CMS=1 patients with contact issues. Appears automatically when issues are found — no flag or extra step needed
-- Patients with no valid phone number (both fields blank, invalid, or missing) are listed with pre-built people-search links (WhitePages, TruePeopleSearch, FastPeopleSearch) that open pre-populated on click — nothing is fetched until clicked
+- Added a **CONTACT LOOKUP** section to the HTML report for CMS=1 patients with contact issues. Appears automatically when issues are found - no flag or extra step needed
+- Patients with no valid phone number (both fields blank, invalid, or missing) are listed with pre-built people-search links (WhitePages, TruePeopleSearch, FastPeopleSearch) that open pre-populated on click - nothing is fetched until clicked
 - Patients with an invalid email address are also included with search links
 - Patients who have at least one valid phone but an invalid entry in the other field are listed as reference rows (reason shown, no search links needed)
-- Phone validation uses the `phonenumbers` library — a number like `1234567890` that passes format checks but is not a real assignable US number will be flagged
+- Phone validation uses the `phonenumbers` library - a number like `1234567890` that passes format checks but is not a real assignable US number will be flagged
 
 
 - CMS=2 rows no longer report invalid address or phone number issues, since these patients are contacted by email only
@@ -73,7 +73,7 @@ All notable changes to this project will be documented in this file.
 - Blank gender is now accepted as valid (no longer flagged as an issue)
 - Update badge now reads "↓ Download vX.X.X" with a tooltip clarifying it reflects the version available at audit time, not a live check
 - SID registry name comparison now strips 3-part dates (e.g. 1/1/26) in addition to 2-part dates (e.g. 1/1)
-- Fixed FRAME INEL count returning 0 when the patient identifier is not in column B (e.g. when a temporary column is added) — now counts any non-empty value in columns B onwards, ignoring column A where RATSTATS numbers may be placed
+- Fixed FRAME INEL count returning 0 when the patient identifier is not in column B (e.g. when a temporary column is added) - now counts any non-empty value in columns B onwards, ignoring column A where RATSTATS numbers may be placed
 - Added warning when a CMS=2 row has a blank email address (email is the only contact method for these patients)
 - E/M=E rows no longer report invalid address issues, and are now checked for missing email instead
 - Duplicate phone detection now requires at least two CMS=1 appearances before flagging (avoids false positives when a shared number spans a CMS=1 and CMS=2 row)

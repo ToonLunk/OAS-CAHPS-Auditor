@@ -1,4 +1,4 @@
-# CAHPS Auditor
+﻿# CAHPS Auditor
 # Copyright (C) 2026 HST Pathways. All rights reserved. Developed by Tyler Brock. 
 # This copyright notice must be preserved in all copies, modifications, and derivative works of this software.
 import re
@@ -231,7 +231,7 @@ def check_address(
         name = str(row[name_col - 1] or "").strip() if name_col else ""
         age  = row[age_col  - 1] if age_col  else ""
 
-        # CMS=2 patients are contacted by email only — skip address checks
+        # CMS=2 patients are contacted by email only - skip address checks
         try:
             if int(cms) == 2:
                 continue
@@ -240,7 +240,7 @@ def check_address(
 
         em = row[em_col - 1] if em_col else ""
 
-        # E/M=E rows are emailed, not mailed — skip address checks
+        # E/M=E rows are emailed, not mailed - skip address checks
         if str(em).strip().upper() == "E":
             continue
 
@@ -287,7 +287,7 @@ def check_address(
         # --- Experimental checks (results go into noted_addresses) ---
         note_issues = []
 
-        # 1. Facility / prison keyword check — runs on ALL rows (prisoners should be removed)
+        # 1. Facility / prison keyword check - runs on ALL rows (prisoners should be removed)
         street_lower = street_str.lower()
         street2_lower = street2_str.lower()
         for keyword in _FACILITY_KEYWORDS:
@@ -312,7 +312,7 @@ def check_address(
                     note_issues.append(f"Non-address placeholder in {field}: '{street_str if field == 'ADDRESS1' else street2_str}'")
                     break
 
-            # 3. usaddress structural check — does ADDRESS1 parse as a real street address?
+            # 3. usaddress structural check - does ADDRESS1 parse as a real street address?
             try:
                 tagged, addr_type = usaddress.tag(street_str)
                 has_number = "AddressNumber" in tagged
@@ -984,8 +984,8 @@ def find_column_in_sheet(sheet, aliases):
     Like find_column_by_aliases but also handles pipe/comma delimited single-column sheets.
     Returns a dict with column info, or None if not found:
       {
-        'col_idx':    int  — 1-based for normal sheets; 0-based position within the split for delimited
-        'header_row': int  — row index where the header was found
+        'col_idx':    int  - 1-based for normal sheets; 0-based position within the split for delimited
+        'header_row': int  - row index where the header was found
         'delimiter':  str or None
         'is_delimited': bool
         'header_name': str
@@ -1196,7 +1196,7 @@ def check_pop_upload_email_consistency(
 
     pop_sheet = wb["POP"]
 
-    # Find MRN and Email columns in POP using aliases — handles both normal and delimited sheets
+    # Find MRN and Email columns in POP using aliases - handles both normal and delimited sheets
     mrn_info = find_column_in_sheet(pop_sheet, MRN_ALIASES)
     email_info = find_column_in_sheet(pop_sheet, EMAIL_ALIASES)
 
@@ -1509,11 +1509,11 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                             "mrn": mrn_val,
                             "cms": cms_val,
                             "issue_type": "Invalid Email Format",
-                            "description": f"Email '{email_str}' — {e}",
+                            "description": f"Email '{email_str}' - {e}",
                         }
                     )
             else:
-                # CMS=2 patients are email-only — a missing email means they can't be contacted
+                # CMS=2 patients are email-only - a missing email means they can't be contacted
                 try:
                     if cms_val is not None and int(cms_val) == 2:
                         row_issues.append(
@@ -1527,7 +1527,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         )
                 except (ValueError, TypeError):
                     pass
-                # E/M=E rows are sent via email — a missing email means they won't receive a survey
+                # E/M=E rows are sent via email - a missing email means they won't receive a survey
                 em_str = str(em_val).strip().upper() if em_val else ""
                 if em_str == "E":
                     row_issues.append(
@@ -1651,7 +1651,7 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
             mrn_val = row[mrn_col - 1] if mrn_col else None
             cms_val = row[cms_col - 1] if cms_col else None
 
-            # CMS=2 patients are contacted by email only — skip phone checks
+            # CMS=2 patients are contacted by email only - skip phone checks
             try:
                 if cms_val is not None and int(cms_val) == 2:
                     continue
@@ -1790,7 +1790,7 @@ def validate_email_quality(email_str):
     """Check an email address for suspicious / low-quality patterns.
 
     Returns a list of warning strings.  An empty list means the email looks OK.
-    This is intentionally separate from *format* validation — it catches emails
+    This is intentionally separate from *format* validation - it catches emails
     that are syntactically valid but semantically bogus.
     """
     warnings = []
@@ -1824,9 +1824,9 @@ def validate_email_quality(email_str):
     if domain in _DISPOSABLE_DOMAINS:
         warnings.append(f"Potentially disposable email domain '{domain}'")
 
-    # 4. Very short overall address (e.g. "a@b.co" — 6 chars)
+    # 4. Very short overall address (e.g. "a@b.co" - 6 chars)
     if len(email_lower) <= 6 and not warnings:
-        warnings.append(f"Potentially invalid — very short email address")
+        warnings.append(f"Potentially invalid - very short email address")
 
     return warnings
 
@@ -1970,7 +1970,7 @@ def collect_lookup_candidates(sheet, headers, mrn_col, cms_col):
 
         phone_issues = []
         if not has_valid_phone:
-            # 0 valid numbers — lookup needed
+            # 0 valid numbers - lookup needed
             if tel_blank and cell_blank:
                 phone_issues.append("No phone number on file")
             else:
@@ -1984,7 +1984,7 @@ def collect_lookup_candidates(sheet, headers, mrn_col, cms_col):
                     phone_issues.append(f"Invalid cell phone: '{cell_str}'")
             # mode stays "lookup"
         else:
-            # 1+ valid number — note any bad ones for reference, no lookup needed
+            # 1+ valid number - note any bad ones for reference, no lookup needed
             if tel_invalid:
                 phone_issues.append(f"Invalid telephone: '{tel_str}' (cell phone is valid)")
             if cell_invalid:
@@ -2014,7 +2014,7 @@ def collect_lookup_candidates(sheet, headers, mrn_col, cms_col):
 def build_person_search_urls(name: str, city: str = "", state: str = "") -> dict:
     """
     Return a dict of {site_label: url} with pre-populated people-search URLs.
-    No network request is made here — links are lazy (only fetched on click).
+    No network request is made here - links are lazy (only fetched on click).
     """
     from urllib.parse import quote, quote_plus
 
