@@ -41,3 +41,4 @@ distribution/audit.exe
 SIDs.csv
 .env
 HCAHPS_sids.csv
+_constants.py
