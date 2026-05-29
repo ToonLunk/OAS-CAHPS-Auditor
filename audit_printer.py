@@ -53,6 +53,8 @@ def build_report(
     facility_matches=None,
     exclu_count=None,
     exclu_row_issues=None,
+    inel_count=None,
+    inel_tab_row_issues=None,
     frame_col_map=None,
     frame_invalid_addresses=None,
     frame_noted_addresses=None,
@@ -132,6 +134,10 @@ def build_report(
     # Add EXCLU row issues if provided
     if exclu_row_issues:
         row_issues.extend(exclu_row_issues)
+
+    # Add INEL tab row issues if provided
+    if inel_tab_row_issues:
+        row_issues.extend(inel_tab_row_issues)
     
     # Add blank date row issues if provided
     if blank_date_row_issues:
@@ -373,7 +379,7 @@ def build_report(
         issues.append(issue_msg)
 
     # Check 5: UPLOAD tab has the correct columns (main tab minus ATT, LAG, ID, FD, LG [and E/M for OAS])
-    upload_only_cols = {"ATT", "LAG", "ID", "FD", "LG", "DRG", "APR"} if audit_type == "HCAHPS" else {"ATT", "LAG", "ID", "FD", "LG", "E/M"}
+    upload_only_cols = {"ATT", "LAG", "ID", "FD", "LG"} if audit_type == "HCAHPS" else {"ATT", "LAG", "ID", "FD", "LG", "E/M"}
     if "UPLOAD" in wb.sheetnames:
         upload_sheet = wb["UPLOAD"]
         up_header_set = {
@@ -484,15 +490,21 @@ def build_report(
                 f"<tr><td>Eligible + INEL = Submitted ({eligible_patients} + {total_inel_combined} = {patients_submitted})</td><td style='color: #28a745;'>✓</td></tr>"
             )
 
-    # EXCLU validation (HCAHPS only)
+    # EXCLU + INEL validation (HCAHPS only)
     if audit_type == "HCAHPS":
-        if exclu_count is not None:
-            if not exclu_row_issues:
+        if exclu_count is not None or inel_count is not None:
+            _combined_exclu_inel = list(exclu_row_issues or []) + list(inel_tab_row_issues or [])
+            if not _combined_exclu_inel:
                 report_lines.append(
-                    "<tr><td>EXCLU rows all marked with exclusion reason</td><td style='color: #28a745;'>✓</td></tr>"
+                    "<tr><td>EXCLU and INEL rows all marked with exclusion reason</td><td style='color: #28a745;'>✓</td></tr>"
                 )
             else:
-                issue_msg = f"<strong>WARNING:</strong> {len(exclu_row_issues)} EXCLU row(s) missing a highlighted cell or red font"
+                _msg_parts = []
+                if exclu_row_issues:
+                    _msg_parts.append(f"{len(exclu_row_issues)} EXCLU row(s)")
+                if inel_tab_row_issues:
+                    _msg_parts.append(f"{len(inel_tab_row_issues)} INEL row(s)")
+                issue_msg = f"<strong>WARNING:</strong> {' and '.join(_msg_parts)} missing a highlighted cell or red font"
                 report_lines.append(
                     f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
                 )
@@ -1513,7 +1525,7 @@ def build_report(
             f"FRAME Column Detection &mdash; {_found_count}/{len(_all_fields)} fields found"
             f"</summary>"
         )
-        report_lines.append("<table class='data-table' style='font-size: 0.9em; margin-top: 6px;'>")
+        report_lines.append("<table class='excel-style' style='font-size: 0.9em; margin-top: 6px;'>")
         report_lines.append("<tr><th>Field</th><th>Column Found In File</th><th></th></tr>")
         for _field in _all_fields:
             _col_idx, _hdr = frame_col_map.get(_field, (None, None))

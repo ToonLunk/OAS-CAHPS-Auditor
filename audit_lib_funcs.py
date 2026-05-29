@@ -164,22 +164,28 @@ def pick_footer(sheet):
     )
 
 
-def normalize_postal_code(raw):
+def normalize_postal_code(raw, state=None):
     if raw is None:
         return None
     s = str(raw).strip()
     if s == "":
         return None
-    m = re.search(r"\b(\d{4,5})(?:[-\s]\d{4})?\b", s)
-    if not m:
-        return s
-    digits = m.group(1)
+    # Strip non-digits (handles dashes, spaces, ZIP+4 of any form)
+    digits = re.sub(r"[^\d]", "", s)
+    if not digits:
+        return s  # non-numeric — return as-is so the validator can reject it
+    # 8-digit input in a leading-zero state means Excel likely dropped the
+    # leading zero from a 9-digit ZIP+4 (e.g. 07123-6789 stored as 71236789)
+    if len(digits) == 8 and str(state or "").strip().upper() in _LEADING_ZERO_ZIP_STATES:
+        return "0" + digits[:4]
+    digits = digits[:5]
     if len(digits) == 4:
-        digits = digits.zfill(5)
+        digits = digits.zfill(5)  # restore leading zero dropped by Excel
     return digits
 
 
 # Known facility, prison, and non-address keywords to flag in ADDRESS1/ADDRESS2
+_LEADING_ZERO_ZIP_STATES = {'CT', 'MA', 'ME', 'NH', 'NJ', 'PR', 'RI', 'VT'}
 _FACILITY_KEYWORDS = {
     # Correctional / detention facilities
     "lac", "larc", "jail", "prison", "penitentiary", "correctional",
@@ -250,7 +256,7 @@ def check_address(
             street2_str = str(row[street_address_2_col - 1] or "").strip()
         city_str = str(row[city_col - 1] or "").strip() or None
         state_str = str(row[state_col - 1] or "").strip() or None
-        postal_str = normalize_postal_code(row[postal_code_col - 1])
+        postal_str = normalize_postal_code(row[postal_code_col - 1], state=state_str)
 
         # Check for missing fields first
         missing = []

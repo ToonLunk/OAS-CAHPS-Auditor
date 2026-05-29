@@ -287,6 +287,24 @@ def validate_exclu_rows(exclu_sheet, show_progress=False):
     return exclu_count, row_issues
 
 
+def validate_inel_rows(inel_sheet, show_progress=False):
+    """
+    Validate HCAHPS INEL tab rows.
+
+    Every non-blank row in the INEL tab should have at least one cell that is
+    highlighted (non-white/non-transparent fill) or has red font, indicating
+    the reason for ineligibility.
+
+    Returns (inel_count, row_issues) where inel_count is the total number of
+    non-blank data rows found.
+    """
+    count, issues = validate_exclu_rows(inel_sheet, show_progress=show_progress)
+    for issue in issues:
+        issue['issue_type'] = 'INEL Missing Highlight'
+        issue['description'] = 'No highlighted cell or red font - ineligibility reason not indicated'
+    return count, issues
+
+
 # --- Same-day discharge check ---
 
 from datetime import datetime, date as _date
@@ -500,7 +518,7 @@ _ADDR1_BASE = [
     "patient_street1", "patient mailing address street 1", "mailing address",
     "pt_address_1", "pat_mailing_address_1", "per_addr:per addr street 1",
     "araddr1", "addr:per addr street 1", "address_line_1", "patient address-1",
-    "addr", "arpataddr1-t", "arpataddr1", "patient - address", "street",
+    "addr", "arpataddr1-t", "arpataddr1", "araddr1-t", "patient - address", "street",
     "street 1", "pt mailing address", "pat home addr line1",
     "pt mailing address 1", "pt. street",
 ]
@@ -514,7 +532,7 @@ _ADDR2_BASE = [
     "patient mailing address street 2", "patient address2", "mailing address 2",
     "pt_address_2", "pat_mailing_address_2", "per_addr:per addr street 2",
     "araddr2", "addr:per addr street 2", "address_line_2", "patient address-2",
-    "arpataddr2-t", "arpataddr2", "street 2", "pat home addr line2",
+    "arpataddr2-t", "arpataddr2", "araddr2-t", "street 2", "pat home addr line2",
 ]
 _ADDR2_ALIASES = _expand_aliases(_ADDR2_BASE)
 
@@ -523,7 +541,7 @@ _CITY_BASE = [
     "patientaddresscity", "patient mailing city", "pm_city",
     "patient address city", "pt_city", "pat_address_city",
     "per_addr:per addr city", "arcity", "addr:per addr city",
-    "arpatcity-t", "arpatcity", "patient - city", "pat home addr city",
+    "arpatcity-t", "arpatcity", "arcity-t", "patient - city", "pat home addr city",
     "pt mailing city", "pt. city",
 ]
 _CITY_ALIASES = _expand_aliases(_CITY_BASE)
@@ -533,7 +551,7 @@ _STATE_BASE = [
     "patient mailing state", "pm_state", "patient address state", "patstate",
     "pt_state", "pat_address_st", "per_addr:per addr state", "arstate",
     "addr:per addr state", "st", "arpatstate-t", "pat_address_state",
-    "arpatstate", "patient - state", "pat home addr st",
+    "arpatstate", "arstate-t", "patient - state", "pat home addr st",
     "pt mailing state", "pt. state",
 ]
 _STATE_ALIASES = _expand_aliases(_STATE_BASE)
@@ -544,7 +562,7 @@ _ZIP_BASE = [
     "zipcode", "patient zipcode", "pm_zipkey", "patzip",
     "patient address zip code", "pt_zip", "pat_address_zip",
     "per_addr:per addr zip key", "arzip", "addr:per addr zip",
-    "patinet mailing zip code", "zip5", "arpatzip-n",
+    "patinet mailing zip code", "zip5", "arpatzip-n", "arzip-n",
 ]
 _ZIP_ALIASES = _expand_aliases(_ZIP_BASE)
 
@@ -591,3 +609,87 @@ def check_frame_addresses(wb, frame_col_map):
         mrn_col=mrn_col, cms_col=None, em_col=None,
         street_address_2_col=addr2_col,
     )
+
+
+_MONTH_NUMS = {
+    'january': 1, 'february': 2, 'march': 3, 'april': 4,
+    'may': 5, 'june': 6, 'july': 7, 'august': 8,
+    'september': 9, 'october': 10, 'november': 11, 'december': 12,
+}
+
+
+def parse_filename_date_range(name_part, filename_year=None, service_date_range=None):
+    """
+    Detect a day-range in an HCAHPS filename segment, e.g.:
+      ' HCAHPS APRIL 12 - 30'  or  ' HCAHPS APRIL 16-30'
+    Returns (start_date, end_date) as datetime.date objects, or (None, None).
+    Year comes from filename_year, then service_date_range, then current year.
+    """
+    import re as _re
+    import datetime as _dt
+    m = _re.search(
+        r'(january|february|march|april|may|june|july|august'
+        r'|september|october|november|december)'
+        r'\s+(\d{1,2})\s*-\s*(\d{1,2})',
+        name_part, _re.IGNORECASE,
+    )
+    if not m:
+        return None, None
+    month_num = _MONTH_NUMS[m.group(1).lower()]
+    day1 = int(m.group(2))
+    day2 = int(m.group(3))
+    year = filename_year
+    if year is None and service_date_range:
+        try:
+            year = _dt.datetime.strptime(
+                service_date_range.split(' - ')[0].strip(), "%m/%d/%Y"
+            ).year
+        except Exception:
+            pass
+    if year is None:
+        year = _dt.date.today().year
+    try:
+        return _dt.date(year, month_num, day1), _dt.date(year, month_num, day2)
+    except ValueError:
+        return None, None
+
+
+def check_cms_discharge_date_range(sheet, ddate_col, mrn_col, cms_col, start_date, end_date):
+    """
+    Validate that all discharge dates in the CMS tab fall within [start_date, end_date].
+    Returns (issues, row_issues).
+    """
+    import datetime as _dt
+    row_issues = []
+    range_str = (
+        f"{start_date.strftime('%m/%d/%Y')} – {end_date.strftime('%m/%d/%Y')}"
+    )
+    for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        if not any(cell is not None for cell in row):
+            continue
+        mrn_val   = row[mrn_col   - 1] if mrn_col   else None
+        cms_val   = row[cms_col   - 1] if cms_col   else None
+        ddate_val = row[ddate_col - 1]
+        if ddate_val is None or str(ddate_val).strip() == '':
+            continue
+        try:
+            if isinstance(ddate_val, _dt.datetime):
+                d = ddate_val.date()
+            elif isinstance(ddate_val, _dt.date):
+                d = ddate_val
+            else:
+                d = _dt.datetime.strptime(str(ddate_val).strip(), "%m/%d/%Y").date()
+        except Exception:
+            continue  # invalid format handled elsewhere
+        if d < start_date or d > end_date:
+            row_issues.append({
+                'row': r,
+                'mrn': mrn_val,
+                'cms': cms_val,
+                'issue_type': 'Discharge Date Outside Filename Range',
+                'description': (
+                    f"Discharge date {d.strftime('%m/%d/%Y')} is outside "
+                    f"the filename range ({range_str})"
+                ),
+            })
+    return [], row_issues

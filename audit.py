@@ -215,6 +215,15 @@ def audit_excel(file_path, show_progress=False):
             if show_progress:
                 print(f"[OK] EXCLU validation complete ({len(exclu_row_issues)} issues found)")
 
+        # Validate INEL tab
+        inel_count = None
+        inel_tab_row_issues = []
+        if "INEL" in wb.sheetnames:
+            from audit_hcahps_funcs import validate_inel_rows
+            inel_count, inel_tab_row_issues = validate_inel_rows(wb["INEL"])
+            if show_progress:
+                print(f"[OK] INEL validation complete ({len(inel_tab_row_issues)} issues found)")
+
         # Extract discharge date range and validate blank dates
         service_date_range = None
         blank_date_row_issues = []
@@ -225,6 +234,32 @@ def audit_excel(file_path, show_progress=False):
             issues.extend(blank_date_issues)
             if show_progress:
                 print(f"[OK] Discharge date extraction complete")
+
+        # If filename specifies a day-range (e.g. "APRIL 16-30"), validate CMS discharge dates
+        if ddate_col and '#' in basefname:
+            _fn_name_part = os.path.splitext(basefname.split('#', 1)[1])[0]
+            _fn_year = None
+            for _t in _fn_name_part.split():
+                try:
+                    _y = int(_t)
+                    if 2000 <= _y <= 2100:
+                        _fn_year = _y
+                        break
+                except ValueError:
+                    pass
+            from audit_hcahps_funcs import parse_filename_date_range, check_cms_discharge_date_range
+            _fn_start, _fn_end = parse_filename_date_range(
+                _fn_name_part,
+                filename_year=_fn_year,
+                service_date_range=service_date_range,
+            )
+            if _fn_start is not None and _fn_end is not None:
+                _, _date_range_row_issues = check_cms_discharge_date_range(
+                    sheet, ddate_col, mrn_col, cms_col, _fn_start, _fn_end,
+                )
+                blank_date_row_issues.extend(_date_range_row_issues)
+                if show_progress:
+                    print(f"[OK] Filename date range check complete ({len(_date_range_row_issues)} issues found)")
 
         # Calculate name match status for batch reporting
         name_match_info = None
@@ -311,6 +346,8 @@ def audit_excel(file_path, show_progress=False):
             facility_matches=facility_matches,
             exclu_count=exclu_count,
             exclu_row_issues=exclu_row_issues,
+            inel_count=inel_count,
+            inel_tab_row_issues=inel_tab_row_issues,
             frame_col_map=frame_col_map,
             frame_invalid_addresses=frame_invalid_addresses,
             frame_noted_addresses=frame_noted_addresses,
