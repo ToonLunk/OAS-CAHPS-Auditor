@@ -1,8 +1,55 @@
 ================================================================================
-                         CAHPS AUDITOR
+                         CAHPS AUDITOR - INSTALLATION GUIDE
 ================================================================================
 
 INSTALLATION:
+
+  1. Run OAS-CAHPS-Auditor-Setup.exe
+  2. Follow the setup wizard
+  3. When prompted, choose to install context menu integration (recommended)
+
+  That's it! No terminal setup needed.
+
+================================================================================
+
+HOW TO USE:
+
+AUDITING A SINGLE FILE:
+
+  Right-click any Excel file (.xlsx) in File Explorer and select
+  "Audit This CAHPS File".
+
+  Windows 11 users: If you don't see it, click "Show more options" first.
+
+  The audit report will open automatically in your browser when complete.
+
+AUDITING ALL FILES IN A FOLDER:
+
+  Right-click on empty space inside the folder (not on a file) and select
+  "Audit All CAHPS Files".
+
+  Windows 11 users: If you don't see it, click "Show more options" first.
+
+All audit reports are saved next to the original Excel files.
+
+================================================================================
+
+COMMON ISSUES:
+
+  "Windows protected your PC" appears when running Setup.exe:
+    Click "More info", then "Run anyway". This is normal for new software.
+
+  Context menu options not appearing:
+    On Windows 11, right-click and select "Show more options" to see the
+    full context menu.
+
+  Report doesn't open in browser:
+    Check the same folder as your Excel file for an .html file and open
+    it manually.
+
+  For support, contact Tyler Brock.
+
+================================================================================
 
   1. Run OAS-CAHPS-Auditor-Setup.exe
   2. Follow the setup wizard

@@ -1,26 +1,42 @@
-SIDs.csv is the file that maps SID codes to client names.
-The auditor uses it to verify client names in your Excel files.
+ABOUT SIDs FILES
+================================================================================
 
-WHERE TO GET IT:
-Download the latest SIDs.csv from the shared OneDrive folder:
+The auditor uses two SID lookup files to verify client names:
 
-  https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU
+  SIDs.csv          -- Used for OAS CAHPS audits
+  HCAHPS_SIDs.csv   -- Used for HCAHPS audits
 
-WHERE TO PUT IT:
-Place SIDs.csv in the installation directory:
+Both files map SID codes to client names. The auditor works without them,
+but SID registry checks will be skipped.
+
+--------------------------------------------------------------------------------
+WHERE TO DOWNLOAD THEM:
+
+  OAS SIDs.csv:
+    https://jlm353-my.sharepoint.com/:x:/g/personal/dcdata_jlm-solutions_com/IQCRWfgU4AgFR75rDCOI575sAUqIEaJNVkkD-uclR9nOQxg?e=LnWXqK
+
+  HCAHPS_SIDs.csv:
+    https://jlm353-my.sharepoint.com/:x:/g/personal/dcdata_jlm-solutions_com/IQBjMucELjUBR6I97mmCNJa4AZVIAoA-_Q3LxnZL73dA08M?e=raVtAb
+
+--------------------------------------------------------------------------------
+WHERE TO PUT THEM:
+
+Place both files in your installation folder:
 
   %LOCALAPPDATA%\OAS-CAHPS-Auditor\SIDs.csv
+  %LOCALAPPDATA%\OAS-CAHPS-Auditor\HCAHPS_SIDs.csv
 
-(This is the same folder where audit.exe is installed.
- On most systems this expands to C:\Users\<your name>\AppData\Local\OAS-CAHPS-Auditor)
+(On most systems %LOCALAPPDATA% is C:\Users\<your name>\AppData\Local)
 
-HOW TO UPDATE IT (when new clients are added):
-- Download the latest SIDs.csv from the shared OneDrive folder (link below).
-- Copy the client names and SID codes from the QTR sheet into SIDs.csv, following the existing format.
-- Save this new updated SIDs.csv file, and upload it back to the shared OneDrive folder, replacing the old one. 
-    Windows may prompt you to overwrite the old one - this is OK.
+If Windows asks whether to overwrite an existing file, click Yes.
 
-NOTES:
-- The auditor works without this file, but SID registry checks will be skipped.
-- Whenever you update SIDs.csv, please also update it here so that all users can have an updated copy.
-- If you get a new version of SIDs.csv, just replace the old one (Windows may prompt you to overwrite the old one - this is OK).
+--------------------------------------------------------------------------------
+UPDATING THEM (when new clients are added):
+
+1. Download the latest version from the link above.
+2. Replace the existing file in your installation folder.
+3. That's it -- the auditor will use the new version automatically.
+
+When you update either file, please upload the new version back to OneDrive
+so all other users get the update too.
+================================================================================

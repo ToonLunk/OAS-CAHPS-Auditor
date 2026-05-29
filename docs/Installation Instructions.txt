@@ -1,14 +1,14 @@
 ================================================================================
-                         CAHPS AUDITOR
+                         CAHPS AUDITOR - INSTALLATION GUIDE
 ================================================================================
 
 INSTALLATION:
 
   1. Run OAS-CAHPS-Auditor-Setup.exe
   2. Follow the setup wizard
-  3. Choose whether to install context menu integration (recommended)
-  4. Open a new Command Prompt or PowerShell window
-  5. Verify installation by running: audit --help
+  3. When prompted, choose to install context menu integration (recommended)
+
+  That's it! No terminal setup needed.
 
 ================================================================================
 
@@ -16,66 +16,37 @@ HOW TO USE:
 
 AUDITING A SINGLE FILE:
 
-  Context Menu Method:
-    1. Navigate to your Excel file in File Explorer
-    2. Hold SHIFT and right-click the file, then select "Audit this OAS file"
-    3. The audit report will automatically open in your default browser
+  Right-click any Excel file (.xlsx) in File Explorer and select
+  "Audit This CAHPS File".
 
-  Command Line Method:
-    audit filename.xlsx
+  Windows 11 users: If you don't see it, click "Show more options" first.
 
-AUDITING MULTIPLE FILES:
+  The audit report will open automatically in your browser when complete.
 
-  Context Menu Method:
-    1. Navigate to the folder containing your Excel files
-    2. Hold SHIFT and right-click on empty space in the folder
-    3. Select "Audit All OAS Files" from the menu
-    
-    Note: The SHIFT key is required to access the extended context menu.
+AUDITING ALL FILES IN A FOLDER:
 
-  Command Line Method:
-    Navigate to the folder, then run:
-    audit --all
+  Right-click on empty space inside the folder (not on a file) and select
+  "Audit All CAHPS Files".
 
-All audit reports are saved in an "AUDITS" subfolder. Files that cannot be 
-processed are logged in "AUDITS/unable_to_run_audit".
+  Windows 11 users: If you don't see it, click "Show more options" first.
 
-================================================================================
-
-MANUAL INSTALLATION (if the setup wizard doesn't work):
-
-  1. Put audit.exe somewhere permanent (like C:\Tools)
-  2. Search Windows for "Environment Variables"
-  3. Click "Edit the system environment variables"
-  4. Click "Environment Variables"
-  5. Find "Path" and click "Edit"
-  6. Click "New" and type your folder path (e.g., C:\Tools)
-  7. Click OK on everything
-  8. Close and reopen your terminal
-
-================================================================================
-
-UNINSTALLING:
-
-  Use Add/Remove Programs:
-    Settings > Apps > Installed Apps > CAHPS Auditor > Uninstall
-
-  This removes all files, PATH entries, and context menu registrations.
+All audit reports are saved next to the original Excel files.
 
 ================================================================================
 
 COMMON ISSUES:
 
-  "Windows protected your PC" message appears:
-    This is expected for new executables. Click "More info", then "Run anyway".
-
-  "audit" command not recognized:
-    Close and reopen your terminal window after installation. The PATH 
-    environment variable needs to be refreshed.
+  "Windows protected your PC" appears when running Setup.exe:
+    Click "More info", then "Run anyway". This is normal for new software.
 
   Context menu options not appearing:
-    Remember to hold SHIFT while right-clicking to access the extended menu.
+    On Windows 11, right-click and select "Show more options" to see the
+    full context menu.
 
-  For additional support, contact Tyler Brock.
-  No warranty is provided. See the LICENSE file for complete terms.
+  Report doesn't open in browser:
+    Check the same folder as your Excel file for an .html file and open
+    it manually.
+
+  For support, contact Tyler Brock.
+
 ================================================================================
