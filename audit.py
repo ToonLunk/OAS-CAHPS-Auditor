@@ -112,8 +112,8 @@ def audit_excel(file_path, show_progress=False):
         patients_submitted = None
 
         header_clean = re.sub(r"&\[[^\]]+\]", "", header)
-        m = re.search(r"(?<![A-Z])([A-Z]{2,3})(?![A-Z\d])", header_clean)
-        two_letter_code = m.group(1) if m else ""
+        _sig_matches = re.findall(r"(?<![A-Z])([A-Z]{2,3})(?![A-Z\d])", header_clean)
+        two_letter_code = _sig_matches[-1] if _sig_matches else ""
 
         # HCAHPS SIDs have 2-letter prefixes (e.g. "AC123" not "ANM123")
         sid_match = re.search(r"([A-Z]{2}\d+)", header_clean)
