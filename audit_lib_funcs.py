@@ -1643,17 +1643,23 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         }
                     )
 
-    # Check all SERVICE DATEs are in the year from the filename
-    if filename_year is not None and service_dates:
+    # Check all SERVICE DATEs are in the same year
+    if service_dates:
+        if filename_year is not None:
+            _expected_year = filename_year
+            _year_source = "filename year"
+        else:
+            _expected_year = service_dates[0][2].year
+            _year_source = "first row year"
         for r, mrn_val, svc_date in service_dates:
-            if svc_date.year != filename_year:
+            if svc_date.year != _expected_year:
                 row_issues.append(
                     {
                         "row": r,
                         "mrn": mrn_val,
                         "cms": None,
                         "issue_type": "Service Date Wrong Year",
-                        "description": f"Date {svc_date.strftime('%m/%d/%Y')} is not in {filename_year} (filename year)",
+                        "description": f"Date {svc_date.strftime('%m/%d/%Y')} is not in {_expected_year} ({_year_source})",
                     }
                 )
 

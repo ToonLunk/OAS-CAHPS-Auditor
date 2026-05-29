@@ -22,7 +22,7 @@ try {
 
     $folderCommandKey = "$folderShellKey\command"
     New-Item -Path $folderCommandKey -Force | Out-Null
-    Set-ItemProperty -Path $folderCommandKey -Name "(Default)" -Value "cmd.exe /c cd /d `"%V`" && `"$exePath`" --all && pause"
+    Set-ItemProperty -Path $folderCommandKey -Name "(Default)" -Value "cmd.exe /c cd /d `"%V`" && `"$exePath`" --all || pause"
 
     Write-Host "Registered context menu for folders (Windows 10 & 11)" -ForegroundColor Green
 
@@ -38,7 +38,7 @@ try {
         
         $fileCommandKey = "$fileKey\command"
         New-Item -Path $fileCommandKey -Force | Out-Null
-        $fileCommand = "cmd.exe /c `"`"$exePath`" `"%1`" && pause`""
+        $fileCommand = "cmd.exe /c `"`"$exePath`" `"%1`" || pause`""
         Set-ItemProperty -Path $fileCommandKey -Name "(Default)" -Value $fileCommand
     }
     Write-Host "Registered for Excel files (.xlsx, .xls, .xlsm)" -ForegroundColor Green

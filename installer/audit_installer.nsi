@@ -176,23 +176,23 @@ Section "Context Menu Integration" SecContextMenu
   ; --- Folder background: "Audit All CAHPS Files" (Windows 10 & 11) ---
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll" "" "Audit All CAHPS Files"
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll" "Icon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll\command" "" 'cmd.exe /c cd /d "%V" & "$INSTDIR\${EXE_NAME}" --all & pause'
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll\command" "" 'cmd.exe /c cd /d "%V" && "$INSTDIR\${EXE_NAME}" --all || pause'
 
   ; --- Individual Excel files: "Audit This CAHPS File" ---
   ; .xlsx
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile" "" "Audit This CAHPS File"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsx\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" || pause"'
 
   ; .xls
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile" "" "Audit This CAHPS File"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xls\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" || pause"'
 
   ; .xlsm
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile" "" "Audit This CAHPS File"
   WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile" "Icon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" & pause"'
+  WriteRegStr HKCU "Software\Classes\SystemFileAssociations\.xlsm\shell\AuditFile\command" "" 'cmd.exe /c ""$INSTDIR\${EXE_NAME}" "%1" || pause"'
 SectionEnd
 
 ; --------------- Section Descriptions ---------------

@@ -11,7 +11,7 @@ import base64
 from tqdm import tqdm
 from dotenv import load_dotenv
 
-from audit_lib_funcs import check_address, check_pop_upload_email_consistency, count_nonempty_rows_after_header, collect_lookup_candidates, build_person_search_urls, check_email_quality_all_rows
+from audit_lib_funcs import check_address, check_pop_upload_email_consistency, count_nonempty_rows_after_header, collect_lookup_candidates, build_person_search_urls, check_email_quality_all_rows, OAS_SIDS_ONEDRIVE_LINK, HCAHPS_SIDS_ONEDRIVE_LINK
 
 
 def build_report(
@@ -129,7 +129,10 @@ def build_report(
             except ValueError:
                 pass
 
-        if filename_year is None:
+        import re as _re
+        _is_biweekly = bool(_re.search(r'\b\d{1,2}\s*-\s*\d{1,2}\b', name_part))
+
+        if filename_year is None and (audit_type == "OAS" or not _is_biweekly):
             row_issues.append(
                 {
                     "row": "FILE",
@@ -554,6 +557,18 @@ def build_report(
     report_lines.extend(_val_section)
     report_lines.append("</details>")
 
+    # Determine quarter header color (odd months = orange, even = green)
+    qtr_header_color = "#2dbd69"  # Default green
+    if service_date_range:
+        try:
+            date_parts = service_date_range.split(" - ")
+            if len(date_parts) == 2:
+                start_date = datetime.datetime.strptime(date_parts[0].strip(), "%m/%d/%Y")
+                if start_date.month % 2 == 1:  # Odd months: Jan, Mar, May, Jul, Sep, Nov
+                    qtr_header_color = "#ec8038"  # Orange
+        except (ValueError, AttributeError):
+            pass  # Keep default green
+
     # FRAME column detection (HCAHPS only, shown right below validation summary)
     if audit_type == "HCAHPS" and frame_col_map is not None:
         _optional = {'Address 2'}
@@ -567,7 +582,13 @@ def build_report(
             f"</summary>"
         )
         report_lines.append("<table class='excel-style' style='font-size: 0.9em; margin-top: 6px;'>")
-        report_lines.append("<tr><th>Field</th><th>Column Found In File</th><th></th></tr>")
+        report_lines.append(
+            f"<tr>"
+            f"<th style='background-color: {qtr_header_color};'>Field</th>"
+            f"<th style='background-color: {qtr_header_color};'>Column Found In File</th>"
+            f"<th style='background-color: {qtr_header_color};'></th>"
+            f"</tr>"
+        )
         for _field in _all_fields:
             _col_idx, _hdr = frame_col_map.get(_field, (None, None))
             _is_optional = _field in _optional
@@ -593,21 +614,6 @@ def build_report(
         report_lines.append("</table>")
         report_lines.append("</details>")
 
-    qtr_header_color = "#2dbd69"  # Default green
-    if service_date_range:
-        try:
-            date_parts = service_date_range.split(" - ")
-            if len(date_parts) == 2:
-                start_date = datetime.datetime.strptime(date_parts[0].strip(), "%m/%d/%Y")
-                # November (11) is orange, December (12) is green, January (1) is orange, etc.
-                # November is month 11, which is odd, so odd months are orange
-                month = start_date.month
-                if month % 2 == 1:  # Odd months: Jan(1), Mar(3), May(5), Jul(7), Sep(9), Nov(11)
-                    qtr_header_color = "#ec8038"  # Orange
-                # Even months stay green
-        except (ValueError, AttributeError):
-            pass  # Keep default green
-    
     if audit_type == "HCAHPS":
         # --- HCAHPS: DATA AT A GLANCE ---
         report_lines.append("<h2>DATA AT A GLANCE</h2>")
@@ -692,6 +698,10 @@ def build_report(
         report_lines.append("</tr>")
         report_lines.append("</table>")
     
+    _sids_link = HCAHPS_SIDS_ONEDRIVE_LINK if audit_type == "HCAHPS" else OAS_SIDS_ONEDRIVE_LINK
+    _install_dir = os.path.join(os.getenv("LOCALAPPDATA", r"%LOCALAPPDATA%"), "OAS-CAHPS-Auditor")
+    _install_dir_url = "file:///" + _install_dir.replace("\\", "/")
+
     # Add SID client name comparison if available
     if sid_prefix and sid_registry_name:
         report_lines.append("<h2>SID REGISTRY CHECK"
@@ -699,9 +709,9 @@ def build_report(
             "SIDs.csv contains the list of client names matched to SID codes. "
             "If facility/site name columns are found in the POP tab, they are shown below. "
             "Download the latest version from the "
-            "<a href='https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU' "
+            f"<a href='{_sids_link}' "
             "style='color: #5dade2;' target='_blank'>shared OneDrive folder</a> "
-            "and place it in your installation directory (default: C:\\OAS-CAHPS-Auditor)."
+            f"and place it in your installation directory (<a href='{_install_dir_url}' style='color: #5dade2;' target='_blank'>{_install_dir}</a>)."
             "</span></span></h2>")
         report_lines.append("<table class='excel-style' style='font-size: 0.9em;'>")
         report_lines.append("<tr>")
@@ -733,9 +743,9 @@ def build_report(
             " <span class='info-icon'>i<span class='tooltip'>"
             "SIDs.csv contains the list of client names matched to SID codes. "
             "Download the latest version from the "
-            "<a href='https://jlm353-my.sharepoint.com/:f:/g/personal/dcdata_jlm-solutions_com/IgBhYR7tt6YTRbgNTDEh9M7xAc5HSCC3KSaJt6ImfJV65kg?e=hKp0ZU' "
+            f"<a href='{_sids_link}' "
             "style='color: #5dade2;' target='_blank'>shared OneDrive folder</a> "
-            "and place it in your installation directory (default: C:\\OAS-CAHPS-Auditor)."
+            f"and place it in your installation directory (<a href='{_install_dir_url}' style='color: #5dade2;' target='_blank'>{_install_dir}</a>)."
             "</span></span></h2>")
         report_lines.append("<p style='color: #000; margin: 5px 0;'>")
         if not sid_prefix:
