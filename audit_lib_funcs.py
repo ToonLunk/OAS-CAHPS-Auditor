@@ -1403,7 +1403,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                 # Convert to string for validation
                 if isinstance(svc_val, datetime.datetime):
                     svc_str = svc_val.strftime("%m/%d/%Y")
-                    service_dates.append((r, mrn_val, svc_val))
                 else:
                     svc_str = str(svc_val).strip()
 
@@ -1610,29 +1609,39 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
             except (ValueError, TypeError):
                 pass
 
-    # Check all SERVICE DATEs are in the expected month/year
+    # Check all SERVICE DATEs are in the expected month
     if service_dates:
         first_date = service_dates[0][2]
         if filename_month is not None:
-            # Filename month is authoritative; fall back to first-date year if no filename year
+            # Filename month is authoritative — only check month; year is handled by the year check below
             expected_month = filename_month
-            expected_year = filename_year if filename_year is not None else first_date.year
+            for r, mrn_val, svc_date in service_dates:
+                if svc_date.month != expected_month:
+                    import calendar as _cal
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": None,
+                            "issue_type": "Service Date Wrong Month",
+                            "description": f"Date {svc_date.strftime('%m/%d/%Y')} is not in {_cal.month_name[expected_month]}",
+                        }
+                    )
         else:
-            # Fall back: anchor to the first date found in the data
+            # Fall back: anchor to the first date found in the data (check both month and year together)
             expected_month = first_date.month
             expected_year = first_date.year
-
-        for r, mrn_val, svc_date in service_dates:
-            if svc_date.month != expected_month or svc_date.year != expected_year:
-                row_issues.append(
-                    {
-                        "row": r,
-                        "mrn": mrn_val,
-                        "cms": None,
-                        "issue_type": "Service Date Wrong Month",
-                        "description": f"Date {svc_date.strftime('%Y-%m-%d')} not in {expected_year}-{expected_month:02d}",
-                    }
-                )
+            for r, mrn_val, svc_date in service_dates:
+                if svc_date.month != expected_month or svc_date.year != expected_year:
+                    row_issues.append(
+                        {
+                            "row": r,
+                            "mrn": mrn_val,
+                            "cms": None,
+                            "issue_type": "Service Date Wrong Month",
+                            "description": f"Date {svc_date.strftime('%Y-%m-%d')} not in {expected_year}-{expected_month:02d}",
+                        }
+                    )
 
     # Check all SERVICE DATEs are in the year from the filename
     if filename_year is not None and service_dates:

@@ -947,7 +947,6 @@ def build_report(
     # Check combined ineligible math - handled in ADDITIONAL VALIDATIONS table above
 
     # 3. CPT Ineligibility Check (OAS only, when CMS == 1)
-    cpt_ineligible_rows = []
     if audit_type == "OAS" and cpt_col:
         for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
             if not any(row):
@@ -965,7 +964,6 @@ def build_report(
             ineligible, reason = cpt_is_ineligible(cpt_val)
             if ineligible and cms_int == 1:
                 msg = f"OASCAPHS Row {r}: CPT {cpt_val} ineligible ({reason})"
-                cpt_ineligible_rows.append((r, cpt_val, reason, mrn_val, cms_val))
 
                 row_issues.append(
                     {
@@ -981,7 +979,6 @@ def build_report(
         issues.append("CPT column missing in OASCAPHS for ineligibility check")
 
     # DRG/APR Ineligibility Check (HCAHPS only, CMS = 1 rows)
-    drg_apr_ineligible_rows = []
     if audit_type == "HCAHPS":
         from audit_hcahps_funcs import is_ineligible_drg, is_ineligible_apr
         _drg_col = headers.get("DRG")
@@ -1001,7 +998,6 @@ def build_report(
                 drg_val = row[_drg_col - 1]
                 ineligible, reason = is_ineligible_drg(drg_val)
                 if ineligible:
-                    drg_apr_ineligible_rows.append((r, "DRG", drg_val, reason, mrn_val, cms_val))
                     row_issues.append({
                         "row": r, "mrn": mrn_val, "cms": cms_val,
                         "issue_type": "DRG Ineligible",
@@ -1011,7 +1007,6 @@ def build_report(
                 apr_val = row[_apr_col - 1]
                 ineligible, reason = is_ineligible_apr(apr_val)
                 if ineligible:
-                    drg_apr_ineligible_rows.append((r, "APR", apr_val, reason, mrn_val, cms_val))
                     row_issues.append({
                         "row": r, "mrn": mrn_val, "cms": cms_val,
                         "issue_type": "APR Ineligible",
@@ -1100,69 +1095,7 @@ def build_report(
     if not row_issues and not non_row_issues:
         report_lines.append("<p>No issues found</p>")
 
-    # CPT ineligible summary (OAS only)
 
-    if audit_type == "OAS" and cpt_ineligible_rows:
-        report_lines.append("<h2>INELIGIBLE CPT CODES</h2>")
-        report_lines.append(
-            "<p><em>Note: Some ineligible CPT codes are expected to be in the non-report (CMS=2) section!</em></p>"
-        )
-        report_lines.append(
-            f"<p><strong>Total ineligible CPT rows found: {len(cpt_ineligible_rows)}</strong></p>"
-        )
-        report_lines.append("<details open>")
-        report_lines.append(
-            f"<summary>Ineligible CPT Details ({len(cpt_ineligible_rows)} rows)</summary>"
-        )
-        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
-        report_lines.append(
-            "<tr><th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>CPT</th><th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th></tr>"
-        )
-        for r, cpt, reason, mrn, cms in cpt_ineligible_rows:
-            mrn_display = mrn if mrn is not None else ""
-            cms_display = cms if cms is not None else ""
-            report_lines.append(
-                f"<tr><td style='padding: 3px 8px;'>{r}</td><td style='padding: 3px 8px;'>{mrn_display}</td><td style='padding: 3px 8px;'>{cms_display}</td><td style='padding: 3px 8px;'>{cpt}</td><td style='padding: 3px 8px;'>{reason}</td></tr>"
-            )
-        report_lines.append("</table>")
-        report_lines.append("</details>")
-
-    # INELIGIBLE DRG/APR CODES section (HCAHPS only)
-    if audit_type == "HCAHPS" and drg_apr_ineligible_rows:
-        report_lines.append("<h2>INELIGIBLE DRG/APR CODES</h2>")
-        report_lines.append(
-            f"<p><strong>Total ineligible DRG/APR rows found (CMS=1): {len(drg_apr_ineligible_rows)}</strong></p>"
-        )
-        report_lines.append("<details open>")
-        report_lines.append(
-            f"<summary>Ineligible DRG/APR Details ({len(drg_apr_ineligible_rows)} rows)</summary>"
-        )
-        report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
-        report_lines.append(
-            "<tr>"
-            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>ROW</th>"
-            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>MRN</th>"
-            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>CMS</th>"
-            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>TYPE</th>"
-            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>CODE</th>"
-            "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>REASON</th>"
-            "</tr>"
-        )
-        for r, code_type, code_val, reason, mrn, cms in drg_apr_ineligible_rows:
-            mrn_display = mrn if mrn is not None else ""
-            cms_display = cms if cms is not None else ""
-            report_lines.append(
-                f"<tr>"
-                f"<td style='padding: 3px 8px;'>{r}</td>"
-                f"<td style='padding: 3px 8px;'>{mrn_display}</td>"
-                f"<td style='padding: 3px 8px;'>{cms_display}</td>"
-                f"<td style='padding: 3px 8px;'>{code_type}</td>"
-                f"<td style='padding: 3px 8px;'>{code_val}</td>"
-                f"<td style='padding: 3px 8px;'>{reason}</td>"
-                f"</tr>"
-            )
-        report_lines.append("</table>")
-        report_lines.append("</details>")
 
     # INVALID ADDRESSES section (OAS only)
     invalid_addresses = []
