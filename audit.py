@@ -23,7 +23,7 @@ from audit_oas_funcs import (
 )
 from audit_hcahps_funcs import _DRG_APR_LOAD_ERROR
 
-__version__ = "2.0.1"
+__version__ = "2.1.0"
 version = __version__
 
 
@@ -184,10 +184,27 @@ def audit_excel(file_path, show_progress=False):
             if show_progress:
                 print(f"[OK] SID validation complete ({len(sid_issues)} issues found)")
 
-        # Validate INEL tab REPEAT entries
+        # Check for same-day discharges in FRAME tab (admit date == discharge date -> should be INEL)
         inel_issues = []
-        inel_row_issues = []
-        # TODO: implement HCAHPS-specific INEL validation (OAS rules do not apply)
+        inel_row_issues = None
+        if 'FRAME' in wb.sheetnames:
+            from audit_hcahps_funcs import check_same_day_discharges
+            inel_issues, inel_row_issues = check_same_day_discharges(wb)
+            issues.extend(inel_issues)
+            if show_progress:
+                found = len(inel_row_issues) if inel_row_issues else 0
+                print(f"[OK] Same-day discharge check complete ({found} issues found)")
+
+        # Detect FRAME columns and validate addresses
+        frame_col_map = None
+        frame_invalid_addresses = []
+        frame_noted_addresses = []
+        if 'FRAME' in wb.sheetnames:
+            from audit_hcahps_funcs import get_frame_col_map, check_frame_addresses
+            frame_col_map = get_frame_col_map(wb)
+            frame_invalid_addresses, frame_noted_addresses = check_frame_addresses(wb, frame_col_map)
+            if show_progress:
+                print(f"[OK] FRAME address check complete ({len(frame_invalid_addresses)} issues found)")
 
         # Validate EXCLU tab
         exclu_count = None
@@ -294,6 +311,9 @@ def audit_excel(file_path, show_progress=False):
             facility_matches=facility_matches,
             exclu_count=exclu_count,
             exclu_row_issues=exclu_row_issues,
+            frame_col_map=frame_col_map,
+            frame_invalid_addresses=frame_invalid_addresses,
+            frame_noted_addresses=frame_noted_addresses,
             audit_type="HCAHPS",
         )
 

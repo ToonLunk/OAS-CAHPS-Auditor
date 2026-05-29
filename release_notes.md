@@ -1,19 +1,19 @@
-# Version 1.4.2
+# Version 2.1.0 - HCAHPS Support
 
-**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v1.4.1...v1.4.2
+**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.0.1...v2.1.0
 
 ## What's New
 
-- Installer no longer requires administrator privileges
-- Install location changed from `C:\OAS-CAHPS-Auditor` to `%LOCALAPPDATA%\OAS-CAHPS-Auditor`
-- Context menu and Add/Remove Programs entries now registered per-user instead of system-wide
-- PATH entry now added to user environment instead of system environment
+- Added suport for HCAHPS files (CMS tab structure) in addition to OAS CAHPS (OASCAPHS tab structure)
+- New audit checks for HCAHPS files, including sample size validation, discharge status, DRG/APR code checks, and more
+- Updated alias matching logic to be more flexible (e.g., underscores vs spaces)
+- Improved report formatting and issue descriptions
 
 ---
 
 ## How do I install this?
 
-1. Download **`OAS-CAHPS-Auditor-v1.4.2-Setup.exe`** below.
+1. Download **`OAS-CAHPS-Auditor-v2.1.0-Setup.exe`** below.
 2. Run the installer - it will upgrade in place if you already have a previous version.
 3. You're done! You can now start using the auditor.
 

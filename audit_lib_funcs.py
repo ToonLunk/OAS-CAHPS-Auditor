@@ -390,13 +390,7 @@ def count_nonempty_rows_after_header(sheet, header_aliases=None):
     # Use MRN_ALIASES as default if not provided
     if header_aliases is None:
         # Import here to avoid circular dependency issues
-        header_aliases = [
-            "chart id", "patid", "medical account number", "patient account number",
-            "patient acct no", "medical record number", "mrn", "patient id",
-            "patient mrn", "medicalrecordnumber", "medrec", "md rc", "acct#",
-            "patient account #", "account number", "patient chart number",
-            "acctnum", "mrnum", "patientid", "mrno", "per nbr", "pt.id"
-        ]
+        header_aliases = MRN_ALIASES
     
     # Find the header row by looking for common header column names
     header_row_idx = None
@@ -772,6 +766,20 @@ SERVICE_DATE_ALIASES = [
     "d.date",
 ]
 
+MRN_ALIASES = [
+    "chart id", "patid", "medical account number", "patient account number",
+    "patient acct no", "medical record number", "mrn", "patient id",
+    "patient mrn", "medicalrecordnumber", "medrec", "md rc", "acct#",
+    "patient account #", "account number", "patient chart number",
+    "acctnum", "mrnum", "patientid", "mrno", "per nbr", "pt.id",
+    "chart number", "pt account #", "mr#", "patient_number",
+    "pat_med_rec", "person mrn", "armrnum", "med rec number",
+    "person_nbr", "pt id #", "armrnum-t", "emr number",
+    "patient - patient - id", "pt_id", "mrn #", "chart no.",
+    "v#", "pat person nbr", "med rec #", "patient - id",
+    "med_rec_nbr", "patient chart id",
+]
+
 FACILITY_NAME_ALIASES = [
     "facility name",
     "facility",
@@ -900,13 +908,16 @@ _DATA_HEADER_KEYWORD_HINTS = (
 
 
 def _expand_alias_variants(alias):
-    """Generate matching variants of an alias: original, underscores-to-spaces,
-    spaces-to-underscores, and all spaces/underscores removed. All lowercase."""
+    """Generate matching variants of an alias. Mirrors VBA ExpandAliases logic:
+    original, underscores-to-spaces, remove underscores, remove spaces,
+    spaces-to-underscores, spaces-to-dashes. All lowercase."""
     low = alias.strip().lower()
     variants = {low}
-    variants.add(low.replace("_", " "))
-    variants.add(low.replace(" ", "_"))
-    variants.add(low.replace(" ", "").replace("_", ""))
+    variants.add(low.replace("_", " "))   # underscores -> spaces
+    variants.add(low.replace("_", ""))    # remove underscores
+    variants.add(low.replace(" ", ""))    # remove spaces
+    variants.add(low.replace(" ", "_"))   # spaces -> underscores
+    variants.add(low.replace(" ", "-"))   # spaces -> dashes
     return variants
 
 

@@ -53,6 +53,9 @@ def build_report(
     facility_matches=None,
     exclu_count=None,
     exclu_row_issues=None,
+    frame_col_map=None,
+    frame_invalid_addresses=None,
+    frame_noted_addresses=None,
     audit_type="OAS",
 ):
     """
@@ -370,7 +373,7 @@ def build_report(
         issues.append(issue_msg)
 
     # Check 5: UPLOAD tab has the correct columns (main tab minus ATT, LAG, ID, FD, LG [and E/M for OAS])
-    upload_only_cols = {"ATT", "LAG", "ID", "FD", "LG"} if audit_type == "HCAHPS" else {"ATT", "LAG", "ID", "FD", "LG", "E/M"}
+    upload_only_cols = {"ATT", "LAG", "ID", "FD", "LG", "DRG", "APR"} if audit_type == "HCAHPS" else {"ATT", "LAG", "ID", "FD", "LG", "E/M"}
     if "UPLOAD" in wb.sheetnames:
         upload_sheet = wb["UPLOAD"]
         up_header_set = {
@@ -440,6 +443,22 @@ def build_report(
                 report_lines.append(
                     f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
                 )
+
+    # Check 6b: Same-day discharge check (HCAHPS only)
+    if audit_type == "HCAHPS" and "FRAME" in wb.sheetnames:
+        if inel_row_issues is None:
+            report_lines.append(
+                "<tr><td>Same-day discharge check could not run - see warnings above</td><td style='color: orange;'>⚠</td></tr>"
+            )
+        elif not inel_row_issues:
+            report_lines.append(
+                "<tr><td>No same-day discharges found in CMS tab</td><td style='color: #28a745;'>✓</td></tr>"
+            )
+        else:
+            issue_msg = f"<strong>WARNING:</strong> {len(inel_row_issues)} same-day discharge(s) found in CMS tab - these patients should be on the INEL tab"
+            report_lines.append(
+                f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>"
+            )
 
     # Check 7: Eligible + INEL = Submitted math check (OAS only - HCAHPS has no Submitted value)
     if audit_type == "OAS" and patients_submitted is not None and eligible_patients is not None and inel_count is not None:
@@ -925,6 +944,48 @@ def build_report(
                         "issue_type": "APR Ineligible",
                         "description": f"APR {apr_val} not eligible for HCAHPS ({reason})",
                     })
+
+    # DS/AS classification (HCAHPS only, CMS=1 rows)
+    if audit_type == "HCAHPS":
+        from audit_hcahps_funcs import classify_ds, classify_as
+        _ds_col = headers.get("DS")
+        _as_col = headers.get("AS")  # optional — not all vendors include this column
+        for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+            if not any(row):
+                continue
+            cms_val = row[cms_col - 1] if cms_col else None
+            mrn_val = row[mrn_col - 1] if mrn_col else None
+            try:
+                cms_int = int(float(str(cms_val).strip())) if cms_val is not None and str(cms_val).strip() != "" else None
+            except Exception:
+                cms_int = None
+            if cms_int != 1:
+                continue
+            if _ds_col:
+                ds_val = row[_ds_col - 1]
+                disposition, reason = classify_ds(ds_val)
+                if disposition == 'exclu':
+                    row_issues.append({
+                        "row": r, "mrn": mrn_val, "cms": cms_val,
+                        "issue_type": "DS Should Be EXCLU",
+                        "description": reason,
+                    })
+                elif disposition == 'inel':
+                    row_issues.append({
+                        "row": r, "mrn": mrn_val, "cms": cms_val,
+                        "issue_type": "DS Should Be INEL",
+                        "description": reason,
+                    })
+            if _as_col:
+                as_val = row[_as_col - 1]
+                disposition, reason = classify_as(as_val)
+                if disposition == 'exclu':
+                    row_issues.append({
+                        "row": r, "mrn": mrn_val, "cms": cms_val,
+                        "issue_type": "AS Should Be EXCLU",
+                        "description": reason,
+                    })
+
     report_lines.append("<h2>ISSUES FOUND</h2>")
 
     # Display row-based issues in table format
@@ -1439,6 +1500,107 @@ def build_report(
             )
         report_lines.append("</table>")
         report_lines.append("</details>")
+
+    # FRAME column detection + address issues (HCAHPS only, when FRAME tab exists)
+    if audit_type == "HCAHPS" and frame_col_map is not None:
+        _optional = {'Address 2'}
+        _required = ['MRN', 'Admit Date', 'Discharge Date', 'Address 1', 'City', 'State', 'ZIP']
+        _all_fields = _required + ['Address 2']
+        _found_count = sum(1 for f in _all_fields if frame_col_map.get(f, (None, None))[0] is not None)
+        report_lines.append(
+            f"<details style='margin-bottom: 8px;'>"
+            f"<summary style='cursor: pointer; font-weight: 600;'>"
+            f"FRAME Column Detection &mdash; {_found_count}/{len(_all_fields)} fields found"
+            f"</summary>"
+        )
+        report_lines.append("<table class='data-table' style='font-size: 0.9em; margin-top: 6px;'>")
+        report_lines.append("<tr><th>Field</th><th>Column Found In File</th><th></th></tr>")
+        for _field in _all_fields:
+            _col_idx, _hdr = frame_col_map.get(_field, (None, None))
+            _is_optional = _field in _optional
+            _label = f"{_field} <em style='color:#888; font-weight:400;'>(optional)</em>" if _is_optional else _field
+            if _col_idx is not None:
+                report_lines.append(
+                    f"<tr><td>{_label}</td>"
+                    f"<td><code>{_hdr}</code></td>"
+                    f"<td style='color: #28a745; text-align: center;'>&#10003;</td></tr>"
+                )
+            elif _is_optional:
+                report_lines.append(
+                    f"<tr><td>{_label}</td>"
+                    f"<td style='color: #888;'>not found</td>"
+                    f"<td style='color: #888; text-align: center;'>&mdash;</td></tr>"
+                )
+            else:
+                report_lines.append(
+                    f"<tr><td>{_label}</td>"
+                    f"<td style='color: #c0392b;'>not found</td>"
+                    f"<td style='color: #c0392b; text-align: center;'>&#10007;</td></tr>"
+                )
+        report_lines.append("</table>")
+        report_lines.append("</details>")
+
+        # FRAME invalid addresses
+        _frame_invalid = frame_invalid_addresses or []
+        _frame_noted = frame_noted_addresses or []
+        if _frame_invalid or _frame_noted:
+            _total_addr = len(_frame_invalid) + len(_frame_noted)
+            report_lines.append("<h2>FRAME INVALID ADDRESSES</h2>")
+            report_lines.append("<details open>")
+            report_lines.append(f"<summary>FRAME address issues ({_total_addr} found)</summary>")
+            report_lines.append("<table class='excel-style' style='font-size: 0.85em;'>")
+            _ath = "<th style='background-color: #000; color: #fff; padding: 4px 8px;'>"
+            report_lines.append(
+                f"<tr>{_ath}ROW</th>{_ath}MRN</th>"
+                f"{_ath}STREET</th>{_ath}CITY</th>{_ath}STATE</th>{_ath}ZIP</th>"
+                f"{_ath}REASON</th></tr>"
+            )
+            def _parse_frame_addr(addr_str):
+                # Format (invalid): Row - MRN - CMS - E/M - NAME - AGE - ADDRESS(dict) - REASON
+                # Format (noted):   Row - MRN - CMS - E/M - NAME - AGE - CITY - STATE - ADDRESS(street) - REASON(s)
+                parts = addr_str.split(" - ")
+                row_num = parts[0].replace("Row: ", "").strip()
+                mrn_val = parts[1].replace("MRN: ", "").strip("'") if len(parts) > 1 else ""
+                mrn_val = "" if mrn_val == "None" else mrn_val
+                # parts[2]=CMS, [3]=E/M, [4]=NAME, [5]=AGE — skip for FRAME display
+                is_noted = len(parts) > 6 and parts[6].startswith("CITY: ")
+                if is_noted:
+                    city_val  = parts[6].replace("CITY: ",    "").strip("'") if len(parts) > 6 else ""
+                    state_val = parts[7].replace("STATE: ",   "").strip("'") if len(parts) > 7 else ""
+                    street    = parts[8].replace("ADDRESS: ", "").strip("'") if len(parts) > 8 else ""
+                    reason    = " - ".join(parts[9:]).replace("REASON(s): ", "", 1).strip("'") if len(parts) > 9 else ""
+                    zip_val   = ""
+                else:
+                    addr_dict_str = parts[6].replace("ADDRESS: ", "").strip("'") if len(parts) > 6 else ""
+                    reason = parts[7].replace("REASON: ", "").strip("'") if len(parts) > 7 else ""
+                    try:
+                        d = ast.literal_eval(addr_dict_str)
+                        street    = d.get("street_address") or ""
+                        city_val  = d.get("city") or ""
+                        state_val = d.get("country_area") or ""
+                        zip_val   = d.get("postal_code") or ""
+                    except Exception:
+                        street = city_val = state_val = zip_val = ""
+                street    = "" if street    == "None" else street
+                city_val  = "" if city_val  == "None" else city_val
+                state_val = "" if state_val == "None" else state_val
+                zip_val   = "" if zip_val   == "None" else zip_val
+                return row_num, mrn_val, street, city_val, state_val, zip_val, reason
+            for _addr in _frame_invalid + _frame_noted:
+                _rn, _mrn, _st, _ci, _sta, _zp, _re = _parse_frame_addr(_addr)
+                report_lines.append(
+                    f"<tr>"
+                    f"<td style='padding:3px 8px;'>{_rn}</td>"
+                    f"<td style='padding:3px 8px;'>{_mrn}</td>"
+                    f"<td style='padding:3px 8px;'>{_st}</td>"
+                    f"<td style='padding:3px 8px;'>{_ci}</td>"
+                    f"<td style='padding:3px 8px;'>{_sta}</td>"
+                    f"<td style='padding:3px 8px;'>{_zp}</td>"
+                    f"<td style='padding:3px 8px;'>{_re}</td>"
+                    f"</tr>"
+                )
+            report_lines.append("</table>")
+            report_lines.append("</details>")
 
     report_lines.append("<hr>")
     report_lines.append(
