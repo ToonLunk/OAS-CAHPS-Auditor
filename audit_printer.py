@@ -99,6 +99,14 @@ def build_report(
         # Find month anywhere in the parts (handles both "MONTH TYPE YEAR" and "TYPE MONTH YEAR")
         month = next((p.lower() for p in parts if p.lower() in months), None)
 
+        # Convert month name to number (used for per-row date validation)
+        _month_name_to_num = {
+            "january": 1, "february": 2, "march": 3, "april": 4,
+            "may": 5, "june": 6, "july": 7, "august": 8,
+            "september": 9, "october": 10, "november": 11, "december": 12,
+        }
+        filename_month = _month_name_to_num.get(month) if month else None
+
         if month is None:
             row_issues.append(
                 {
@@ -109,6 +117,7 @@ def build_report(
                     "description": "Month not found in filename after '#'",
                 }
             )
+            issues.append("<strong>WARNING:</strong> Month not found in filename after '#' — date validation may be inaccurate")
 
         # Extract year (scan for any 4-digit number in 2000-2100 range)
         for _p in parts:
@@ -119,6 +128,18 @@ def build_report(
                     break
             except ValueError:
                 pass
+
+        if filename_year is None:
+            row_issues.append(
+                {
+                    "row": "FILE",
+                    "mrn": None,
+                    "cms": None,
+                    "issue_type": "Filename Issue",
+                    "description": "Year not found in filename after '#'",
+                }
+            )
+            issues.append("<strong>WARNING:</strong> Year not found in filename after '#' — date validation may be inaccurate")
 
     # Start HTML document with helper function
     report_lines = _build_html_header(file_path, version, audit_id, sid_prefix, service_date_range, audit_type)
@@ -533,6 +554,45 @@ def build_report(
     report_lines.extend(_val_section)
     report_lines.append("</details>")
 
+    # FRAME column detection (HCAHPS only, shown right below validation summary)
+    if audit_type == "HCAHPS" and frame_col_map is not None:
+        _optional = {'Address 2'}
+        _required = ['MRN', 'Admit Date', 'Discharge Date', 'Address 1', 'City', 'State', 'ZIP']
+        _all_fields = _required + ['Address 2']
+        _found_count = sum(1 for f in _all_fields if frame_col_map.get(f, (None, None))[0] is not None)
+        report_lines.append(
+            f"<details class='validation-summary-details'>"
+            f"<summary style='font-weight: normal;'>"
+            f"FRAME Column Detection &mdash; {_found_count}/{len(_all_fields)} fields found"
+            f"</summary>"
+        )
+        report_lines.append("<table class='excel-style' style='font-size: 0.9em; margin-top: 6px;'>")
+        report_lines.append("<tr><th>Field</th><th>Column Found In File</th><th></th></tr>")
+        for _field in _all_fields:
+            _col_idx, _hdr = frame_col_map.get(_field, (None, None))
+            _is_optional = _field in _optional
+            _label = f"{_field} <em style='color:#888; font-weight:400;'>(optional)</em>" if _is_optional else _field
+            if _col_idx is not None:
+                report_lines.append(
+                    f"<tr><td>{_label}</td>"
+                    f"<td><code>{_hdr}</code></td>"
+                    f"<td style='color: #28a745; text-align: center;'>&#10003;</td></tr>"
+                )
+            elif _is_optional:
+                report_lines.append(
+                    f"<tr><td>{_label}</td>"
+                    f"<td style='color: #888;'>not found</td>"
+                    f"<td style='color: #888; text-align: center;'>&mdash;</td></tr>"
+                )
+            else:
+                report_lines.append(
+                    f"<tr><td>{_label}</td>"
+                    f"<td style='color: #c0392b;'>not found</td>"
+                    f"<td style='color: #c0392b; text-align: center;'>&#10007;</td></tr>"
+                )
+        report_lines.append("</table>")
+        report_lines.append("</details>")
+
     qtr_header_color = "#2dbd69"  # Default green
     if service_date_range:
         try:
@@ -722,7 +782,8 @@ def build_report(
 
     issues, row_issues = column_validations(
         sheet, headers, mrn_col, cms_col, em_col, issues, row_issues,
-        filename_year=filename_year
+        filename_year=filename_year,
+        filename_month=filename_month,
     )
 
     # Email quality / suspicious-email scan
@@ -1513,45 +1574,8 @@ def build_report(
         report_lines.append("</table>")
         report_lines.append("</details>")
 
-    # FRAME column detection + address issues (HCAHPS only, when FRAME tab exists)
+    # FRAME invalid addresses (HCAHPS only)
     if audit_type == "HCAHPS" and frame_col_map is not None:
-        _optional = {'Address 2'}
-        _required = ['MRN', 'Admit Date', 'Discharge Date', 'Address 1', 'City', 'State', 'ZIP']
-        _all_fields = _required + ['Address 2']
-        _found_count = sum(1 for f in _all_fields if frame_col_map.get(f, (None, None))[0] is not None)
-        report_lines.append(
-            f"<details style='margin-bottom: 8px;'>"
-            f"<summary style='cursor: pointer; font-weight: 600;'>"
-            f"FRAME Column Detection &mdash; {_found_count}/{len(_all_fields)} fields found"
-            f"</summary>"
-        )
-        report_lines.append("<table class='excel-style' style='font-size: 0.9em; margin-top: 6px;'>")
-        report_lines.append("<tr><th>Field</th><th>Column Found In File</th><th></th></tr>")
-        for _field in _all_fields:
-            _col_idx, _hdr = frame_col_map.get(_field, (None, None))
-            _is_optional = _field in _optional
-            _label = f"{_field} <em style='color:#888; font-weight:400;'>(optional)</em>" if _is_optional else _field
-            if _col_idx is not None:
-                report_lines.append(
-                    f"<tr><td>{_label}</td>"
-                    f"<td><code>{_hdr}</code></td>"
-                    f"<td style='color: #28a745; text-align: center;'>&#10003;</td></tr>"
-                )
-            elif _is_optional:
-                report_lines.append(
-                    f"<tr><td>{_label}</td>"
-                    f"<td style='color: #888;'>not found</td>"
-                    f"<td style='color: #888; text-align: center;'>&mdash;</td></tr>"
-                )
-            else:
-                report_lines.append(
-                    f"<tr><td>{_label}</td>"
-                    f"<td style='color: #c0392b;'>not found</td>"
-                    f"<td style='color: #c0392b; text-align: center;'>&#10007;</td></tr>"
-                )
-        report_lines.append("</table>")
-        report_lines.append("</details>")
-
         # FRAME invalid addresses
         _frame_invalid = frame_invalid_addresses or []
         _frame_noted = frame_noted_addresses or []

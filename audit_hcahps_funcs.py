@@ -446,13 +446,10 @@ def check_same_day_discharges(wb):
         missing.append("MRN")
 
     if missing:
-        issues.append({
-            'issue_type': 'Warning',
-            'description': (
-                f"Could not locate the following column(s) in FRAME tab: "
-                f"{', '.join(missing)} - same-day discharge check skipped"
-            ),
-        })
+        issues.append(
+            f"<strong>WARNING:</strong> Could not locate the following column(s) in FRAME tab: "
+            f"{', '.join(missing)} - same-day discharge check skipped"
+        )
         return issues, None
 
     # Narrow types for static analysis (already validated by the missing check above)
@@ -495,14 +492,11 @@ def check_same_day_discharges(wb):
             })
 
     if row_issues:
-        issues.append({
-            'issue_type': 'Same-Day Discharge',
-            'description': (
-                f"{len(row_issues)} row(s) in FRAME have matching admit and "
-                f"discharge dates and should be on the INEL tab "
-                f"('{admit_header}' vs '{disch_header}')"
-            ),
-        })
+        issues.append(
+            f"<strong>WARNING:</strong> {len(row_issues)} row(s) in FRAME have matching admit and "
+            f"discharge dates and should be on the INEL tab "
+            f"('{admit_header}' vs '{disch_header}')"
+        )
 
     return issues, row_issues
 

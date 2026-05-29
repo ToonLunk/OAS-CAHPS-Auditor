@@ -1347,7 +1347,7 @@ def extract_service_date_range(sheet, svc_col, mrn_col=None, cms_col=None):
     return None, blank_date_issues, blank_date_row_issues
 
 
-def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_issues, filename_year=None):
+def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_issues, filename_year=None, filename_month=None):
     """
     Perform data quality validation checks on OASCAPHS sheet columns.
     Returns updated issues and row_issues lists.
@@ -1610,12 +1610,17 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
             except (ValueError, TypeError):
                 pass
 
-    # Check all SERVICE DATEs are in the same month
+    # Check all SERVICE DATEs are in the expected month/year
     if service_dates:
-        # Get month/year from first date
         first_date = service_dates[0][2]
-        expected_month = first_date.month
-        expected_year = first_date.year
+        if filename_month is not None:
+            # Filename month is authoritative; fall back to first-date year if no filename year
+            expected_month = filename_month
+            expected_year = filename_year if filename_year is not None else first_date.year
+        else:
+            # Fall back: anchor to the first date found in the data
+            expected_month = first_date.month
+            expected_year = first_date.year
 
         for r, mrn_val, svc_date in service_dates:
             if svc_date.month != expected_month or svc_date.year != expected_year:
