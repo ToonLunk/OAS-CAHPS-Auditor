@@ -346,6 +346,24 @@ def build_report(
             "<tr><td>Sample Size matches Reported</td><td style='color: #28a745;'>✓</td></tr>"
         )
 
+    # Check 1b: Eligible patients = CMS=1 + CMS=2 row count
+    if eligible_patients is not None and cms1_count is not None and non_reported is not None:
+        total_cms = cms1_count + non_reported
+        if total_cms != eligible_patients:
+            issue_msg = (
+                f"<strong>WARNING:</strong> Eligible patient count mismatch: "
+                f"footer says {eligible_patients}, but "
+                f"{cms1_count} CMS=1 + {non_reported} CMS=2 = {total_cms}"
+            )
+            report_lines.append(f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>")
+            issues.append(issue_msg)
+        else:
+            report_lines.append(
+                f"<tr><td>Eligible count matches CMS=1 + CMS=2 "
+                f"({cms1_count} + {non_reported} = {eligible_patients})</td>"
+                f"<td style='color: #28a745;'>✓</td></tr>"
+            )
+
     # Check 2: E/M total matches Sample Size (OAS only)
     if audit_type == "OAS":
         if sample_size is not None and total_em != sample_size:
@@ -466,6 +484,52 @@ def build_report(
         report_lines.append(
             f"<tr><td>{issue_msg}</td><td style='color: orange;'>⚠</td></tr>"
         )
+
+    # Check 5b/5c: CMS=1 rows must have a SID value; CMS=2 rows must NOT have a SID value
+    if sid_col and cms_col:
+        _cms1_missing_sid = []
+        _cms2_has_sid = []
+        for _r, _row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+            if not any(_row):
+                continue
+            _cms_val = _row[cms_col - 1]
+            _sid_val = _row[sid_col - 1]
+            try:
+                _cms_int = int(_cms_val)
+            except (ValueError, TypeError):
+                continue
+            _sid_present = _sid_val is not None and str(_sid_val).strip() != ""
+            _mrn_val = _row[mrn_col - 1] if mrn_col else None
+            if _cms_int == 1 and not _sid_present:
+                _cms1_missing_sid.append({
+                    "row": _r, "mrn": _mrn_val, "cms": _cms_val,
+                    "issue_type": "CMS=1 Missing SID",
+                    "description": "CMS=1 row has no SID value",
+                })
+            elif _cms_int == 2 and _sid_present:
+                _cms2_has_sid.append({
+                    "row": _r, "mrn": _mrn_val, "cms": _cms_val,
+                    "issue_type": "CMS=2 Has SID",
+                    "description": f"CMS=2 row has unexpected SID value: '{_sid_val}'",
+                })
+        if not _cms1_missing_sid:
+            report_lines.append(
+                "<tr><td>All CMS=1 rows have a SID value</td><td style='color: #28a745;'>✓</td></tr>"
+            )
+        else:
+            _msg = f"<strong>WARNING:</strong> {len(_cms1_missing_sid)} CMS=1 row(s) missing a SID value"
+            report_lines.append(f"<tr><td>{_msg}</td><td style='color: red;'>✗</td></tr>")
+            row_issues.extend(_cms1_missing_sid)
+            issues.append(_msg)
+        if not _cms2_has_sid:
+            report_lines.append(
+                "<tr><td>No CMS=2 rows have a SID value</td><td style='color: #28a745;'>✓</td></tr>"
+            )
+        else:
+            _msg = f"<strong>WARNING:</strong> {len(_cms2_has_sid)} CMS=2 row(s) have an unexpected SID value"
+            report_lines.append(f"<tr><td>{_msg}</td><td style='color: red;'>✗</td></tr>")
+            row_issues.extend(_cms2_has_sid)
+            issues.append(_msg)
 
     # Check 6: INEL REPEAT validation (OAS only - HCAHPS does not validate INEL REPEAT)
     if audit_type == "OAS":
