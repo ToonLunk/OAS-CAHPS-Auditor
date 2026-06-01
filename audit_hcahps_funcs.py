@@ -223,14 +223,8 @@ def validate_exclu_rows(exclu_sheet, show_progress=False):
     if exclu_sheet is None:
         return 0, row_issues
 
-    # Find MRN column in header row (fall back to column 1)
-    mrn_col = None
-    first_row = next(exclu_sheet.iter_rows(min_row=1, max_row=1), None)
-    if first_row:
-        for cell in first_row:
-            if cell.value and str(cell.value).strip().upper() == "MRN":
-                mrn_col = cell.column
-                break
+    # Find MRN (or fallback identifier) column in header row
+    mrn_col, _ = _find_mrn_col(exclu_sheet)
 
     def _cell_is_marked(cell):
         """Return True if the cell has a non-white/non-transparent fill or red font."""
@@ -305,10 +299,34 @@ def validate_inel_rows(inel_sheet, show_progress=False):
     return count, issues
 
 
+def count_dup_d_rows(dup_sheet):
+    """
+    Count rows in the DUP tab where the DUP column contains 'D'.
+    Returns an int count (0 if DUP column not found).
+    """
+    dup_col = None
+    first_row = next(dup_sheet.iter_rows(min_row=1, max_row=1), None)
+    if first_row:
+        for cell in first_row:
+            if cell.value is not None and str(cell.value).strip().lower() == "dup":
+                dup_col = cell.column
+                break
+    if dup_col is None:
+        return 0
+    count = 0
+    for row in dup_sheet.iter_rows(min_row=2, values_only=True):
+        if not any(cell is not None for cell in row):
+            continue
+        val = row[dup_col - 1]
+        if val is not None and str(val).strip().upper() == "D":
+            count += 1
+    return count
+
+
 # --- Same-day discharge check ---
 
 from datetime import datetime, date as _date
-from audit_lib_funcs import _expand_aliases, MRN_ALIASES
+from audit_lib_funcs import _expand_aliases, MRN_ALIASES, UNIQUEID_ALIASES
 
 # Base admit date names - admission-specific only (not general service dates).
 # ExpandAliases generates the space/underscore/dash variants automatically.
@@ -336,8 +354,27 @@ _DISCHARGE_DATE_BASE = [
 ]
 _DISCHARGE_DATE_ALIASES = _expand_aliases(_DISCHARGE_DATE_BASE)
 
-# Pre-expand MRN_ALIASES too so the lookup handles all spacing variants.
-_MRN_ALIASES_EXPANDED = _expand_aliases(MRN_ALIASES)
+# Two separate expanded sets so priority can be enforced: MRN aliases are always
+# tried first; UNIQUEID_ALIASES is only used as a fallback when no MRN alias
+# matches.  Both columns often coexist on side tabs (INEL, EXCLU, FRAME, POP) -
+# we must not pick uniqueid when MRN is present, regardless of column order.
+_MRN_ONLY_ALIASES_EXPANDED = _expand_aliases(MRN_ALIASES)
+_UNIQUEID_ALIASES_EXPANDED  = _expand_aliases(UNIQUEID_ALIASES)
+# Combined set kept for cases where presence-detection (not priority) is needed.
+_MRN_ALIASES_EXPANDED = _MRN_ONLY_ALIASES_EXPANDED | _UNIQUEID_ALIASES_EXPANDED
+
+
+def _find_mrn_col(sheet):
+    """Locate the patient identifier column with explicit priority.
+
+    Pass 1 – try every MRN alias (the vendor renamed uniqueid -> MRN on this tab).
+    Pass 2 – fall back to uniqueid aliases only when no MRN alias was found.
+    This prevents picking uniqueid over MRN when both columns exist on a tab.
+    """
+    col, header = _find_col_by_aliases(sheet, _MRN_ONLY_ALIASES_EXPANDED)
+    if col is not None:
+        return col, header
+    return _find_col_by_aliases(sheet, _UNIQUEID_ALIASES_EXPANDED)
 
 
 def _normalize_date(val):
@@ -435,7 +472,7 @@ def check_same_day_discharges(wb):
 
     admit_col,   admit_header   = find_admit_date_col(frame_sheet)
     disch_col,   disch_header   = find_discharge_date_col(frame_sheet)
-    mrn_col,     mrn_header     = _find_col_by_aliases(frame_sheet, _MRN_ALIASES_EXPANDED)
+    mrn_col,     mrn_header     = _find_mrn_col(frame_sheet)
 
     missing = []
     if admit_col is None:
@@ -514,7 +551,7 @@ _ADDR1_BASE = [
     "araddr1", "addr:per addr street 1", "address_line_1", "patient address-1",
     "addr", "arpataddr1-t", "arpataddr1", "araddr1-t", "patient - address", "street",
     "street 1", "pt mailing address", "pat home addr line1",
-    "pt mailing address 1", "pt. street",
+    "pt mailing address 1", "pt. street", "add1", "add2"
 ]
 _ADDR1_ALIASES = _expand_aliases(_ADDR1_BASE)
 
@@ -571,7 +608,7 @@ def get_frame_col_map(wb):
         return None
     frame = wb['FRAME']
     return {
-        'MRN':            _find_col_by_aliases(frame, _MRN_ALIASES_EXPANDED),
+        'MRN':            _find_mrn_col(frame),
         'Admit Date':     find_admit_date_col(frame),
         'Discharge Date': find_discharge_date_col(frame),
         'Address 1':      _find_col_by_aliases(frame, _ADDR1_ALIASES),

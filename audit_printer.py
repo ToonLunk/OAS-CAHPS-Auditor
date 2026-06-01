@@ -13,6 +13,8 @@ from dotenv import load_dotenv
 
 from audit_lib_funcs import check_address, check_pop_upload_email_consistency, count_nonempty_rows_after_header, collect_lookup_candidates, build_person_search_urls, check_email_quality_all_rows, OAS_SIDS_ONEDRIVE_LINK, HCAHPS_SIDS_ONEDRIVE_LINK
 
+HCAPHS_HEADER_COLOR = "#be9bff"  # Pastel lavender used for all HCAHPS header accents
+
 
 def build_report(
     wb,
@@ -55,6 +57,7 @@ def build_report(
     exclu_row_issues=None,
     inel_count=None,
     inel_tab_row_issues=None,
+    dup_count=None,
     frame_col_map=None,
     frame_invalid_addresses=None,
     frame_noted_addresses=None,
@@ -177,7 +180,7 @@ def build_report(
     report_lines.append(f"<div class='section-subheader'>{'CMS TAB ANALYSIS' if audit_type == 'HCAHPS' else 'OASCAPHS TAB ANALYSIS'}</div>")
     report_lines.append("<div class='three-column-flex'>")
     
-    # Column 1: Patients Submitted (OAS only - HCAHPS has no submitted value)
+    # Column 1: Patients Submitted (OAS) / POP tab count (HCAHPS)
     if audit_type == "OAS":
         report_lines.append("<div class='column'>")
         report_lines.append("<div class='label'>Patients Submitted (from header)</div>")
@@ -187,8 +190,15 @@ def build_report(
             report_lines.append("<div class='value' style='color: orange;'>NOT FOUND</div>")
             issues.append("<strong>WARNING:</strong> SUBMITTED value not found in header")
         report_lines.append("</div>")
-    
-    # Column 2: Eligible Patients
+    elif audit_type == "HCAHPS":
+        pop_count = count_nonempty_rows_after_header(wb["POP"]) if "POP" in wb.sheetnames else None
+        report_lines.append("<div class='column'>")
+        report_lines.append("<div class='label'>Patients in POP tab</div>")
+        if pop_count is not None:
+            report_lines.append(f"<div class='value'>{pop_count}</div>")
+        else:
+            report_lines.append("<div class='value' style='color: orange;'>NOT FOUND</div>")
+        report_lines.append("</div>")
     report_lines.append("<div class='column'>")
     report_lines.append("<div class='label'>Eligible Patients (from footer)</div>")
     if eligible_patients is not None:
@@ -207,7 +217,7 @@ def build_report(
         report_lines.append("<div class='value' style='color: orange;'>NOT FOUND</div>")
         issues.append("<strong>WARNING:</strong> SS value not found in footer")
     report_lines.append("</div>")
-    
+
     report_lines.append("</div>")
 
     # VALIDATION CHECKS - buffered for collapsible wrapper (starts with CONTACT INFORMATION)
@@ -313,6 +323,10 @@ def build_report(
             report_lines.append(f"<tr><td>Patients in EXCLU tab</td><td>{exclu_count}</td></tr>")
         else:
             report_lines.append("<tr><td>EXCLU tab</td><td style='color: #888;'>Not found</td></tr>")
+        if dup_count is not None:
+            report_lines.append(f"<tr><td>Patients in DUP tab (DUP=D)</td><td>{dup_count}</td></tr>")
+        if inel_row_issues is not None and len(inel_row_issues) > 0:
+            report_lines.append(f"<tr><td>Same-day discharges (should be on INEL tab)</td><td>{len(inel_row_issues)}</td></tr>")
 
     report_lines.append("</table>")
 
@@ -478,7 +492,7 @@ def build_report(
     if audit_type == "HCAHPS" and "FRAME" in wb.sheetnames:
         if inel_row_issues is None:
             report_lines.append(
-                "<tr><td>Same-day discharge check could not run - see warnings above</td><td style='color: orange;'>⚠</td></tr>"
+            "<tr><td>Same-day discharge check skipped &mdash; required FRAME column(s) not found (admit date, discharge date, or MRN)</td><td style='color: orange;'>⚠</td></tr>"
             )
         elif not inel_row_issues:
             report_lines.append(
@@ -541,7 +555,7 @@ def build_report(
     _pass_count = sum(1 for line in _val_section if "\u2713" in line)
     _fail_count = sum(1 for line in _val_section if "\u2717" in line)
     _warn_count = sum(1 for line in _val_section if "\u26a0" in line)
-    _has_issues = _fail_count > 0 or len(issues) > issues_before_val
+    _has_issues = _fail_count > 0 or _warn_count > 0 or len(issues) > issues_before_val
     _label_parts = []
     if _pass_count:
         _label_parts.append(f"{_pass_count} passed")
@@ -557,7 +571,8 @@ def build_report(
     report_lines.extend(_val_section)
     report_lines.append("</details>")
 
-    # Determine quarter header color (odd months = orange, even = green)
+    # Determine quarter header color (odd months = orange, even = green) — OAS only.
+    # HCAHPS uses a fixed pastel lavender instead of alternating.
     qtr_header_color = "#2dbd69"  # Default green
     if service_date_range:
         try:
@@ -568,6 +583,8 @@ def build_report(
                     qtr_header_color = "#ec8038"  # Orange
         except (ValueError, AttributeError):
             pass  # Keep default green
+    if audit_type == "HCAHPS":
+        qtr_header_color = HCAPHS_HEADER_COLOR  # Pastel lavender
 
     # FRAME column detection (HCAHPS only, shown right below validation summary)
     if audit_type == "HCAHPS" and frame_col_map is not None:
@@ -584,9 +601,9 @@ def build_report(
         report_lines.append("<table class='excel-style' style='font-size: 0.9em; margin-top: 6px;'>")
         report_lines.append(
             f"<tr>"
-            f"<th style='background-color: {qtr_header_color};'>Field</th>"
-            f"<th style='background-color: {qtr_header_color};'>Column Found In File</th>"
-            f"<th style='background-color: {qtr_header_color};'></th>"
+            f"<th style='background-color: {qtr_header_color};'>Expected Field</th>"
+            f"<th style='background-color: {qtr_header_color};'>Matched Header</th>"
+            f"<th style='background-color: {qtr_header_color};'>Found?</th>"
             f"</tr>"
         )
         for _field in _all_fields:
@@ -795,6 +812,17 @@ def build_report(
         filename_year=filename_year,
         filename_month=filename_month,
     )
+
+    # Duplicate phone check: cross-column (TELEPHONE vs CELL PHONE) for both audit types.
+    # OAS has no CELL PHONE column so cell_col will be None - that's handled gracefully.
+    from audit_lib_funcs import check_duplicate_phones_cross_column
+    _tel_col  = headers.get("TELEPHONE")
+    _cell_col = headers.get("CELL PHONE")
+    _dup_phone_issues, _dup_phone_row_issues = check_duplicate_phones_cross_column(
+        sheet, _tel_col, _cell_col, mrn_col, cms_col
+    )
+    issues.extend(_dup_phone_issues)
+    row_issues.extend(_dup_phone_row_issues)
 
     # Email quality / suspicious-email scan
     email_col = headers.get("EMAIL ADDRESS")
@@ -1625,6 +1653,17 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
                 icon_href = None
 
     header_lines = []
+    # Compute header accent color — mirrors logic in build_report
+    qtr_header_color = HCAPHS_HEADER_COLOR if audit_type == "HCAHPS" else "#2dbd69"  # lavender or green
+    if audit_type != "HCAHPS" and service_date_range:
+        try:
+            _dp = service_date_range.split(" - ")
+            if len(_dp) == 2:
+                _sd = datetime.datetime.strptime(_dp[0].strip(), "%m/%d/%Y")
+                if _sd.month % 2 == 1:
+                    qtr_header_color = "#ec8038"  # Orange for odd months
+        except (ValueError, AttributeError):
+            pass
     header_lines.append("<!DOCTYPE html>")
     header_lines.append('<html lang="en">')
     header_lines.append("<head>")
@@ -1652,7 +1691,7 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
 
     # Updated header presentation
     header_lines.append("<div style='padding-bottom: 15px; '>")
-    header_lines.append("<div style='display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; border-bottom: 2px solid #27ae60; padding-bottom: 5px;'>")
+    header_lines.append(f"<div style='display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; border-bottom: 2px solid {qtr_header_color}; padding-bottom: 5px;'>")
     title_text = "HCAHPS Audit Report" if audit_type == "HCAHPS" else "OAS-CAHPS Audit Report"
     header_lines.append(f"<h1 style='margin: 0; border: none; padding: 0;'>{title_text}</h1>")
     if service_date_range:
@@ -1685,8 +1724,8 @@ def _build_html_header(file_path, version, audit_id=None, sid_prefix=None, servi
     header_lines.append("</div>")
     header_lines.append(
         f"<div class='header-meta-row'>"
-        f"<span><a href='https://tylercbrock.com' class='meta-link' title='tylercbrock.com'>Auditor</a> v{version}</span>"
-        f"<span><a href='https://github.com/ToonLunk/OAS-CAHPS-Auditor' class='meta-link' title='OAS-CAHPS-Auditor on GitHub'>Need Help?</a></span>"
+        f"<span><a href='https://tylercbrock.com' class='meta-link' title='tylercbrock.com' target='_blank'>Auditor</a> v{version}</span>"
+        f"<span><a href='https://github.com/ToonLunk/OAS-CAHPS-Auditor' class='meta-link' title='OAS-CAHPS-Auditor on GitHub' target='_blank'>Need Help?</a></span>"
         f"</div>"
     )
     header_lines.append("</div>")
@@ -1714,7 +1753,7 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha",
     """
     Write report to .html file in AUDITS directory
     Location depends on ORGANIZE_AUDITS_BY_DATE setting:
-      - True: %LOCALAPPDATA%\OAS-CAHPS-Auditor\AUDITS\YEAR\MONTH\
+      - True: %LOCALAPPDATA%\\OAS-CAHPS-Auditor\\AUDITS\\YEAR\\MONTH\\
       - False: Next to the audited file in AUDITS folder (default)
     """
     # --- Write report to .html file ---

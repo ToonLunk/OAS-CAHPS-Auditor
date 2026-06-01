@@ -626,54 +626,7 @@ def validate_sid_sequence(sheet, sid_col, cms_col, header_sid=None):
 
 # --- Cross-tab consistency checking ---
 
-# MRN and Email alias mappings (from VBA script)
-MRN_ALIASES = [
-    "chart id",
-    "patid",
-    "medical account number",
-    "patient account number",
-    "patient acct no",
-    "medical record number",
-    "medical_record_number",
-    "mrn",
-    "patient id",
-    "patient mrn",
-    "medicalrecordnumber",
-    "medrec",
-    "md rc",
-    "acct#",
-    "patient account #",
-    "account number",
-    "patient chart number",
-    "acctnum",
-    "mrnum",
-    "patientid",
-    "mrno",
-    "per nbr",
-    "pt.id",
-    "chart number",
-    "pt account #",
-    "mr#",
-    "patient_number",
-    "pat_med_rec",
-    "person mrn",
-    "armrnum",
-    "med rec number",
-    "person_nbr",
-    "pt id #",
-    "armrnum-t",
-    "emr number",
-    "patient - patient - id",
-    "pt_id",
-    "mrn #",
-    "chart no.",
-    "v#",
-    "pat person nbr",
-    "med rec #",
-    "patient - id",
-    "med_rec_nbr",
-]
-
+# Email alias mappings (from VBA script)
 EMAIL_ALIASES = [
     "e-mail address",
     "emailaddress",
@@ -772,9 +725,10 @@ SERVICE_DATE_ALIASES = [
     "d.date",
 ]
 
+# MRN alias mappings (from VBA script)
 MRN_ALIASES = [
     "chart id", "patid", "medical account number", "patient account number",
-    "patient acct no", "medical record number", "mrn", "patient id",
+    "patient acct no", "medical record number", "medical_record_number", "mrn", "patient id",
     "patient mrn", "medicalrecordnumber", "medrec", "md rc", "acct#",
     "patient account #", "account number", "patient chart number",
     "acctnum", "mrnum", "patientid", "mrno", "per nbr", "pt.id",
@@ -784,6 +738,19 @@ MRN_ALIASES = [
     "patient - patient - id", "pt_id", "mrn #", "chart no.",
     "v#", "pat person nbr", "med rec #", "patient - id",
     "med_rec_nbr", "patient chart id",
+]
+
+# Fallback patient-identifier aliases used on side tabs (INEL, EXCLU, DUP, POP, FRAME)
+# when the vendor did not rename the field to MRN before delivery.
+# These are tried only after the full MRN_ALIASES list is exhausted at the call site.
+UNIQUEID_ALIASES = [
+    "uniqueid",
+    "unique id",
+    "visit number",
+    "visit id",
+    "visit #",
+    "visitid",
+    "visitnumber",
 ]
 
 FACILITY_NAME_ALIASES = [
@@ -1214,7 +1181,11 @@ def check_pop_upload_email_consistency(
     pop_sheet = wb["POP"]
 
     # Find MRN and Email columns in POP using aliases - handles both normal and delimited sheets
+    # Two-pass: exhaust MRN aliases before falling back to uniqueid aliases.
+    # Both columns can coexist on POP; we must not pick uniqueid when MRN is present.
     mrn_info = find_column_in_sheet(pop_sheet, MRN_ALIASES)
+    if mrn_info is None:
+        mrn_info = find_column_in_sheet(pop_sheet, UNIQUEID_ALIASES)
     email_info = find_column_in_sheet(pop_sheet, EMAIL_ALIASES)
 
     if mrn_info is None:
@@ -1720,39 +1691,6 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                         }
                     )
 
-    # Check for duplicate phone numbers (possible accidental copy-paste)
-    if tel_col:
-        phone_tracker = defaultdict(list)
-        for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
-            if is_blank_row(row):
-                continue
-            tel_val = row[tel_col - 1]
-            mrn_val = row[mrn_col - 1] if mrn_col else None
-            cms_val = row[cms_col - 1] if cms_col else None
-            if tel_val and str(tel_val).strip():
-                phone_tracker[str(tel_val).strip()].append((r, mrn_val, cms_val))
-        for tel_str, entries in phone_tracker.items():
-            if len(entries) > 1:
-                # If cms_col is present, only flag when at least 2 rows are CMS=1
-                # (avoids false positives for non-reported patients sharing a number)
-                if cms_col:
-                    cms1_appearances = sum(
-                        1 for _, _, cms_val in entries
-                        if cms_val is not None and str(cms_val).strip() == "1"
-                    )
-                    if cms1_appearances < 2:
-                        continue
-                rows_str = ", ".join(str(e[0]) for e in entries)
-                for r, mrn_val, cms_val in entries:
-                    row_issues.append({
-                        "row": r,
-                        "mrn": mrn_val,
-                        "cms": cms_val,
-                        "issue_type": "Duplicate Telephone Number",
-                        "description": f"Phone '{tel_str}' appears in rows: {rows_str}",
-                    })
-                issues.append(f"Duplicate phone '{tel_str}' found in rows {rows_str}")
-
     # find placeholder/test names in patient name col
     if name_col:
         placeholder_names = {
@@ -1786,6 +1724,74 @@ def column_validations(sheet, headers, mrn_col, cms_col, em_col, issues, row_iss
                             }
                         )
                         break
+
+    return issues, row_issues
+
+
+def check_duplicate_phones_cross_column(sheet, tel_col, cell_col, mrn_col, cms_col):
+    """
+    Check for duplicate phone numbers across TELEPHONE and CELL PHONE columns.
+    Flags any phone number shared by 2+ rows, whether same-column or cross-column
+    (e.g. patient A's TELEPHONE matches patient B's CELL PHONE).
+
+    Requires at least 2 CMS=1 appearances before flagging when cms_col is present,
+    matching the same false-positive guard used by the OAS single-column check.
+
+    Returns (issues, row_issues).
+    """
+    from collections import defaultdict
+
+    issues = []
+    row_issues = []
+
+    if not tel_col and not cell_col:
+        return issues, row_issues
+
+    # Build phone -> [(row, mrn, cms, col_label), ...]
+    phone_tracker = defaultdict(list)
+    for r, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        if is_blank_row(row):
+            continue
+        mrn_val = row[mrn_col - 1] if mrn_col else None
+        cms_val = row[cms_col - 1] if cms_col else None
+        if tel_col:
+            tel_val = row[tel_col - 1]
+            if tel_val and str(tel_val).strip():
+                phone_tracker[str(tel_val).strip()].append((r, mrn_val, cms_val, "TELEPHONE"))
+        if cell_col:
+            cell_val = row[cell_col - 1]
+            if cell_val and str(cell_val).strip():
+                phone_tracker[str(cell_val).strip()].append((r, mrn_val, cms_val, "CELL PHONE"))
+
+    for phone_str, entries in phone_tracker.items():
+        if len(entries) < 2:
+            continue
+        # Require at least 2 CMS=1 appearances to avoid false positives
+        if cms_col:
+            cms1_count = sum(
+                1 for _, _, cms_val, _ in entries
+                if cms_val is not None and str(cms_val).strip() == "1"
+            )
+            if cms1_count < 2:
+                continue
+
+        summary = ", ".join(
+            f"row {r} MRN {mrn} ({col})" for r, mrn, _, col in entries
+        )
+        issues.append(f"Duplicate phone '{phone_str}' found in: {summary}")
+
+        for i, (r, mrn_val, cms_val, col_label) in enumerate(entries):
+            others = [e for j, e in enumerate(entries) if j != i]
+            others_str = ", ".join(
+                f"row {e[0]} (MRN: {e[1]}, {e[3]})" for e in others
+            )
+            row_issues.append({
+                "row": r,
+                "mrn": mrn_val,
+                "cms": cms_val,
+                "issue_type": "Duplicate Telephone Number",
+                "description": f"{col_label} '{phone_str}' also appears in: {others_str}",
+            })
 
     return issues, row_issues
 

@@ -23,7 +23,7 @@ from audit_oas_funcs import (
 )
 from audit_hcahps_funcs import _DRG_APR_LOAD_ERROR
 
-__version__ = "2.1.0"
+__version__ = "2.1.1"
 version = __version__
 
 
@@ -224,6 +224,14 @@ def audit_excel(file_path, show_progress=False):
             if show_progress:
                 print(f"[OK] INEL validation complete ({len(inel_tab_row_issues)} issues found)")
 
+        # Count DUP tab rows with 'D' in the DUP column
+        dup_count = None
+        if "DUP" in wb.sheetnames:
+            from audit_hcahps_funcs import count_dup_d_rows
+            dup_count = count_dup_d_rows(wb["DUP"])
+            if show_progress:
+                print(f"[OK] DUP tab count complete ({dup_count} 'D' rows found)")
+
         # Extract discharge date range and validate blank dates
         service_date_range = None
         blank_date_row_issues = []
@@ -348,6 +356,7 @@ def audit_excel(file_path, show_progress=False):
             exclu_row_issues=exclu_row_issues,
             inel_count=inel_count,
             inel_tab_row_issues=inel_tab_row_issues,
+            dup_count=dup_count,
             frame_col_map=frame_col_map,
             frame_invalid_addresses=frame_invalid_addresses,
             frame_noted_addresses=frame_noted_addresses,

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 2.1.1 HCAHPS Report Fixes and Improvements
+
+- HCAHPS reports are now purple-themed
+- Added a secondary list of MRNs based on uniqueids or visit numbers when MRN column is missing
+- Added Dup tab checking
+- Added POP count checking
+- Added duplicate phone number detection
+- Fixed bug where SUMMARY VALIDATION section was not expanding when there were issues to show
+- Updated some issue descriptions and tooltips for clarity
+
 ## Version 2.1.0 - HCAHPS Report Improvements
 
 - Added many more features and checks to the HCAHPS audit, including DRG/APR code ineligibility checks, discharge status and admit source checks, same-day discharge detection, and a DATA AT A GLANCE summary section in the report with key info like facility, SID, date range, and sample size/eligibility numbers
@@ -238,39 +248,3 @@ All notable changes to this project will be documented in this file.
 ## Version 0.54-rc1
 
 - Began changelog file
-
-# Features
-
-## Both Survey Types
-- Auto-detection by file structure (OASCAPHS tab: OAS CAHPS; CMS tab: HCAHPS)
-- SID validation and registry lookup
-- Facility name detection
-- Sample size validation
-- Cross-tab row count and value-by-value mismatch detection (OASCAPHS/UPLOAD for OAS; CMS/UPLOAD for HCAHPS)
-- UPLOAD column presence check (expected columns verified against main tab)
-- Duplicate MRN detection
-- Age sanity checks (invalid ≤ 0, too young < 18, suspicious > 110; CMS=1 rows only)
-- Email quality checks (format, placeholder addresses, disposable domains; CMS=1 flagged in issues table, CMS=2 in collapsed section)
-- Filename year consistency check
-- HTML report with collapsible sections, tooltips, and update banner
-
-## OAS CAHPS
-- Required header validation across OASCAPHS and UPLOAD tabs
-- Sample size math (E + M = CMS=1 row count)
-- Eligible + INEL = Submitted math check
-- CPT code and surgical category validation
-- Address, DOB, and service date checks (columns in OASCAPHS tab)
-- INEL tab REPEAT entry validation and row count
-- FRAME tab 6-month repeat count
-- Contact lookup with pre-built search links for patients with missing phone/email
-
-## HCAHPS
-- Required header validation for CMS tab
-- Sample size and eligibility numbers from file footer (EL/SS)
-- DATA AT A GLANCE summary (facility, SID, date range, EL/SS)
-- DRG/APR code ineligibility checks (CMS tab, CMS=1 rows)
-- Discharge status (DS) and Admit source (AS) checks
-- EXCLU tab validation (highlight/red font present on each row)
-- Same-day discharge check: scans FRAME for rows where admit date == discharge date (should be on INEL)
-- Address validation in FRAME tab (columns detected by alias; invalid/missing addresses flagged)
-- FRAME column detection report: collapsed section showing which FRAME columns were found and which weren't
