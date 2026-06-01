@@ -323,6 +323,58 @@ def count_dup_d_rows(dup_sheet):
     return count
 
 
+def count_frame_patients(frame_sheet):
+    """
+    Count total and duplicate patients in the HCAHPS FRAME tab.
+
+    FRAME structure:
+      Row 1     : header row
+      Dense block: one row per patient — duplicates (no random number) followed
+                  by eligible patients (with random number in col A or similar)
+      Separator : 2+ consecutive blank rows
+      Sparse block: duplicate MRNs only (pasted for conditional formatting)
+
+    Returns:
+        (total_patients, dup_patients)
+        total_patients = non-empty rows in the dense block (after header)
+        dup_patients   = non-empty rows in the sparse block
+        eligible       = total_patients - dup_patients
+
+    Returns (None, None) if the sheet is empty or cannot be parsed.
+    """
+    rows = list(frame_sheet.iter_rows(values_only=True))
+    if not rows:
+        return None, None
+
+    nonempty_counts = [
+        sum(1 for c in row if c is not None and str(c).strip() != "")
+        for row in rows
+    ]
+
+    # Find the blank separator: first pair of consecutive empty rows after header
+    separator_start = None
+    for i in range(1, len(rows) - 1):
+        if nonempty_counts[i] == 0 and nonempty_counts[i + 1] == 0:
+            separator_start = i
+            break
+
+    if separator_start is None:
+        # No blank separator — count all data rows, assume no duplicates
+        total_patients = sum(1 for i in range(1, len(rows)) if nonempty_counts[i] > 0)
+        return total_patients, 0
+
+    # Dense block: rows 1..separator_start-1 (row 0 is the header)
+    total_patients = sum(1 for i in range(1, separator_start) if nonempty_counts[i] > 0)
+
+    # Sparse block: everything after the blank separator
+    sparse_start = separator_start
+    while sparse_start < len(rows) and nonempty_counts[sparse_start] == 0:
+        sparse_start += 1
+    dup_patients = sum(1 for i in range(sparse_start, len(rows)) if nonempty_counts[i] > 0)
+
+    return total_patients, dup_patients
+
+
 # --- Same-day discharge check ---
 
 from datetime import datetime, date as _date

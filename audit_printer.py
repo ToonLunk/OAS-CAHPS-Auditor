@@ -346,23 +346,38 @@ def build_report(
             "<tr><td>Sample Size matches Reported</td><td style='color: #28a745;'>✓</td></tr>"
         )
 
-    # Check 1b: Eligible patients = CMS=1 + CMS=2 row count
-    if eligible_patients is not None and cms1_count is not None and non_reported is not None:
-        total_cms = cms1_count + non_reported
-        if total_cms != eligible_patients:
-            issue_msg = (
-                f"<strong>WARNING:</strong> Eligible patient count mismatch: "
-                f"footer says {eligible_patients}, but "
-                f"{cms1_count} CMS=1 + {non_reported} CMS=2 = {total_cms}"
-            )
-            report_lines.append(f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>")
-            issues.append(issue_msg)
-        else:
-            report_lines.append(
-                f"<tr><td>Eligible count matches CMS=1 + CMS=2 "
-                f"({cms1_count} + {non_reported} = {eligible_patients})</td>"
-                f"<td style='color: #28a745;'>✓</td></tr>"
-            )
+    # Check 1b: Verify EL (eligible patients footer value) against FRAME tab.
+    # FRAME always holds the full patient pool: dense block = all patients,
+    # sparse block below blank separator = duplicate MRNs pasted for conditional
+    # formatting (ineligible).  EL should always equal dense - sparse.
+    # This works whether or not partial sampling occurred (EL == SS or EL != SS).
+    if eligible_patients is not None and "FRAME" in wb.sheetnames:
+        from audit_hcahps_funcs import count_frame_patients
+        _frame_total, _frame_dups = count_frame_patients(wb["FRAME"])
+        if _frame_total is not None and _frame_dups is not None:
+            _frame_eligible = _frame_total - _frame_dups
+            if _frame_eligible == eligible_patients:
+                _dup_note = f", {_frame_dups} duplicate(s) excluded" if _frame_dups else ""
+                report_lines.append(
+                    f"<tr><td>Eligible count matches FRAME tab "
+                    f"({_frame_total} total{_dup_note} = {eligible_patients})</td>"
+                    f"<td style='color: #28a745;'>✓</td></tr>"
+                )
+            else:
+                _dup_note = f" minus {_frame_dups} duplicate(s)" if _frame_dups else ""
+                issue_msg = (
+                    f"<strong>WARNING:</strong> Eligible patient count mismatch: "
+                    f"footer says {eligible_patients}, but FRAME tab has "
+                    f"{_frame_total} patients{_dup_note} = {_frame_eligible}"
+                )
+                report_lines.append(f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>")
+                issues.append(issue_msg)
+    elif eligible_patients is not None:
+        report_lines.append(
+            f"<tr><td>FRAME tab not found; cannot verify eligible patient count "
+            f"(footer: {eligible_patients})</td>"
+            f"<td style='color: orange;'>⚠</td></tr>"
+        )
 
     # Check 2: E/M total matches Sample Size (OAS only)
     if audit_type == "OAS":
