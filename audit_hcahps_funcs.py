@@ -339,30 +339,26 @@ def count_dup_d_rows(dup_sheet):
     return count
 
 
-def _is_integer_like(value):
-    """Return True for integer-like values used as FRAME eligibility markers."""
+def _is_numeric_like(value):
+    """Return True for numeric-like values used as FRAME eligibility markers."""
     if value is None or isinstance(value, bool):
         return False
-    if isinstance(value, int):
+    if isinstance(value, (int, float)):
         return True
-    if isinstance(value, float):
-        return value.is_integer()
 
     text = str(value).strip().replace(",", "")
     if not text:
         return False
     try:
-        return float(text).is_integer()
+        float(text)
+        return True
     except (ValueError, TypeError):
         return False
 
 
-def _count_numbered_frame_rows(rows, nonempty_counts, mrn_col):
-    """Count dense-block FRAME rows that have a numeric marker left of MRN."""
-    if mrn_col is None or mrn_col <= 1:
-        return None
-
-    candidate_cols = list(range(mrn_col - 1))
+def _count_numbered_frame_rows(rows, nonempty_counts, dense_end):
+    """Count dense-block FRAME rows that use a headerless numeric marker column."""
+    candidate_cols = list(range(max((len(row) for row in rows[:dense_end]), default=0)))
     if not candidate_cols:
         return None
 
@@ -371,21 +367,33 @@ def _count_numbered_frame_rows(rows, nonempty_counts, mrn_col):
         if col_idx >= len(rows[0]) or str(rows[0][col_idx] or "").strip() == ""
     ]
 
-    def count_hits(col_idx):
-        return sum(
-            1
-            for row_idx in range(1, len(rows))
-            if nonempty_counts[row_idx] > 0
-            and col_idx < len(rows[row_idx])
-            and _is_integer_like(rows[row_idx][col_idx])
-        )
+    def count_numeric_markers(col_idx):
+        numeric_count = 0
+        nonblank_count = 0
+        for row_idx in range(1, dense_end):
+            if nonempty_counts[row_idx] == 0:
+                continue
+            row = rows[row_idx]
+            if col_idx >= len(row):
+                continue
+            value = row[col_idx]
+            if value is None or str(value).strip() == "":
+                continue
+            nonblank_count += 1
+            if _is_numeric_like(value):
+                numeric_count += 1
+
+        if numeric_count == 0:
+            return None
+        if numeric_count == nonblank_count:
+            return numeric_count
+        return None
 
     for cols in (blank_header_cols, candidate_cols):
-        best_count = 0
         for col_idx in cols:
-            best_count = max(best_count, count_hits(col_idx))
-        if best_count > 0:
-            return best_count
+            marker_count = count_numeric_markers(col_idx)
+            if marker_count is not None:
+                return marker_count
 
     return None
 
@@ -407,9 +415,10 @@ def count_frame_patients(frame_sheet):
         excluded_patients = rows excluded from the eligible count
         eligible       = total_patients - excluded_patients
 
-        When a numbering column exists to the left of MRN, eligible patients are
-        counted directly from those numbered rows. Otherwise we fall back to the
-        lower sparse duplicate block, if present.
+        When a headerless numeric marker column exists in the dense block,
+        eligible patients are counted directly from the rows with those numeric
+        markers. Otherwise we fall back to the lower sparse duplicate block, if
+        present.
 
     Returns (None, None) if the sheet is empty or cannot be parsed.
     """
@@ -422,15 +431,15 @@ def count_frame_patients(frame_sheet):
         for row in rows
     ]
 
-    mrn_col, _ = _find_mrn_col(frame_sheet)
-    numbered_patients = _count_numbered_frame_rows(rows, nonempty_counts, mrn_col)
-
     # Find the blank separator: first pair of consecutive empty rows after header
     separator_start = None
     for i in range(1, len(rows) - 1):
         if nonempty_counts[i] == 0 and nonempty_counts[i + 1] == 0:
             separator_start = i
             break
+
+    dense_end = separator_start if separator_start is not None else len(rows)
+    numbered_patients = _count_numbered_frame_rows(rows, nonempty_counts, dense_end)
 
     if separator_start is None:
         # No blank separator — use numbered rows when available.
@@ -469,7 +478,7 @@ _ADMIT_DATE_BASE = [
     "a.date", "a date", "a.dt",
     "admit", "admission",
     "patient admit date", "adm/svcdate",
-    "patient hospital admission date", "visit/admitdate", "Enc Regist",
+    "patient hospital admission date", "visit/admitdate", "Enc Regist", "A.DATE"
 ]
 _ADMIT_DATE_ALIASES = _expand_aliases(_ADMIT_DATE_BASE)
 
@@ -483,7 +492,7 @@ _DISCHARGE_DATE_BASE = [
     "hospital discharge date", "patient hospital discharge date",
     "ARDISDT", "ARDISDT-N", "ARDISDT-T",
     "d.date", "disdt", "discdt",
-    "discharge", "Enc Discha",
+    "discharge", "Enc Discha", "D.DATE"
 ]
 _DISCHARGE_DATE_ALIASES = _expand_aliases(_DISCHARGE_DATE_BASE)
 
