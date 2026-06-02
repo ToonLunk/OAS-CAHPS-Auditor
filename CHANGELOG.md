@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 2.1.2 - Bug Fixes
+
+- Bug fixes and minor improvements
+
 ## Version 2.1.1 HCAHPS Report Fixes and Improvements
 
 - HCAHPS reports are now purple-themed

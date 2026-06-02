@@ -23,7 +23,7 @@ from audit_oas_funcs import (
 )
 from audit_hcahps_funcs import _DRG_APR_LOAD_ERROR
 
-__version__ = "2.1.1"
+__version__ = "2.1.2"
 version = __version__
 
 

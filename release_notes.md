@@ -1,20 +1,16 @@
-# Version 2.1.1 - HCAHPS Report Fixes and Improvements
+# Version 2.1.2 - Bug Fixes
 
-**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.1.0...v2.1.1
+**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.1.1...v2.1.2
 
 ## What's New
 
-- HCAHPS reports are now purple-themed
-- Added a secondary list of MRNs based on uniqueids or visit numbers when MRN column is missing
-- Added Dup tab checking
-- Added POP count checking
-- Added duplicate phone number detection
+- Bug fixes and minor improvements
 
 ---
 
 ## How do I install this?
 
-1. Download **`OAS-CAHPS-Auditor-v2.1.1-Setup.exe`** below.
+1. Download **`OAS-CAHPS-Auditor-v2.1.2-Setup.exe`** below.
 2. Run the installer - it will upgrade in place if you already have a previous version.
 3. You're done! You can now start using the auditor.
 

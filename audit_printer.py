@@ -351,7 +351,8 @@ def build_report(
     # sparse block below blank separator = duplicate MRNs pasted for conditional
     # formatting (ineligible).  EL should always equal dense - sparse.
     # This works whether or not partial sampling occurred (EL == SS or EL != SS).
-    if eligible_patients is not None and "FRAME" in wb.sheetnames:
+    # OAS uses find_frame_inel_count() via its own path; this check is HCAHPS-only.
+    if audit_type == "HCAHPS" and eligible_patients is not None and "FRAME" in wb.sheetnames:
         from audit_hcahps_funcs import count_frame_patients
         _frame_total, _frame_dups = count_frame_patients(wb["FRAME"])
         if _frame_total is not None and _frame_dups is not None:
