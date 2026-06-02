@@ -893,7 +893,11 @@ def build_report(
             f"<th style='background-color: {qtr_header_color}; width: 35%;'>FACILITY</th>"
             f"<th style='background-color: {qtr_header_color}; {c}'>SID</th>"
             f"<th style='background-color: {qtr_header_color}; {c}'>DATE RANGE</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>POP</th>"
             f"<th style='background-color: {qtr_header_color}; {c}'>EL / SS</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>INEL</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>EXCLU</th>"
+            f"<th style='background-color: {qtr_header_color}; {c}'>DUP</th>"
         )
         report_lines.append("</tr>")
         report_lines.append("<tr>")
@@ -916,9 +920,17 @@ def build_report(
             except (ValueError, AttributeError):
                 _hcahps_date_display = service_date_range
         report_lines.append(f"<td style='{c}'>{_hcahps_date_display}</td>")
+        _pop = pop_count if pop_count is not None else 'N/A'
+        report_lines.append(f"<td style='{c}'>{_pop}</td>")
         _el = eligible_patients if eligible_patients is not None else 'N/A'
         _ss = sample_size if sample_size is not None else 'N/A'
         report_lines.append(f"<td style='{c}'>{_el} / {_ss}</td>")
+        _inel = inel_count if inel_count is not None else 'N/A'
+        report_lines.append(f"<td style='{c}'>{_inel}</td>")
+        _exclu = exclu_count if exclu_count is not None else 'N/A'
+        report_lines.append(f"<td style='{c}'>{_exclu}</td>")
+        _dup = dup_count if dup_count is not None else 'N/A'
+        report_lines.append(f"<td style='{c}'>{_dup}</td>")
         report_lines.append("</tr>")
         report_lines.append("</table>")
     else:
