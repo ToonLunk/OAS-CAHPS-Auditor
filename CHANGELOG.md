@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Version 2.1.2 - Bug Fixes
 
-- Bug fixes and minor improvements
+- Fixed a bug where OAS audits were using HCAHPS-specific logic to check for eligible patients
+- Other bug fixes
 
 ## Version 2.1.1 HCAHPS Report Fixes and Improvements
 

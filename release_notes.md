@@ -4,7 +4,8 @@
 
 ## What's New
 
-- Bug fixes and minor improvements
+- Fixed a bug where OAS audits were using HCAHPS-specific logic to check for eligible patients
+- Other bug fixes
 
 ---
 

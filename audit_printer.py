@@ -373,7 +373,7 @@ def build_report(
                 )
                 report_lines.append(f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>")
                 issues.append(issue_msg)
-    elif eligible_patients is not None:
+    elif audit_type == "HCAHPS" and eligible_patients is not None:
         report_lines.append(
             f"<tr><td>FRAME tab not found; cannot verify eligible patient count "
             f"(footer: {eligible_patients})</td>"
