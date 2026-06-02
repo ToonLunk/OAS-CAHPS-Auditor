@@ -394,29 +394,29 @@ def build_report(
         )
 
     # Check 1b: Verify EL (eligible patients footer value) against FRAME tab.
-    # FRAME always holds the full patient pool: dense block = all patients,
-    # sparse block below blank separator = duplicate MRNs pasted for conditional
-    # formatting (ineligible).  EL should always equal dense - sparse.
+    # For HCAHPS, eligible rows are the numbered patient rows in FRAME.
+    # Some files also include unnumbered rows and/or a lower sparse duplicate
+    # block; those rows should not count toward EL.
     # This works whether or not partial sampling occurred (EL == SS or EL != SS).
     # OAS uses find_frame_inel_count() via its own path; this check is HCAHPS-only.
     if audit_type == "HCAHPS" and eligible_patients is not None and "FRAME" in wb.sheetnames:
         from audit_hcahps_funcs import count_frame_patients
-        _frame_total, _frame_dups = count_frame_patients(wb["FRAME"])
-        if _frame_total is not None and _frame_dups is not None:
-            _frame_eligible = _frame_total - _frame_dups
+        _frame_total, _frame_excluded = count_frame_patients(wb["FRAME"])
+        if _frame_total is not None and _frame_excluded is not None:
+            _frame_eligible = _frame_total - _frame_excluded
             if _frame_eligible == eligible_patients:
-                _dup_note = f", {_frame_dups} duplicate(s) excluded" if _frame_dups else ""
+                _excluded_note = f", {_frame_excluded} non-eligible row(s) excluded" if _frame_excluded else ""
                 report_lines.append(
                     f"<tr><td>Eligible count matches FRAME tab "
-                    f"({_frame_total} total{_dup_note} = {eligible_patients})</td>"
+                    f"({_frame_total} total{_excluded_note} = {eligible_patients})</td>"
                     f"<td style='color: #28a745;'>✓</td></tr>"
                 )
             else:
-                _dup_note = f" minus {_frame_dups} duplicate(s)" if _frame_dups else ""
+                _excluded_note = f" minus {_frame_excluded} non-eligible row(s)" if _frame_excluded else ""
                 issue_msg = (
                     f"<strong>WARNING:</strong> Eligible patient count mismatch: "
                     f"footer says {eligible_patients}, but FRAME tab has "
-                    f"{_frame_total} patients{_dup_note} = {_frame_eligible}"
+                    f"{_frame_total} patients{_excluded_note} = {_frame_eligible}"
                 )
                 report_lines.append(f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>")
                 issues.append(issue_msg)

@@ -201,11 +201,21 @@ def check_req_headers(headers, header_text=""):
     if drg_required:
         required_names.append("DRG")
 
+    # Alternate column names accepted as equivalents for certain required headers
+    _HCAHPS_HEADER_ALIASES = {
+        "CMS INDICATOR": ["CMS"],
+    }
+
     mapping = {}
     missing_req_headers = []
 
     for name in required_names:
         mapping[name] = headers.get(name)
+        if mapping[name] is None:
+            for alias in _HCAHPS_HEADER_ALIASES.get(name, []):
+                mapping[name] = headers.get(alias)
+                if mapping[name] is not None:
+                    break
         if mapping[name] is None:
             missing_req_headers.append(name)
 
@@ -329,9 +339,60 @@ def count_dup_d_rows(dup_sheet):
     return count
 
 
+def _is_integer_like(value):
+    """Return True for integer-like values used as FRAME eligibility markers."""
+    if value is None or isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return True
+    if isinstance(value, float):
+        return value.is_integer()
+
+    text = str(value).strip().replace(",", "")
+    if not text:
+        return False
+    try:
+        return float(text).is_integer()
+    except (ValueError, TypeError):
+        return False
+
+
+def _count_numbered_frame_rows(rows, nonempty_counts, mrn_col):
+    """Count dense-block FRAME rows that have a numeric marker left of MRN."""
+    if mrn_col is None or mrn_col <= 1:
+        return None
+
+    candidate_cols = list(range(mrn_col - 1))
+    if not candidate_cols:
+        return None
+
+    blank_header_cols = [
+        col_idx for col_idx in candidate_cols
+        if col_idx >= len(rows[0]) or str(rows[0][col_idx] or "").strip() == ""
+    ]
+
+    def count_hits(col_idx):
+        return sum(
+            1
+            for row_idx in range(1, len(rows))
+            if nonempty_counts[row_idx] > 0
+            and col_idx < len(rows[row_idx])
+            and _is_integer_like(rows[row_idx][col_idx])
+        )
+
+    for cols in (blank_header_cols, candidate_cols):
+        best_count = 0
+        for col_idx in cols:
+            best_count = max(best_count, count_hits(col_idx))
+        if best_count > 0:
+            return best_count
+
+    return None
+
+
 def count_frame_patients(frame_sheet):
     """
-    Count total and duplicate patients in the HCAHPS FRAME tab.
+    Count total FRAME rows and rows excluded from the HCAHPS eligible count.
 
     FRAME structure:
       Row 1     : header row
@@ -341,10 +402,14 @@ def count_frame_patients(frame_sheet):
       Sparse block: duplicate MRNs only (pasted for conditional formatting)
 
     Returns:
-        (total_patients, dup_patients)
+        (total_patients, excluded_patients)
         total_patients = non-empty rows in the dense block (after header)
-        dup_patients   = non-empty rows in the sparse block
-        eligible       = total_patients - dup_patients
+        excluded_patients = rows excluded from the eligible count
+        eligible       = total_patients - excluded_patients
+
+        When a numbering column exists to the left of MRN, eligible patients are
+        counted directly from those numbered rows. Otherwise we fall back to the
+        lower sparse duplicate block, if present.
 
     Returns (None, None) if the sheet is empty or cannot be parsed.
     """
@@ -357,6 +422,9 @@ def count_frame_patients(frame_sheet):
         for row in rows
     ]
 
+    mrn_col, _ = _find_mrn_col(frame_sheet)
+    numbered_patients = _count_numbered_frame_rows(rows, nonempty_counts, mrn_col)
+
     # Find the blank separator: first pair of consecutive empty rows after header
     separator_start = None
     for i in range(1, len(rows) - 1):
@@ -365,12 +433,17 @@ def count_frame_patients(frame_sheet):
             break
 
     if separator_start is None:
-        # No blank separator — count all data rows, assume no duplicates
+        # No blank separator — use numbered rows when available.
         total_patients = sum(1 for i in range(1, len(rows)) if nonempty_counts[i] > 0)
+        if numbered_patients is not None:
+            return total_patients, max(total_patients - numbered_patients, 0)
         return total_patients, 0
 
     # Dense block: rows 1..separator_start-1 (row 0 is the header)
     total_patients = sum(1 for i in range(1, separator_start) if nonempty_counts[i] > 0)
+
+    if numbered_patients is not None:
+        return total_patients, max(total_patients - numbered_patients, 0)
 
     # Sparse block: everything after the blank separator
     sparse_start = separator_start
