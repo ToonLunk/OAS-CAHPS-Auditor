@@ -1,21 +1,17 @@
-# Version 2.1.3 - Misc HCAHPS Fixes and Improvements
+# Version 2.1.4 - HCAHPS Hotfix
 
-**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.1.2...v2.1.3
+
+**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.1.3...v2.1.4
 
 ## What's New
 
-- Suppressed the duplicate phone number warning in the "General Issues" section of the report since it's already covered in the Contact Lookup section
-- Added more aliases for various column names
-- Added check to make sure D.DATE is in ascending order
-- Auditor CMD window now stays open after the audit completes if there are any warnings or errors
-- Added a section for found CMS columns 
-- Added AS as a required column for HCAHPS audits
+- Fixed INEL counting
 
 ---
 
 ## How do I install this?
 
-1. Download **`OAS-CAHPS-Auditor-v2.1.3-Setup.exe`** below.
+1. Download **`OAS-CAHPS-Auditor-v2.1.4-Setup.exe`** below.
 2. Run the installer - it will upgrade in place if you already have a previous version.
 3. You're done! You can now start using the auditor.
 

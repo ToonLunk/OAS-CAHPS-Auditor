@@ -247,11 +247,33 @@ def build_report(
         inel_sheet = wb["INEL"]
         # Import SERVICE_DATE_ALIASES and find_column_by_aliases here
         from audit_lib_funcs import SERVICE_DATE_ALIASES, find_column_by_aliases
-        
-        # Find service date column
+
+        # For HCAHPS, track admit and discharge date columns separately so we
+        # can distinguish same-day discharges (both dates highlighted = count)
+        # from out-of-range dates (only one date highlighted = skip).
+        admit_date_col_inel = None
+        disch_date_col_inel = None
+        if audit_type == "HCAHPS":
+            from audit_hcahps_funcs import (
+                _ADMIT_DATE_ALIASES, _DISCHARGE_DATE_ALIASES, _find_col_by_aliases
+            )
+            admit_date_col_inel, _ = _find_col_by_aliases(inel_sheet, _ADMIT_DATE_ALIASES)
+            disch_date_col_inel, _ = _find_col_by_aliases(inel_sheet, _DISCHARGE_DATE_ALIASES)
+
+        # Find service date column (used for OAS)
         service_date_col, header_row = find_column_by_aliases(inel_sheet, SERVICE_DATE_ALIASES)
         start_row = header_row + 1 if header_row else 2
-        
+
+        def _cell_is_highlighted(cell):
+            try:
+                if cell.fill and cell.fill.start_color:
+                    color_index = cell.fill.start_color.index
+                    if color_index and color_index != '00000000' and color_index != 'FFFFFFFF':
+                        return True
+            except (AttributeError, IndexError):
+                pass
+            return False
+
         # Count rows, but skip ones with highlighted service dates
         # Optimized: Load all rows at once instead of per-row iter_rows calls
         inel_count = 0
@@ -266,18 +288,30 @@ def build_report(
             if not any(cell is not None and str(cell).strip() != "" for cell in row):
                 continue
             
-            # If we found a service date column, check if it's highlighted
             skip_row = False
-            if service_date_col:
-                try:
-                    cell = row_cells[service_date_col - 1]  # service_date_col is 1-indexed
-                    # Check if cell has a fill color (is highlighted)
-                    if cell.fill and cell.fill.start_color:
-                        color_index = cell.fill.start_color.index
-                        if color_index and color_index != '00000000' and color_index != 'FFFFFFFF':
-                            skip_row = True
-                except (AttributeError, IndexError):
-                    pass
+            if audit_type == "HCAHPS" and (admit_date_col_inel or disch_date_col_inel):
+                # HCAHPS: check admit and discharge date columns independently.
+                # Both highlighted  → same-day discharge → COUNT the row.
+                # Only one highlighted → date out of valid range → SKIP.
+                admit_highlighted = (
+                    _cell_is_highlighted(row_cells[admit_date_col_inel - 1])
+                    if admit_date_col_inel else False
+                )
+                disch_highlighted = (
+                    _cell_is_highlighted(row_cells[disch_date_col_inel - 1])
+                    if disch_date_col_inel else False
+                )
+                if admit_highlighted or disch_highlighted:
+                    if admit_highlighted and disch_highlighted:
+                        # Same-day discharge — include in count, don't skip
+                        pass
+                    else:
+                        # Only one date is out of range — skip
+                        skip_row = True
+            elif service_date_col:
+                # OAS (or HCAHPS without date columns found): original logic
+                if _cell_is_highlighted(row_cells[service_date_col - 1]):
+                    skip_row = True
             
             if not skip_row:
                 inel_count += 1
@@ -303,6 +337,19 @@ def build_report(
             # OAS: highlighted service dates indicate ineligible date range rows
             report_lines.append(
                 f"<tr><td>Patients with ineligible service dates</td><td>{inel_highlighted_count}</td></tr>"
+            )
+        elif audit_type == "HCAHPS" and not (admit_date_col_inel and disch_date_col_inel):
+            # Could not find both date columns - same-day discharges may not be counted correctly
+            missing_cols = []
+            if not admit_date_col_inel:
+                missing_cols.append("admit date")
+            if not disch_date_col_inel:
+                missing_cols.append("discharge date")
+            report_lines.append(
+                f"<tr><td colspan='2' style='color: orange; font-style: italic;'>"
+                f"Note: Could not locate {' or '.join(missing_cols)} column(s) in INEL tab &mdash; "
+                f"same-day discharges may not be included in the count above."
+                f"</td></tr>"
             )
     else:
         issues.append("INEL tab missing")

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 2.1.4 - HCAHPS Hotfix
+
+- Fix INEL counting
+
 ## Version 2.1.3 - Misc HCAHPS Fixes and Improvements
 
 - Suppressed the duplicate phone number warning in the "General Issues" section of the report since it's already covered in the Contact Lookup section
