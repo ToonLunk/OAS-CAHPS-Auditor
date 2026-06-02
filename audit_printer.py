@@ -62,6 +62,7 @@ def build_report(
     frame_invalid_addresses=None,
     frame_noted_addresses=None,
     audit_type="OAS",
+    header_text="",
 ):
     """
     Build the HTML audit report for saving as .html
@@ -628,6 +629,58 @@ def build_report(
                 )
                 issues.append(issue_msg)
 
+    # Check: D.DATE is in ascending order for CMS=1 rows (HCAHPS only)
+    if audit_type == "HCAHPS":
+        _ddate_col = headers.get("D.DATE")
+        if _ddate_col:
+            _prev_date = None
+            _out_of_order = []
+            for _r, _row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+                if not any(_row):
+                    continue
+                _cms_val = _row[cms_col - 1] if cms_col else None
+                try:
+                    _cms_int = int(_cms_val) if _cms_val is not None else None
+                except (TypeError, ValueError):
+                    continue
+                if _cms_int != 1:
+                    continue
+                _raw_date = _row[_ddate_col - 1]
+                if _raw_date is None or str(_raw_date).strip() == "":
+                    continue
+                # Normalize to a comparable date value
+                import datetime as _dt
+                if isinstance(_raw_date, (_dt.date, _dt.datetime)):
+                    _d = _raw_date if isinstance(_raw_date, _dt.date) else _raw_date.date()
+                else:
+                    try:
+                        _d = _dt.datetime.strptime(str(_raw_date).strip(), "%m/%d/%Y").date()
+                    except ValueError:
+                        try:
+                            _d = _dt.datetime.strptime(str(_raw_date).strip(), "%Y-%m-%d").date()
+                        except ValueError:
+                            continue
+                if _prev_date is not None and _d < _prev_date:
+                    _mrn_val = _row[mrn_col - 1] if mrn_col else None
+                    _out_of_order.append((_r, _mrn_val, _d, _prev_date))
+                _prev_date = _d
+            if not _out_of_order:
+                report_lines.append(
+                    "<tr><td>D.DATE is in ascending order</td><td style='color: #28a745;'>✓</td></tr>"
+                )
+            else:
+                issue_msg = f"<strong>WARNING:</strong> D.DATE is not in ascending order ({len(_out_of_order)} row(s) out of order)"
+                report_lines.append(f"<tr><td>{issue_msg}</td><td style='color: red;'>✗</td></tr>")
+                issues.append(issue_msg)
+                for _r, _mrn, _d, _prev in _out_of_order:
+                    row_issues.append({
+                        "row": _r,
+                        "mrn": _mrn,
+                        "cms": 1,
+                        "issue_type": "D.DATE Out of Order",
+                        "description": f"{_d} is earlier than previous date {_prev}",
+                    })
+
     report_lines.append("</table>")
 
     # Wrap the validation section in a collapsible <details>
@@ -707,6 +760,78 @@ def build_report(
                     f"<tr><td>{_label}</td>"
                     f"<td style='color: #c0392b;'>not found</td>"
                     f"<td style='color: #c0392b; text-align: center;'>&#10007;</td></tr>"
+                )
+        report_lines.append("</table>")
+        report_lines.append("</details>")
+
+    # CMS column detection (HCAHPS only, shown right below FRAME column detection)
+    if audit_type == "HCAHPS":
+        # Derive the same required list that check_req_headers used, including
+        # the DRG-optional rule and AS being required.
+        _all_possible_req = [
+            "SID", "PATIENT NAME", "TELEPHONE", "D.DATE", "AGE", "AS", "DS",
+            "GENDER", "UNIT", "PHYSICIAN NAME", "MRN", "DRG", "ATT",
+            "LAG", "ID", "FD", "LG", "EMAIL ADDRESS", "CMS INDICATOR", "LANGUAGE",
+        ]
+        # DRG is optional when the header says "ALL MEDICAL DRGs"
+        _drg_optional = "ALL MEDICAL DRGs".lower() in (header_text or "").lower()
+        _cms_required_names = [n for n in _all_possible_req if not (n == "DRG" and _drg_optional)]
+        _cms_required_set = set(_cms_required_names)
+        # headers keys are the raw cell values from row 1; normalise for lookup
+        _cms_found_req = sum(1 for n in _cms_required_names if headers.get(n) is not None)
+        _cms_missing_req = len(_cms_required_names) - _cms_found_req
+        _cms_summary_label = (
+            f"CMS Column Detection &mdash; {_cms_found_req}/{len(_cms_required_names)} required found"
+            + (f", {_cms_missing_req} missing" if _cms_missing_req else "")
+        )
+        _cms_open_attr = " open" if _cms_missing_req else ""
+        report_lines.append(f"<details{_cms_open_attr} class='validation-summary-details'>")
+        report_lines.append(
+            f"<summary style='font-weight: normal;'>{_cms_summary_label}</summary>"
+        )
+        report_lines.append(
+            f"<table class='excel-style' style='font-size: 0.9em; margin-top: 6px;'>"
+        )
+        report_lines.append(
+            f"<tr>"
+            f"<th style='background-color: {qtr_header_color};'>Column Name</th>"
+            f"<th style='background-color: {qtr_header_color};'>Type</th>"
+            f"<th style='background-color: {qtr_header_color};'>Found?</th>"
+            f"</tr>"
+        )
+        # Required headers first
+        for _rname in _cms_required_names:
+            _col_idx = headers.get(_rname)
+            if _col_idx is not None:
+                report_lines.append(
+                    f"<tr>"
+                    f"<td><code>{_rname}</code></td>"
+                    f"<td style='color: #555;'>Required</td>"
+                    f"<td style='color: #28a745; text-align: center;'>&#10003;</td>"
+                    f"</tr>"
+                )
+            else:
+                report_lines.append(
+                    f"<tr>"
+                    f"<td><code style='color: #c0392b;'>{_rname}</code></td>"
+                    f"<td style='color: #555;'>Required</td>"
+                    f"<td style='color: #c0392b; text-align: center;'>&#10007;</td>"
+                    f"</tr>"
+                )
+        # Extra (non-required) headers discovered in the sheet
+        _extra_headers = [k for k in headers if k is not None and str(k).strip() and k not in _cms_required_set]
+        if _extra_headers:
+            report_lines.append(
+                f"<tr><td colspan='3' style='background-color: #f0f0f0; font-size: 0.85em; "
+                f"color: #555; padding: 3px 6px;'>Additional columns found in file</td></tr>"
+            )
+            for _ename in sorted(_extra_headers, key=lambda x: str(x).lower()):
+                report_lines.append(
+                    f"<tr>"
+                    f"<td><code>{_ename}</code></td>"
+                    f"<td style='color: #888;'>Extra</td>"
+                    f"<td style='color: #888; text-align: center;'>&mdash;</td>"
+                    f"</tr>"
                 )
         report_lines.append("</table>")
         report_lines.append("</details>")
@@ -1200,6 +1325,7 @@ def build_report(
         for iss in issues
         if not any(
             iss.startswith(f"{main_tab_name} Row") or iss.startswith(f"UPLOAD Row")
+            or iss.startswith("Duplicate phone")
             for iss in [iss]
         )
     ]

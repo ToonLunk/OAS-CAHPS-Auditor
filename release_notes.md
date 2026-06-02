@@ -1,17 +1,21 @@
-# Version 2.1.2 - Bug Fixes
+# Version 2.1.3 - Misc HCAHPS Fixes and Improvements
 
-**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.1.1...v2.1.2
+**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.1.2...v2.1.3
 
 ## What's New
 
-- Fixed a bug where OAS audits were using HCAHPS-specific logic to check for eligible patients
-- Other bug fixes
+- Suppressed the duplicate phone number warning in the "General Issues" section of the report since it's already covered in the Contact Lookup section
+- Added more aliases for various column names
+- Added check to make sure D.DATE is in ascending order
+- Auditor CMD window now stays open after the audit completes if there are any warnings or errors
+- Added a section for found CMS columns 
+- Added AS as a required column for HCAHPS audits
 
 ---
 
 ## How do I install this?
 
-1. Download **`OAS-CAHPS-Auditor-v2.1.2-Setup.exe`** below.
+1. Download **`OAS-CAHPS-Auditor-v2.1.3-Setup.exe`** below.
 2. Run the installer - it will upgrade in place if you already have a previous version.
 3. You're done! You can now start using the auditor.
 

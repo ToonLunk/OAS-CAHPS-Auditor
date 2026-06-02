@@ -168,23 +168,27 @@ def classify_as(as_raw):
     return None, None
 
 
-def check_req_headers(headers):
+def check_req_headers(headers, header_text=""):
     """
     Check that all required HCAHPS headers are present in the CMS tab.
     Returns (mapping, missing_req_headers).
+
+    header_text: the cleaned sheet header/footer text. When it contains
+    "ALL MEDICAL DRGs", DRG is not required (the file was submitted without
+    individual DRG codes).
     """
+    drg_required = "ALL MEDICAL DRGs".lower() not in (header_text or "").lower()
+
     required_names = [
         "SID",
         "PATIENT NAME",
         "TELEPHONE",
         "D.DATE",
         "AGE",
+        "AS",
         "DS",
         "GENDER",
-        "UNIT",
-        "PHYSICIAN NAME",
         "MRN",
-        "DRG",
         "ATT",
         "LAG",
         "ID",
@@ -194,6 +198,8 @@ def check_req_headers(headers):
         "CMS INDICATOR",
         "LANGUAGE",
     ]
+    if drg_required:
+        required_names.append("DRG")
 
     mapping = {}
     missing_req_headers = []
@@ -389,6 +395,8 @@ _ADMIT_DATE_BASE = [
     "ARADMDT", "ARADMDT-N", "ARADMDT-T",
     "a.date", "a date", "a.dt",
     "admit", "admission",
+    "patient admit date", "adm/svcdate",
+    "patient hospital admission date", "visit/admitdate",
 ]
 _ADMIT_DATE_ALIASES = _expand_aliases(_ADMIT_DATE_BASE)
 
@@ -646,6 +654,7 @@ _ZIP_BASE = [
     "patient address zip code", "pt_zip", "pat_address_zip",
     "per_addr:per addr zip key", "arzip", "addr:per addr zip",
     "patinet mailing zip code", "zip5", "arpatzip-n", "arzip-n",
+    "arpatzip",
 ]
 _ZIP_ALIASES = _expand_aliases(_ZIP_BASE)
 

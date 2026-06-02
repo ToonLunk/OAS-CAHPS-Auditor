@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 2.1.3 - Misc HCAHPS Fixes and Improvements
+
+- Suppressed the duplicate phone number warning in the "General Issues" section of the report since it's already covered in the Contact Lookup section
+- Added more aliases for various column names
+- Added check to make sure D.DATE is in ascending order
+- Auditor CMD window now stays open after the audit completes if there are any warnings or errors
+- Added a section for found CMS columns
+
 ## Version 2.1.2 - Bug Fixes
 
 - Fixed a bug where OAS audits were using HCAHPS-specific logic to check for eligible patients

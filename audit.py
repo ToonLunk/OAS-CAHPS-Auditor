@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import uuid
+import warnings
 import webbrowser
 from multiprocessing import Pool, cpu_count, freeze_support
 from tqdm import tqdm
@@ -23,7 +24,7 @@ from audit_oas_funcs import (
 )
 from audit_hcahps_funcs import _DRG_APR_LOAD_ERROR
 
-__version__ = "2.1.2"
+__version__ = "2.1.3"
 version = __version__
 
 
@@ -80,7 +81,15 @@ def audit_excel(file_path, show_progress=False):
     try:
         if show_progress:
             print(f"Loading workbook: {os.path.basename(file_path)}...")
-        wb = openpyxl.load_workbook(file_path, data_only=True)
+        # Suppress openpyxl's "serial value outside date limits" warnings — those cells
+        # are already returned as None by openpyxl, and our blank-date checks flag them.
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r".*serial value.*outside the limits for dates.*",
+                category=UserWarning,
+            )
+            wb = openpyxl.load_workbook(file_path, data_only=True)
     except:
         print(
             f"--- Critical Error opening {file_path}! Are you sure it's an Excel file?"
@@ -152,7 +161,7 @@ def audit_excel(file_path, show_progress=False):
         first_row = next(sheet.iter_rows(min_row=1, max_row=1))
         headers = {cell.value: idx for idx, cell in enumerate(first_row, start=1)}
 
-        mapping, missing_req_headers = hcahps_check_req_headers(headers)
+        mapping, missing_req_headers = hcahps_check_req_headers(headers, header_text=header)
 
         sid_col     = mapping.get("SID")
         mrn_col     = mapping.get("MRN")
@@ -361,6 +370,7 @@ def audit_excel(file_path, show_progress=False):
             frame_invalid_addresses=frame_invalid_addresses,
             frame_noted_addresses=frame_noted_addresses,
             audit_type="HCAHPS",
+            header_text=header,
         )
 
         if show_progress:
@@ -582,13 +592,17 @@ def process_file_wrapper(args):
     """
     filename, version_str, update_info = args
     try:
-        file_path, report_lines, service_date_range, name_match_info = audit_excel(filename)
-        final_file = save_report(file_path, report_lines, version=version_str, service_date_range=service_date_range, update_info=update_info)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            file_path, report_lines, service_date_range, name_match_info = audit_excel(filename)
+            final_file = save_report(file_path, report_lines, version=version_str, service_date_range=service_date_range, update_info=update_info)
+        warning_msgs = [str(w.message) for w in caught]
         return {
             'status': 'success',
             'filename': filename,
             'result_file': final_file,
             'name_match_info': name_match_info,
+            'warnings': warning_msgs,
             'error': None
         }
     except Exception as e:
@@ -597,6 +611,7 @@ def process_file_wrapper(args):
             'filename': filename,
             'result_file': None,
             'name_match_info': None,
+            'warnings': [],
             'error': str(e)
         }
 
@@ -710,7 +725,18 @@ if __name__ == "__main__":
         else:
             print("\n[OK] All files have matching client names (or no registry data)\n")
         print("="*60 + "\n")
-        
+
+        # Collect any processing warnings from workers
+        all_warnings = []
+        for result in results:
+            for msg in result.get('warnings', []):
+                all_warnings.append(f"  [{result['filename']}] {msg}")
+        if all_warnings:
+            print("WARNINGS DURING PROCESSING:")
+            for w in all_warnings:
+                print(w)
+            print()
+        input("Press Enter to exit: ")
         sys.exit(0)
 
     if arg == "--help" or arg == "-h":
@@ -738,8 +764,10 @@ if __name__ == "__main__":
         print_app_info_and_help_block()
         print()
         print(f"Processing: {os.path.basename(file_path)}")
-        file_path, report_lines, service_date_range, name_match_info = audit_excel(file_path, show_progress=False)
-        final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range, update_info=_update_info)
+        with warnings.catch_warnings(record=True) as _caught_warnings:
+            warnings.simplefilter("always")
+            file_path, report_lines, service_date_range, name_match_info = audit_excel(file_path, show_progress=False)
+            final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range, update_info=_update_info)
         print(f"Report saved: {final_file}")
         
         # Open the report in the default browser
@@ -751,10 +779,19 @@ if __name__ == "__main__":
         
         # Print clickable link for easy access
         print(f"\nReport link: file:///{os.path.abspath(final_file).replace(chr(92), '/')}")
-        
+
+        if _caught_warnings:
+            print()
+            print("WARNINGS DURING PROCESSING:")
+            for _w in _caught_warnings:
+                print(f"  {_w.message}")
+            print()
+            input("Press Enter to exit: ")
+
     except Exception as e:
         # For single file mode, print error and exit
         print(f"\nError processing file: {e}")
         import traceback
         traceback.print_exc()
+        input("Press Enter to exit: ")
         sys.exit(1)

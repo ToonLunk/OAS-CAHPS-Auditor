@@ -738,6 +738,7 @@ MRN_ALIASES = [
     "patient - patient - id", "pt_id", "mrn #", "chart no.",
     "v#", "pat person nbr", "med rec #", "patient - id",
     "med_rec_nbr", "patient chart id",
+    "patient history number", "patnumb", "arpnum"
 ]
 
 # Fallback patient-identifier aliases used on side tabs (INEL, EXCLU, DUP, POP, FRAME)
