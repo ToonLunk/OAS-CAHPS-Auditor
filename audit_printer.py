@@ -346,9 +346,8 @@ def build_report(
             if not disch_date_col_inel:
                 missing_cols.append("discharge date")
             report_lines.append(
-                f"<tr><td colspan='2' style='color: orange; font-style: italic;'>"
-                f"Note: Could not locate {' or '.join(missing_cols)} column(s) in INEL tab &mdash; "
-                f"same-day discharges may not be included in the count above."
+                f"<tr><td colspan='2' style='color: #ff7800; font-style: italic; text-align: left; font-size 0.85em !important;'>"
+                f"Note: Could not locate {' or '.join(missing_cols)} column(s) in INEL tab; same-day discharges may not be included in the count above."
                 f"</td></tr>"
             )
     else:

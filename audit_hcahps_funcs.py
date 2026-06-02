@@ -396,7 +396,7 @@ _ADMIT_DATE_BASE = [
     "a.date", "a date", "a.dt",
     "admit", "admission",
     "patient admit date", "adm/svcdate",
-    "patient hospital admission date", "visit/admitdate",
+    "patient hospital admission date", "visit/admitdate", "Enc Regist",
 ]
 _ADMIT_DATE_ALIASES = _expand_aliases(_ADMIT_DATE_BASE)
 
@@ -410,7 +410,7 @@ _DISCHARGE_DATE_BASE = [
     "hospital discharge date", "patient hospital discharge date",
     "ARDISDT", "ARDISDT-N", "ARDISDT-T",
     "d.date", "disdt", "discdt",
-    "discharge",
+    "discharge", "Enc Discha",
 ]
 _DISCHARGE_DATE_ALIASES = _expand_aliases(_DISCHARGE_DATE_BASE)
 
