@@ -6,6 +6,7 @@
 ## What's New
 
 - Fixed INEL counting
+- Various bug fixes and improvements
 
 ---
 
