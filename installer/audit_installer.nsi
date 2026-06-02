@@ -38,7 +38,7 @@ BrandingText "${APPNAME} v${VERSION}"
 !define MUI_UNICON "..\assets\icon.ico"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TITLE "Welcome to ${APPNAME} Setup"
-!define MUI_WELCOMEPAGE_TEXT "This wizard will install ${APPNAME} v${VERSION} on your computer.$\r$\n$\r$\nThe auditor validates OAS CAHPS Excel files and generates HTML reports.$\r$\n$\r$\nClick Next to continue."
+!define MUI_WELCOMEPAGE_TEXT "This wizard will install ${APPNAME} v${VERSION} on your computer.$\r$\n$\r$\nThe auditor validates OAS CAHPS and HCAHPS Excel files and generates HTML reports.$\r$\n$\r$\nClick Next to continue."
 !define MUI_FINISHPAGE_TITLE "Installation Complete"
 !define MUI_FINISHPAGE_TEXT "${APPNAME} has been installed to:$\r$\n$\r$\n${INSTALL_DIR}$\r$\n$\r$\nYou can now use it from the command line (audit --help) or by right-clicking Excel files and folders in Explorer.$\r$\n$\r$\nNote: You may need to open a new terminal window for the PATH change to take effect."
 
