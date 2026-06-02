@@ -344,8 +344,8 @@ def count_frame_patients(frame_sheet):
     Count eligible HCAHPS patients from the FRAME tab.
 
     Column A (index 0) has no header and contains a marker for each eligible
-    patient. The eligible count is simply the number of non-empty cells in
-    column A after the header row.
+    patient. Rows below a blank separator (sparse duplicate block used for
+    conditional formatting) are excluded.
 
     Returns:
         (eligible_count, 0)
@@ -355,8 +355,17 @@ def count_frame_patients(frame_sheet):
     if not rows:
         return None, None
 
+    # Find the first blank row after the header — that marks the end of the
+    # dense patient block. Everything after it is the sparse duplicate section.
+    dense_end = len(rows)
+    for i in range(1, len(rows)):
+        row = rows[i]
+        if all(c is None or str(c).strip() == "" for c in row):
+            dense_end = i
+            break
+
     eligible = sum(
-        1 for row in rows[1:]
+        1 for row in rows[1:dense_end]
         if len(row) > 0 and row[0] is not None and str(row[0]).strip() != ""
     )
     return eligible, 0
