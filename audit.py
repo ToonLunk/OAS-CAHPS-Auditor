@@ -776,7 +776,8 @@ if __name__ == "__main__":
         # instead of the default browser.  Skip auto-open in that case and
         # show an obvious message instead — report is still saved normally.
         _report_url = 'file:///' + final_file.replace('\\', '/').replace('#', '%23')
-        if len(final_file) >= 200:
+        _long_path = len(final_file) >= 200
+        if _long_path:
             print()
             print("=" * 60)
             print("  NOTE: Report was NOT auto-opened.")
@@ -800,6 +801,8 @@ if __name__ == "__main__":
             for _w in _caught_warnings:
                 print(f"  {_w.message}")
             print()
+            input("Press Enter to exit: ")
+        elif _long_path:
             input("Press Enter to exit: ")
 
     except Exception as e:
