@@ -6,6 +6,7 @@ import openpyxl
 import os
 import re
 import sys
+import urllib.parse
 import uuid
 import warnings
 import webbrowser
@@ -24,7 +25,7 @@ from audit_oas_funcs import (
 )
 from audit_hcahps_funcs import _DRG_APR_LOAD_ERROR
 
-__version__ = "2.1.4"
+__version__ = "2.1.5"
 version = __version__
 
 
@@ -772,13 +773,14 @@ if __name__ == "__main__":
         
         # Open the report in the default browser
         try:
-            webbrowser.open('file:///' + os.path.abspath(final_file).replace('\\', '/'))
+            _report_url = 'file:///' + urllib.parse.quote(os.path.abspath(final_file).replace('\\', '/'), safe='/:')
+            webbrowser.open(_report_url)
             print("Opening report in your default browser...")
         except Exception as e:
             print(f"Could not automatically open browser: {e}")
         
         # Print clickable link for easy access
-        print(f"\nReport link: file:///{os.path.abspath(final_file).replace(chr(92), '/')}")
+        print(f"\nReport link: file:///{urllib.parse.quote(os.path.abspath(final_file).replace(chr(92), '/'), safe='/:')}")
 
         if _caught_warnings:
             print()

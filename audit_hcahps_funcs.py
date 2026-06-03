@@ -339,6 +339,22 @@ def count_dup_d_rows(dup_sheet):
     return count
 
 
+def _frame_dense_end_row(frame_sheet):
+    """
+    Return the spreadsheet row number (1-based) of the last row in the dense
+    patient block on the FRAME tab.  The sparse duplicate-sorting block that
+    follows is separated by the first completely blank row after the header.
+    Returns None if the sheet is empty.
+    """
+    rows = list(frame_sheet.iter_rows(values_only=True))
+    if not rows:
+        return None
+    for i in range(1, len(rows)):
+        if all(c is None or str(c).strip() == '' for c in rows[i]):
+            return i  # rows[i] is spreadsheet row i+1; last data row is i (1-based)
+    return len(rows)  # no blank separator found — all rows are data
+
+
 def count_frame_patients(frame_sheet):
     """
     Count eligible HCAHPS patients from the FRAME tab.
@@ -355,14 +371,7 @@ def count_frame_patients(frame_sheet):
     if not rows:
         return None, None
 
-    # Find the first blank row after the header — that marks the end of the
-    # dense patient block. Everything after it is the sparse duplicate section.
-    dense_end = len(rows)
-    for i in range(1, len(rows)):
-        row = rows[i]
-        if all(c is None or str(c).strip() == "" for c in row):
-            dense_end = i
-            break
+    dense_end = _frame_dense_end_row(frame_sheet) or len(rows)
 
     eligible = sum(
         1 for row in rows[1:dense_end]
@@ -543,9 +552,12 @@ def check_same_day_discharges(wb):
     if admit_col is None or disch_col is None or mrn_col is None:
         return issues, None
 
-    # Compare admit and discharge dates row by row within FRAME
+    # Compare admit and discharge dates row by row within the dense block only.
+    # Rows after the first blank row are the sparse duplicate-sorting block and
+    # must not be checked for same-day discharges.
+    _dense_end = _frame_dense_end_row(frame_sheet) or frame_sheet.max_row
     row_issues = []
-    for row_num in range(2, frame_sheet.max_row + 1):
+    for row_num in range(2, _dense_end + 1):
         row = list(frame_sheet.iter_rows(
             min_row=row_num, max_row=row_num, values_only=True
         ))[0]
@@ -673,13 +685,20 @@ def get_frame_col_map(wb):
 def check_frame_addresses(wb, frame_col_map):
     """
     Run address validation on the FRAME tab using pre-detected column indices.
-    FRAME already has INEL/EXCLU filtered out, so all rows are validated.
+    Only rows in the dense patient block (before the first all-blank row) are
+    validated — the sparse block below it contains single-cell dupe-sorting
+    rows that have no addresses and must not be flagged.
     Returns (invalid_addresses, noted_addresses).
     """
     from audit_lib_funcs import check_address
     if 'FRAME' not in wb.sheetnames or frame_col_map is None:
         return [], []
     frame = wb['FRAME']
+
+    # Limit validation to the dense eligible block only — the sparse
+    # duplicate-sorting rows below the blank separator have no addresses.
+    dense_end_row = _frame_dense_end_row(frame) or frame.max_row
+
     addr1_col, _ = frame_col_map.get('Address 1', (None, None))
     addr2_col, _ = frame_col_map.get('Address 2', (None, None))
     city_col,  _ = frame_col_map.get('City',      (None, None))
@@ -690,6 +709,7 @@ def check_frame_addresses(wb, frame_col_map):
         frame, addr1_col, city_col, state_col, zip_col,
         mrn_col=mrn_col, cms_col=None, em_col=None,
         street_address_2_col=addr2_col,
+        max_row=dense_end_row,
     )
 
 

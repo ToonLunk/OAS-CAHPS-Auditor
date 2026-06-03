@@ -2067,6 +2067,17 @@ def save_report(file_path, report_lines, failure_reason="", version="0.0-alpha",
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     final_report_file = os.path.join(AUDITS_dir, f"{name}{month_str}_{timestamp}{ext}")
 
+    # If the output path would exceed Windows MAX_PATH (260), fall back to LOCALAPPDATA
+    # so the report is always saveable regardless of how deep the source folder is.
+    if len(final_report_file) > 259:
+        appdata = os.getenv("LOCALAPPDATA") or os.path.expanduser("~\\AppData\\Local")
+        fallback_dir = os.path.join(appdata, "OAS-CAHPS-Auditor", "AUDITS")
+        if failure_reason:
+            fallback_dir = os.path.join(fallback_dir, "unable_to_run_audit")
+        os.makedirs(fallback_dir, exist_ok=True)
+        final_report_file = os.path.join(fallback_dir, f"{name}{month_str}_{timestamp}{ext}")
+        print(f"Note: Source path is too long for Windows; report saved to: {final_report_file}")
+
     # prevent accidental overwrite (very unlikely because of timestamp, but safe)
     if os.path.isfile(final_report_file):
         print(

@@ -215,6 +215,7 @@ def check_address(
     street_address_2_col=None,
     name_col=None,
     age_col=None,
+    max_row=None,
 ):
     from i18naddress import normalize_address, InvalidAddressError
     import usaddress
@@ -227,7 +228,7 @@ def check_address(
         return invalid_addresses, noted_addresses
 
     for row_number, row in enumerate(
-        sheet.iter_rows(min_row=2, values_only=True), start=2
+        sheet.iter_rows(min_row=2, max_row=max_row, values_only=True), start=2
     ):
         if not any(cell is not None and str(cell).strip() != "" for cell in row):
             continue

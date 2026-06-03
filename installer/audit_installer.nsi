@@ -174,9 +174,10 @@ SectionEnd
 
 Section "Context Menu Integration" SecContextMenu
   ; --- Folder background: "Audit All CAHPS Files" (Windows 10 & 11) ---
+  ; pushd is used instead of cd /d so UNC paths (\\server\share\...) work correctly.
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll" "" "Audit All CAHPS Files"
   WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll" "Icon" "$INSTDIR\${EXE_NAME},0"
-  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll\command" "" 'cmd.exe /c cd /d "%V" && "$INSTDIR\${EXE_NAME}" --all || pause'
+  WriteRegStr HKCU "Software\Classes\Directory\Background\shell\AuditAll\command" "" 'cmd.exe /c pushd "%V" && "$INSTDIR\${EXE_NAME}" --all & popd'
 
   ; --- Individual Excel files: "Audit This CAHPS File" ---
   ; .xlsx

@@ -22,7 +22,7 @@ try {
 
     $folderCommandKey = "$folderShellKey\command"
     New-Item -Path $folderCommandKey -Force | Out-Null
-    Set-ItemProperty -Path $folderCommandKey -Name "(Default)" -Value "cmd.exe /c cd /d `"%V`" && `"$exePath`" --all || pause"
+    Set-ItemProperty -Path $folderCommandKey -Name "(Default)" -Value "cmd.exe /c pushd `"%V`" && `"$exePath`" --all & popd"
 
     Write-Host "Registered context menu for folders (Windows 10 & 11)" -ForegroundColor Green
 
