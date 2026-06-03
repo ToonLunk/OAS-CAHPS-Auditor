@@ -1,18 +1,17 @@
-# Version 2.1.4 - HCAHPS Hotfix
+# Version 2.1.5 - HCAHPS Hotfix
 
 
-**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.1.3...v2.1.4
+**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.1.4...v2.1.5
 
 ## What's New
 
-- Fixed INEL counting
-- Various bug fixes and improvements
+- Fixed long filepaths causing report saving to fail
 
 ---
 
 ## How do I install this?
 
-1. Download **`OAS-CAHPS-Auditor-v2.1.4-Setup.exe`** below.
+1. Download **`OAS-CAHPS-Auditor-v2.1.5-Setup.exe`** below.
 2. Run the installer - it will upgrade in place if you already have a previous version.
 3. You're done! You can now start using the auditor.
 

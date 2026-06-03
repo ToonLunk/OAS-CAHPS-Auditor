@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 2.1.5 - HCAHPS Hotfix
+
+- Fix long filepaths causing report saving to fail
+
 ## Version 2.1.4 - HCAHPS Hotfix
 
 - Fix INEL counting
