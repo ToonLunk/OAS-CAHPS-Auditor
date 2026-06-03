@@ -770,17 +770,29 @@ if __name__ == "__main__":
             file_path, report_lines, service_date_range, name_match_info = audit_excel(file_path, show_progress=False)
             final_file = save_report(file_path, report_lines, version=version, service_date_range=service_date_range, update_info=_update_info)
         print(f"Report saved: {final_file}")
-        
-        # Open the report in the default browser
-        try:
-            _report_url = 'file:///' + urllib.parse.quote(os.path.abspath(final_file).replace('\\', '/'), safe='/:')
-            webbrowser.open(_report_url)
-            print("Opening report in your default browser...")
-        except Exception as e:
-            print(f"Could not automatically open browser: {e}")
-        
+
+        # Open the report in the default browser.
+        # For long network paths Windows routes webbrowser.open() to Edge
+        # instead of the default browser.  Skip auto-open in that case and
+        # show an obvious message instead — report is still saved normally.
+        _report_url = 'file:///' + final_file.replace('\\', '/').replace('#', '%23')
+        if len(final_file) >= 200:
+            print()
+            print("=" * 60)
+            print("  NOTE: Report was NOT auto-opened.")
+            print("  The file path is too long for reliable auto-open.")
+            print("  Navigate to the AUDITS folder and open it manually:")
+            print(f"  {final_file}")
+            print("=" * 60)
+        else:
+            try:
+                webbrowser.open(_report_url)
+                print("Opening report in your default browser...")
+            except Exception as e:
+                print(f"Could not automatically open browser: {e}")
+
         # Print clickable link for easy access
-        print(f"\nReport link: file:///{urllib.parse.quote(os.path.abspath(final_file).replace(chr(92), '/'), safe='/:')}")
+        print(f"\nReport link: {_report_url}")
 
         if _caught_warnings:
             print()
