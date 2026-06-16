@@ -203,6 +203,128 @@ _PLACEHOLDER_ADDRESSES = {
 }
 
 
+# ---------------------------------------------------------------------------
+# USPS-approved secondary unit designators  (Pub 28, Appendix C2)
+# ---------------------------------------------------------------------------
+_SECONDARY_UNIT_DESIGNATORS = {
+    "apartment", "apt",
+    "basement", "bsmt",
+    "building", "bldg",
+    "department", "dept",
+    "floor", "fl",
+    "front", "frnt",
+    "hangar", "hngr",
+    "key",
+    "lobby", "lbby",
+    "lot",
+    "lower", "lowr",
+    "office", "ofc",
+    "penthouse", "ph",
+    "pier",
+    "rear",
+    "room", "rm",
+    "side",
+    "slip",
+    "space", "spc",
+    "stop",
+    "suite", "ste",
+    "trailer", "trlr",
+    "unit",
+    "upper", "uppr",
+}
+
+
+def _check_address2_continuation(street_str, street2_str):
+    """
+    Check whether ADDRESS2 is a valid *continuation* of ADDRESS1.
+    Returns a list of issue strings (empty list = no problems).
+
+    Rules:
+      - If ADDRESS1 is a PO Box, ADDRESS2 must be empty.
+      - If ADDRESS1 is a street address, ADDRESS2 must be either empty
+        or a recognized secondary unit designator (Apt, Suite, #, bare
+        number, etc.).  A PO Box, a separate street address, leaked
+        city/state/zip, or unrecognizable content will be flagged.
+    """
+    import usaddress
+
+    issues = []
+    if not street2_str:
+        return issues
+
+    try:
+        tagged1, _ = usaddress.tag(street_str)
+    except usaddress.RepeatedLabelError:  # type: ignore[attr-defined]
+        return issues
+
+    addr1_is_po_box = "USPSBoxType" in tagged1
+
+    if addr1_is_po_box:
+        issues.append(
+            f"ADDRESS1 is a PO Box but ADDRESS2 is not empty: '{street2_str}'"
+        )
+        return issues
+
+    s2 = street2_str.strip()
+    s2_lower = s2.lower()
+
+    if re.match(r"(?i)^(c\s*/?\s*o\b|attn\b|attention\b)", s2_lower):
+        issues.append(f"ADDRESS2 contains care-of / attention line: '{s2}'")
+        return issues
+
+    try:
+        tagged2, _ = usaddress.tag(s2)
+    except usaddress.RepeatedLabelError:  # type: ignore[attr-defined]
+        issues.append(f"ADDRESS2 has unusual/repeated components: '{s2}'")
+        return issues
+
+    tag_keys2 = set(tagged2.keys())
+
+    if "USPSBoxType" in tag_keys2:
+        issues.append(f"ADDRESS2 contains a PO Box: '{s2}'")
+        return issues
+
+    has_number = "AddressNumber" in tag_keys2
+    has_street = "StreetName" in tag_keys2 or "StreetNamePostType" in tag_keys2
+    if has_number and has_street:
+        issues.append(f"ADDRESS2 looks like a separate street address: '{s2}'")
+        return issues
+
+    leaked = []
+    if "PlaceName" in tag_keys2:
+        leaked.append("city")
+    if "StateName" in tag_keys2:
+        leaked.append("state")
+    if "ZipCode" in tag_keys2:
+        leaked.append("zip")
+    if leaked:
+        issues.append(
+            f"ADDRESS2 contains {'/'.join(leaked)} component(s): '{s2}'"
+        )
+        return issues
+
+    if "OccupancyType" in tag_keys2 or "OccupancyIdentifier" in tag_keys2:
+        return issues
+
+    if re.match(r"^#?\s*\d+[A-Za-z]?$", s2):
+        return issues
+
+    first_word = re.split(r"[\s,#]+", s2_lower)[0] if s2_lower else ""
+    if first_word in _SECONDARY_UNIT_DESIGNATORS:
+        return issues
+
+    if len(s2) > 40:
+        issues.append(
+            f"ADDRESS2 is unusually long and not a recognized continuation: '{s2}'"
+        )
+    else:
+        issues.append(
+            f"ADDRESS2 not recognized as a valid continuation of ADDRESS1: '{s2}'"
+        )
+
+    return issues
+
+
 def check_address(
     sheet,
     street_address_1_col,
@@ -306,7 +428,13 @@ def check_address(
                 note_issues.append(f"Possible facility/institution in {field}: '{keyword}'")
                 break  # one match is enough
 
-        # 2-3 only run on mailing rows (E/M = "M")
+        # 2. Address Line 2 continuation check - runs on ALL rows
+        if street_str and street2_str:
+            addr2_issues = _check_address2_continuation(street_str, street2_str)
+            if addr2_issues:
+                note_issues.extend(addr2_issues)
+
+        # 3-4 only run on mailing rows (E/M = "M")
         is_mailing = str(em).strip().upper() == "M" if em else False
 
         if is_mailing:
@@ -319,7 +447,7 @@ def check_address(
                     note_issues.append(f"Non-address placeholder in {field}: '{street_str if field == 'ADDRESS1' else street2_str}'")
                     break
 
-            # 3. usaddress structural check - does ADDRESS1 parse as a real street address?
+            # 4. usaddress structural check - does ADDRESS1 parse as a real street address?
             try:
                 tagged, addr_type = usaddress.tag(street_str)
                 has_number = "AddressNumber" in tagged

@@ -25,7 +25,7 @@ from audit_oas_funcs import (
 )
 from audit_hcahps_funcs import _DRG_APR_LOAD_ERROR
 
-__version__ = "2.1.5"
+__version__ = "2.2.1"
 version = __version__
 
 
@@ -454,7 +454,7 @@ def audit_excel(file_path, show_progress=False):
     sid_col = mapping.get("SID")
     pat_col = mapping.get("PATIENT NAME")
     addr1_col = mapping.get("ADDRESS1")
-    addr2_col = mapping.get("ADDRESS2")
+    addr2_col = mapping.get("ADDRESS2") or headers.get("ADDRESS2")
     city_col = mapping.get("CITY")
     state_col = mapping.get("STATE")
     zip_col = mapping.get("ZIP")

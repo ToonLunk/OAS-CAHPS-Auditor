@@ -1,17 +1,17 @@
-# Version 2.1.5 - HCAHPS Hotfix
+# Version 2.2.1 - Address Checking Improvements
 
 
-**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.1.4...v2.1.5
+**Full Changelog**: https://github.com/ToonLunk/OAS-CAHPS-Auditor/compare/v2.1.5...v2.2.1
 
 ## What's New
 
-- Fixed long filepaths causing report saving to fail
+- Added checks to make sure there is only 1 address across Address1 and Address2 columns
 
 ---
 
 ## How do I install this?
 
-1. Download **`OAS-CAHPS-Auditor-v2.1.5-Setup.exe`** below.
+1. Download **`OAS-CAHPS-Auditor-v2.2.1-Setup.exe`** below.
 2. Run the installer - it will upgrade in place if you already have a previous version.
 3. You're done! You can now start using the auditor.
 

@@ -1367,7 +1367,7 @@ def build_report(
             name_col=_name_col_addr, age_col=_age_col_addr
         )
     if invalid_addresses:
-        report_lines.append("<h2>INVALID ADDRESSES FOUND</h2>")
+        report_lines.append("<h2>(Possibly) INVALID ADDRESSES FOUND</h2>")
         report_lines.append("<details open>")
         report_lines.append(
             f"<summary>Invalid Address Details ({len(invalid_addresses)} found)</summary>"
@@ -1516,7 +1516,7 @@ def build_report(
 
     # possibly problematic addresses
     if noted_addresses:
-        report_lines.append("<h2>PROBLEMATIC ADDRESSES FOUND</h2>")
+        report_lines.append("<h2>(Possibly) PROBLEMATIC ADDRESSES FOUND</h2>")
         report_lines.append("<details open>")
         report_lines.append(
             f"<summary>Problematic Address Details ({len(noted_addresses)} found)</summary>"

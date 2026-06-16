@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 2.2.1 - Address Checking Improvements
+
+- Added checks to make sure there is only 1 address across Address1 and Address2 columns
+
 ## Version 2.1.5 - HCAHPS Hotfix
 
 - Fix long filepaths causing report saving to fail
